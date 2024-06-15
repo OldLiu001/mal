@@ -53,6 +53,7 @@ goto :eof
 set "Stack=call :MAL_Reader_IMPORTFUNCTION_Stack"
 
 @echo off
+setlocal enabledelayedexpansion
 call :MAL_Reader_GLOBALFUNCTION_TokenizeUnitTest
 pause
 exit
