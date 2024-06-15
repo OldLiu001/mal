@@ -1,5 +1,12 @@
-@rem Project Name: MAL
-@rem Module Name: Main
+@rem Project name: MAL
+@rem Module name: Main
+
+@rem Global function list:
+@rem 	Main
+@rem 	Read
+@rem 	Eval
+@rem 	Print
+@rem 	REP
 
 @rem Origin name mapping:
 @rem 	READ -> Read
@@ -8,142 +15,109 @@
 @rem 	rep -> REP
 
 @echo off
-setlocal ENABLEDELAYEDEXPANSION
-set /a GLOBAL_STACKCNT = -1
-goto Main
+setlocal disabledelayedexpansion
+rem cancel all pre-defined variables.
+for /f "delims==" %%a in ('set') do set "%%a="
 
 
-:Main
-	set Input=
-	set /p "=user> "<nul
-	for /f "delims=" %%a in ('call readline.bat') do set "Input=%%~a"
-	call :REP "!Input!"
-goto :Main
-
-
-%Speed Improve Start% (
-	:Read
-		call :GetVars Main Read "MalCode"
-		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
-	goto :eof
-
-	:Eval
-		call :GetVars Main Read "MalCode"
-		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
-	goto :eof
-
-	:Print
-		call :GetVars Main Read "MalCode"
-		
-		echo."!MalCode!"| call writeall.bat
-	goto :eof
-
-	:REP MalCode
-		set "MalCode=%~1"
-		
-		call :SaveVars Main REP "MalCode"
-		call :READ
-		call :GetVars Main REP "ReturnValue"
-		
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
-		call :EVAL
-		call :GetVars Main REP "ReturnValue"
-
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
-		call :PRINT
-	goto :eof
-) %Speed Improve End%
-
-
-
-@REM Batchfile Stackframe support BY OldLiu.
-%Speed Improve Start% (
-	:StackPushVar strVarName
-		rem requirement: enable delayed expansion.
-		set /a GLOBAL_STACKCNT += 1
-		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=!%~1!"
-	goto :eof
-
-	:StackPushVal str
-		rem requirement: enable delayed expansion.
-		set /a GLOBAL_STACKCNT += 1
-		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=%~1"
-	goto :eof
-
-	:StackPopVar strVarName
-		rem requirement: enable delayed expansion.
-		if %GLOBAL_STACKCNT% lss 0 (
-			echo [Module: StackLib] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
-			exit /b 1
-		)
-		for %%i in (!GLOBAL_STACKCNT!) do (
-			set "%~1=!GLOBAL_STACK[%%i]!"
-			set "GLOBAL_STACK[%%i]="
-		)
-		set /a GLOBAL_STACKCNT -= 1
-	goto :eof
-
-	:GetVars ModuleName FnName VarList
-		rem requirement: enable delayed expansion.
-		rem requirement: VarList is a string, and each VarName is separated by " ".
-		rem requirement: VarName is different from each other.
-		set "ModuleName=%~1"
-		set "FnName=%~2"
-		set "VarList=%~3"
-		
-		rem Pop Vars.
-		rem Pop Var count.
-		call :StackPopVar VarCount
-		for /l %%i in (1 1 !VarCount!) do (
-			call :StackPopVar VarName
-
-			rem check if VarName in VarList.
-			for %%j in (!VarName!) do (
-				@REM echo varlist "!VarList!" "%%j"
-				@REM echo varlist "!VarList:%%j=!"
-				if "!VarList!" == "!VarList:%%j=!" (
-					echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%j is not in VarList. >&2
-					exit /b 1
+:MAL_Main_GLOBALFUNCTION_Main
+	set MAL_Main_LOCALVAR_Main_Input=
+	set /p "MAL_Main_LOCALVAR_Main_Input=user> "
+	if defined MAL_Main_LOCALVAR_Main_Input (
+		rem first replace double quotation mark.
+		set "MAL_Main_LOCALVAR_Main_Input=%MAL_Main_LOCALVAR_Main_Input:"=#$Double_Quotation$#%"
+		rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
+		call set "MAL_Main_LOCALVAR_Main_Input=%%MAL_Main_LOCALVAR_Main_Input:!=#$Exclamation$#%%"
+		setlocal ENABLEDELAYEDEXPANSION
+		%Speed Improve Start% (
+			rem Batch has some problem in "^" processing, so replace it.
+			set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:^=#$Caret$#!"
+			rem replace %.
+			set MAL_Main_LOCALVAR_Main_FormatedInput=
+			:MAL_Main_LOCALTAG_Main_ReplacementLoop
+			if defined MAL_Main_LOCALVAR_Main_Input (
+				if "!MAL_Main_LOCALVAR_Main_Input:~,1!" == "%%" (
+					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!#$Percent$#"
+				) else (
+					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!!MAL_Main_LOCALVAR_Main_Input:~,1!"
 				)
-
-				rem Remove VarName from VarList.
-				set VarList=!VarList:%%j=!
+				set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:~1!"
+				goto MAL_Main_LOCALTAG_Main_ReplacementLoop
 			)
-			call :StackPopVar !VarName!
-		)
-		rem check if VarList is empty.
-		for %%_ in (!VarList!) do (
-			echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] Need more Vars: !VarList! >&2
-			exit /b 1
+			call :MAL_Main_GLOBALFUNCTION_REP "!MAL_Main_LOCALVAR_Main_FormatedInput!"
+			endlocal
+		) %Speed Improve End%
+	)
+goto :MAL_Main_GLOBALFUNCTION_Main
+
+
+%Speed Improve Start% (
+	:MAL_Main_GLOBALFUNCTION_Read
+		setlocal
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
+			endlocal
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
 		)
 	goto :eof
 
-	:SaveVars ModuleName FnName VarList
-		rem requirement: enable delayed expansion.
-		rem requirement: VarList is a string, and each VarName is separated by " ".
-		rem requirement: VarName is different from each other.
-		set "ModuleName=%~1"
-		set "FnName=%~2"
-		set "VarList=%~3"
-		
-		rem Cout Var number.
-		set "VarCount=0"
-		for %%i in (!VarList!) do (
-			if not defined %%i (
-				echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%i is not defined. >&2
-				exit /b 1
-			)
-			call :StackPushVar %%i
-			call :StackPushVal %%i
-			set /a VarCount += 1
+	:MAL_Main_GLOBALFUNCTION_Eval
+		setlocal
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
+			endlocal
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
 		)
-		rem Push Var count.
-		call :StackPushVal !VarCount!
+	goto :eof
+
+	:MAL_Main_GLOBALFUNCTION_Print
+		setlocal
+			set "MAL_Main_LOCALVAR_Print_Output=%~1"
+			rem replace all speical symbol back.
+			set MAL_Main_LOCALVAR_Print_OutputBuffer=
+			:MAL_Main_LOCALTAG_Print_OutputLoop
+			if "!MAL_Main_LOCALVAR_Print_Output:~,15!" == "#$Exclamation$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^!"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~15!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,9!" == "#$Caret$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^^"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~9!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,20!" == "#$Double_Quotation$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^""
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~20!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == "=" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!="
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == " " (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer! "
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,11!" == "#$Percent$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!%%"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~11!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if defined MAL_Main_LOCALVAR_Print_Output (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!!MAL_Main_LOCALVAR_Print_Output:~,1!"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			)
+			echo.!MAL_Main_LOCALVAR_Print_OutputBuffer!
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
+			endlocal
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
+		)
+	goto :eof
+
+	:MAL_Main_GLOBALFUNCTION_REP
+		setlocal
+			call :MAL_Main_GLOBALFUNCTION_READ "%~1"
+			call :MAL_Main_GLOBALFUNCTION_EVAL "!MAL_Main_GLOBALVAR_ReturnValue!"
+			call :MAL_Main_GLOBALFUNCTION_PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
+		endlocal
 	goto :eof
 ) %Speed Improve End%

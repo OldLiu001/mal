@@ -391,11 +391,8 @@ rem rewrite above code without using outside libraries
 @REM 	read_atom -> ReadAtom
 
 @REM Special Symbol Mapping:
-@REM 	! --- #$E$#
-@REM 	^ --- #$C$#
-@REM 	" --- #$D$#
-@REM 	% --- #$P$#
+@REM 	! --- #$Exclamation$#
+@REM 	^ --- #$Caret$#
+@REM 	" --- #$Double_Quotation$#
+@REM 	% --- #$Percent$#
 
-(
-	
-)
