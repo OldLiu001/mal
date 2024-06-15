@@ -1,0 +1,21 @@
+Testing evaluation of arithmetic operations
+TEST: '(+ 1 2)' -> ['',3] -> SUCCESS
+TEST: '(+ 5 (* 2 3))' -> ['',11] -> SUCCESS
+TEST: '(- (+ 5 (* 2 3)) 3)' -> ['',8] -> SUCCESS
+TEST: '(/ (- (+ 5 (* 2 3)) 3) 4)' -> ['',2] -> SUCCESS
+TEST: '(/ (- (+ 515 (* 87 311)) 302) 27)' -> ['',1010] -> SUCCESS
+TEST: '(* -3 6)' -> ['',-18] -> SUCCESS
+TEST: '(/ (- (+ 515 (* -87 311)) 296) 27)' -> ['',-994] -> SUCCESS
+TEST: '(abc 1 2 3)' -> ['.+',]
+Exception: UnicodeDecodeError('utf-8', b'\xb9', 0, 1, 'invalid start byte')
+Output before exception:
+Exception:
+
+user> (abc 1 2 3)
+Exception: 管道元素中的“&”后面的表达式生成无效的对象。该表达式必须生成命令名称、脚本块或 CommandInfo 对象。
+user>
+
+
+
+
+
