@@ -1,15 +1,27 @@
-Set "List=call "%~dp0LinearList_LSS_SLL.bat""
-Set "Queue=call "%~dp0Queue_LSS.bat""
-Set "Stack=call "%~dp0Stack_LSS.bat""
+@rem Project name: MAL
+@rem Module name: Reader
+
+@rem Global function list:
+@rem 	ReadString
+@rem 	Tokenize
+@rem 	ReadForm
+@rem 	ReadList
+@rem 	ReadAtom
+@rem 	CheckType
+
+
+set "List=call "%~dp0Lib_Collections\LinearList_LSS_SLL.bat""
+set "Queue=call "%~dp0Lib_Collections\Queue_LSS.bat""
+set "Stack=call "%~dp0Lib_Collections\Stack_LSS.bat""
 
 ::Start
-	Set "_TMP_Arguments_=%*"
-	If "!_TMP_Arguments_:~,1!" Equ ":" (
-		Set "_TMP_Arguments_=!_TMP_Arguments_:~1!"
+	set "_TMP_Arguments_=%*"
+	if "!_TMP_Arguments_:~,1!" Equ ":" (
+		set "_TMP_Arguments_=!_TMP_Arguments_:~1!"
 	)
-	Call :!_TMP_Arguments_!
-	Set _TMP_Arguments_=
-Goto :Eof
+	call :MAL_Reader_EXPORTFUNCTION_!_TMP_Arguments_!
+	set _TMP_Arguments_=
+goto :eof
 
 :read_str str
 	call :tokenize "%~1"
@@ -213,4 +225,12 @@ goto :eof
 	set "tokens_queue=%~1"
 	!Queue! :Dequeue tokens_queue token
 
+	call :check_type token
 goto :eof
+
+:check_type token
+	set "token=%~1"
+	
+	rem check if it is a number
+	:
+	
