@@ -25,7 +25,7 @@ Special Symbol Mapping:
 	" --- #$Double_Quotation$#
 	% --- #$Percent$#
 
-Batchfile Interpreter Speed improve
+Batchfile Interpreter Speed Improve:
 	%Speed Improve Start% (
 		...
 	) %Speed Improve End%
