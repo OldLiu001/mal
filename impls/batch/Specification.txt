@@ -4,6 +4,7 @@ Namespace Types:
 	GLOBALVAR
 	LOCALVAR
 	EXPORTFUNCTION
+	IMPORTFUNCTION
 	GLOBALFUNCTION
 	LOCALTAG
 
@@ -14,6 +15,7 @@ Namespace Template:
 	Local Variables Name: [ProjectName]_[ModuleName]_LOCALVAR_[FunctionName]_[VariableName]
 	
 	Export Function Name: [ProjectName]_[ModuleName]_EXPORTFUNCTION_[FunctionName]
+	Import Function Name: [ProjectName]_[ModuleName]_IMPORTFUNCTION_[FunctionName]
 	Global Function Name: [ProjectName]_[ModuleName]_GLOBALFUNCTION_[FunctionName]
 	Local Tag Name: [ProjectName]_[ModuleName]_LOCALTAG_[FunctionName]_[TagName]
 
