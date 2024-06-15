@@ -1,5 +1,5 @@
-@rem Project Name: MAL
-@rem Module Name: Main
+@rem Project name: MAL
+@rem Module name: Main
 
 @rem Global function list:
 @rem 	Main
