@@ -22,3 +22,9 @@ Special Symbol Mapping:
 	^ --- #$Caret$#
 	" --- #$Double_Quotation$#
 	% --- #$Percent$#
+
+Batchfile Interpreter Speed improve
+	%Speed Improve Start% (
+		...
+	) %Speed Improve End%
+
