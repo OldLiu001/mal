@@ -120,4 +120,4 @@ goto :MAL_Main_GLOBALFUNCTION_Main
 			call :MAL_Main_GLOBALFUNCTION_PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
 		endlocal
 	goto :eof
-) %improve speed end%
+) %Speed Improve End%
