@@ -21,84 +21,90 @@ for /f "delims==" %%a in ('set') do set "%%a="
 set /a GLOBAL_STACKCNT = -1
 goto Main
 
-:StackPushVar strVarName
-	rem requirement: enable delayed expansion.
-	set /a GLOBAL_STACKCNT += 1
-	set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=!%~1!"
-goto :eof
+%Speed Improve Start% (
+	:StackPushVar strVarName
+		rem requirement: enable delayed expansion.
+		set /a GLOBAL_STACKCNT += 1
+		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=!%~1!"
+	goto :eof
 
-:StackPushVal str
-	rem requirement: enable delayed expansion.
-	set /a GLOBAL_STACKCNT += 1
-	set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=%~1"
-goto :eof
+	:StackPushVal str
+		rem requirement: enable delayed expansion.
+		set /a GLOBAL_STACKCNT += 1
+		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=%~1"
+	goto :eof
 
-:StackPopVar strVarName
-	rem requirement: enable delayed expansion.
-	if %GLOBAL_STACKCNT% lss 0 (
-		echo [Module: Main] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
-		exit /b 1
-	)
-	for %%i in (!GLOBAL_STACKCNT!) do (
-		set "%~1=!GLOBAL_STACK[%%i]!"
-		set "GLOBAL_STACK[%%i]="
-	)
-	set /a GLOBAL_STACKCNT -= 1
-goto :eof
-
-:GetVars ModuleName FnName VarList
-	rem requirement: enable delayed expansion.
-	set "ModuleName=%~1"
-	set "FnName=%~2"
-	set "VarList=%~3"
-	
-	rem Pop Vars.
-	rem Pop Var count.
-	call :StackPopVar VarCount
-	for /l %%i in (1 1 !VarCount!) do (
-		call :StackPopVar VarName
-
-		rem check if VarName in VarList.
-		for %%j in (!VarName!) do (
-			@REM echo varlist "!VarList!" "%%j"
-			@REM echo varlist "!VarList:%%j=!"
-			if "!VarList!" == "!VarList:%%j=!" (
-				echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%j is not in VarList. >&2
-				exit /b 1
-			)
-
-			rem Remove VarName from VarList.
-			set VarList=!VarList:%%j=!
-		)
-		call :StackPopVar !VarName!
-	)
-	rem check if VarList is empty.
-	if defined VarList (
-		echo [Mod: Main] [Fn: Read] [Fatal Error] Need more Vars: !VarList! >&2
-		exit /b 1
-	)
-goto :eof
-
-:PrepareVars ModuleName FnName VarList
-	rem requirement: enable delayed expansion.
-	set "ModuleName=%~1"
-	set "FnName=%~2"
-	set "VarList=%~3"
-	
-	rem Cout Var number.
-	set "VarCount=0"
-	for %%i in (!VarList!) do (
-		if not defined %%i (
-			echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%i is not defined. >&2
+	:StackPopVar strVarName
+		rem requirement: enable delayed expansion.
+		if %GLOBAL_STACKCNT% lss 0 (
+			echo [Module: Main] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
 			exit /b 1
 		)
-		call :StackPushVar %%i
-		call :StackPushVal %%i
-		set /a VarCount += 1
-	)
-	rem Push Var count.
-	call :StackPushVal !VarCount!
-goto :eof
+		for %%i in (!GLOBAL_STACKCNT!) do (
+			set "%~1=!GLOBAL_STACK[%%i]!"
+			set "GLOBAL_STACK[%%i]="
+		)
+		set /a GLOBAL_STACKCNT -= 1
+	goto :eof
+
+	:GetVars ModuleName FnName VarList
+		rem requirement: enable delayed expansion.
+		rem requirement: VarList is a string, and each VarName is separated by " ".
+		rem requirement: VarName is different from each other.
+		set "ModuleName=%~1"
+		set "FnName=%~2"
+		set "VarList=%~3"
+		
+		rem Pop Vars.
+		rem Pop Var count.
+		call :StackPopVar VarCount
+		for /l %%i in (1 1 !VarCount!) do (
+			call :StackPopVar VarName
+
+			rem check if VarName in VarList.
+			for %%j in (!VarName!) do (
+				@REM echo varlist "!VarList!" "%%j"
+				@REM echo varlist "!VarList:%%j=!"
+				if "!VarList!" == "!VarList:%%j=!" (
+					echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%j is not in VarList. >&2
+					exit /b 1
+				)
+
+				rem Remove VarName from VarList.
+				set VarList=!VarList:%%j=!
+			)
+			call :StackPopVar !VarName!
+		)
+		rem check if VarList is empty.
+		for %%_ in (!VarList!) do (
+			echo [Mod: Main] [Fn: Read] [Fatal Error] Need more Vars: !VarList! >&2
+			exit /b 1
+		)
+	goto :eof
+
+	:PrepareVars ModuleName FnName VarList
+		rem requirement: enable delayed expansion.
+		rem requirement: VarList is a string, and each VarName is separated by " ".
+		rem requirement: VarName is different from each other.
+		set "ModuleName=%~1"
+		set "FnName=%~2"
+		set "VarList=%~3"
+		
+		rem Cout Var number.
+		set "VarCount=0"
+		for %%i in (!VarList!) do (
+			if not defined %%i (
+				echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%i is not defined. >&2
+				exit /b 1
+			)
+			call :StackPushVar %%i
+			call :StackPushVal %%i
+			set /a VarCount += 1
+		)
+		rem Push Var count.
+		call :StackPushVal !VarCount!
+	goto :eof
+) %Speed Improve End%
 
 :Main
 	set Input=
@@ -133,100 +139,80 @@ goto :Main
 
 %Speed Improve Start% (
 	:Read
-		call :GetVars Main Read strMalCode,
+		call :GetVars Main Read "strMalCode"
 		rem return it directly.
 		set "ReturnValue=!strMalCode!"
-		call :PrepareVars Main Read ReturnValue,
+		call :PrepareVars Main Read "ReturnValue"
 	goto :eof
 
 	:Eval
-		setlocal
-			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
-		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
-			endlocal
-			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
-		)
+		call :GetVars Main Read "strMalCode"
+		rem return it directly.
+		set "ReturnValue=!strMalCode!"
+		call :PrepareVars Main Read "ReturnValue"
 	goto :eof
 
 	:Print
-		setlocal
-			set "MAL_Main_LOCALVAR_Print_Output=%~1"
-			rem replace all speical symbol back.
-			set MAL_Main_LOCALVAR_Print_OutputBuffer=
-			:MAL_Main_LOCALTAG_Print_OutputLoop
-			if "!MAL_Main_LOCALVAR_Print_Output:~,15!" == "#$Exclamation$#" (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^!"
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~15!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if "!MAL_Main_LOCALVAR_Print_Output:~,9!" == "#$Caret$#" (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^^"
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~9!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if "!MAL_Main_LOCALVAR_Print_Output:~,20!" == "#$Double_Quotation$#" (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^""
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~20!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == "=" (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!="
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == " " (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer! "
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if "!MAL_Main_LOCALVAR_Print_Output:~,11!" == "#$Percent$#" (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!%%"
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~11!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			) else if defined MAL_Main_LOCALVAR_Print_Output (
-				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!!MAL_Main_LOCALVAR_Print_Output:~,1!"
-				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
-				goto MAL_Main_LOCALTAG_Print_OutputLoop
-			)
-			echo.!MAL_Main_LOCALVAR_Print_OutputBuffer!
-			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
-		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
-			endlocal
-			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
+		call :GetVars Main Read "strMalCode"
+		
+		set "Output=!strMalCode!"
+		rem replace all speical symbol back.
+		set OutputBuffer=
+		:LOCALTAG_Print_OutputLoop
+		if "!Output:~,15!" == "#$Exclamation$#" (
+			set "OutputBuffer=!OutputBuffer!^!"
+			set "Output=!Output:~15!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if "!Output:~,9!" == "#$Caret$#" (
+			set "OutputBuffer=!OutputBuffer!^^"
+			set "Output=!Output:~9!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if "!Output:~,20!" == "#$Double_Quotation$#" (
+			set "OutputBuffer=!OutputBuffer!^""
+			set "Output=!Output:~20!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if "!Output:~,1!" == "=" (
+			set "OutputBuffer=!OutputBuffer!="
+			set "Output=!Output:~1!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if "!Output:~,1!" == " " (
+			set "OutputBuffer=!OutputBuffer! "
+			set "Output=!Output:~1!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if "!Output:~,11!" == "#$Percent$#" (
+			set "OutputBuffer=!OutputBuffer!%%"
+			set "Output=!Output:~11!"
+			goto LOCALTAG_Print_OutputLoop
+		) else if defined Output (
+			set "OutputBuffer=!OutputBuffer!!Output:~,1!"
+			set "Output=!Output:~1!"
+			goto LOCALTAG_Print_OutputLoop
 		)
+		echo.!OutputBuffer!
+		
+		rem return output buffer.
+		set "ReturnValue=!OutputBuffer!"
+		call :PrepareVars Main Read "ReturnValue"
 	goto :eof
 
 	:REP strMalCode
 		set "strMalCode=%~1"
 		
-		rem Save the original value of strMalCode.
-		call :PrepareVars Main REP "strMalCode"
-		set GLOBAL_STACK
-		echo.
-		call :GetVars Main REP "strMalCode"
-		set GLOBAL_STACK
-		echo.
-		echo.
-		pause & exit
-
 		rem Prepare arguments for Read.
-		call :PrepareVars Main REP strMalCode,
-		set GLOBAL_STACK
-		echo.
-		call :GetVars Main REP strMalCode,
-		set GLOBAL_STACK
-		echo.
-		call :GetVars Main REP strMalCode,
-		set GLOBAL_STACK
-		echo.
-		pause & exit
-
+		call :PrepareVars Main REP "strMalCode"
+		rem Call function Read.
 		call :READ
 		rem Get return value.
-		call :GetVars Main REP ReturnValue,
-		rem Restore the original value of strMalCode.
-		call :GetVars Main REP strMalCode,
+		call :GetVars Main REP "ReturnValue"
+		
+		set "strMalCode=!ReturnValue!"
+		call :PrepareVars Main REP "strMalCode"
+		call :EVAL
+		call :GetVars Main REP "ReturnValue"
 
-		pause
-		exit
-
-		set ReturnValue
-		call :EVAL "!ReturnValue[1]!"
-		call :PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
+		set "strMalCode=!ReturnValue!"
+		call :PrepareVars Main REP "strMalCode"
+		call :PRINT
+		call :GetVars Main REP "ReturnValue"
 	goto :eof
 ) %Speed Improve End%
