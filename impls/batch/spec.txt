@@ -1,8 +1,8 @@
 Special Symbol Mapping:
-	! --- #$E$#
-	^ --- #$C$#
-	" --- #$D$#
-	% --- #$P$#
+	! --- #$Exclamation$#
+	^ --- #$Caret$#
+	" --- #$Double_Quotation$#
+	% --- #$Percent$#
 
 Batchfile Interpreter Speed Improve:
 	%Speed Improve Start% (
