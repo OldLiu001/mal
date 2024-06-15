@@ -18,41 +18,128 @@
 setlocal disabledelayedexpansion
 rem cancel all pre-defined variables.
 for /f "delims==" %%a in ('set') do set "%%a="
+set /a GLOBAL_STACKCNT = -1
+goto Main
 
+:StackPushVar strVarName
+	rem requirement: enable delayed expansion.
+	set /a GLOBAL_STACKCNT += 1
+	set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=!%~1!"
+goto :eof
 
-:MAL_Main_GLOBALFUNCTION_Main
-	set MAL_Main_LOCALVAR_Main_Input=
-	set /p "MAL_Main_LOCALVAR_Main_Input=user> "
-	if defined MAL_Main_LOCALVAR_Main_Input (
+:StackPushVal str
+	rem requirement: enable delayed expansion.
+	set /a GLOBAL_STACKCNT += 1
+	set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=%~1"
+goto :eof
+
+:StackPopVar strVarName
+	rem requirement: enable delayed expansion.
+	if %GLOBAL_STACKCNT% lss 0 (
+		echo [Module: Main] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
+		exit /b 1
+	)
+	for %%i in (!GLOBAL_STACKCNT!) do (
+		set "%~1=!GLOBAL_STACK[%%i]!"
+		set "GLOBAL_STACK[%%i]="
+	)
+	set /a GLOBAL_STACKCNT -= 1
+goto :eof
+
+:GetVars ModuleName FnName VarList
+	rem requirement: enable delayed expansion.
+	set "ModuleName=%~1"
+	set "FnName=%~2"
+	set "VarList=%~3"
+	
+	rem Pop Vars.
+	rem Pop Var count.
+	call :StackPopVar VarCount
+	for /l %%i in (1 1 !VarCount!) do (
+		call :StackPopVar VarName
+
+		rem check if VarName in VarList.
+		for %%j in (!VarName!) do (
+			@REM echo varlist "!VarList!" "%%j"
+			@REM echo varlist "!VarList:%%j=!"
+			if "!VarList!" == "!VarList:%%j=!" (
+				echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%j is not in VarList. >&2
+				exit /b 1
+			)
+
+			rem Remove VarName from VarList.
+			set VarList=!VarList:%%j=!
+		)
+		call :StackPopVar !VarName!
+	)
+	rem check if VarList is empty.
+	if defined VarList (
+		echo [Mod: Main] [Fn: Read] [Fatal Error] Need more Vars: !VarList! >&2
+		exit /b 1
+	)
+goto :eof
+
+:PrepareVars ModuleName FnName VarList
+	rem requirement: enable delayed expansion.
+	set "ModuleName=%~1"
+	set "FnName=%~2"
+	set "VarList=%~3"
+	
+	rem Cout Var number.
+	set "VarCount=0"
+	for %%i in (!VarList!) do (
+		if not defined %%i (
+			echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%i is not defined. >&2
+			exit /b 1
+		)
+		call :StackPushVar %%i
+		call :StackPushVal %%i
+		set /a VarCount += 1
+	)
+	rem Push Var count.
+	call :StackPushVal !VarCount!
+goto :eof
+
+:Main
+	set Input=
+	set /p "Input=user> "
+	if defined Input (
 		rem first replace double quotation mark.
-		set "MAL_Main_LOCALVAR_Main_Input=%MAL_Main_LOCALVAR_Main_Input:"=#$Double_Quotation$#%"
+		set "Input=%Input:"=#$Double_Quotation$#%"
 		rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-		call set "MAL_Main_LOCALVAR_Main_Input=%%MAL_Main_LOCALVAR_Main_Input:!=#$Exclamation$#%%"
+		call set "Input=%%Input:!=#$Exclamation$#%%"
 		setlocal ENABLEDELAYEDEXPANSION
 		%Speed Improve Start% (
 			rem Batch has some problem in "^" processing, so replace it.
-			set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:^=#$Caret$#!"
+			set "Input=!Input:^=#$Caret$#!"
 			rem replace %.
-			set MAL_Main_LOCALVAR_Main_FormatedInput=
-			:MAL_Main_LOCALTAG_Main_ReplacementLoop
-			if defined MAL_Main_LOCALVAR_Main_Input (
-				if "!MAL_Main_LOCALVAR_Main_Input:~,1!" == "%%" (
-					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!#$Percent$#"
+			set FormatedInput=
+			:LOCALTAG_Main_ReplacementLoop
+			if defined Input (
+				if "!Input:~,1!" == "%%" (
+					set "FormatedInput=!FormatedInput!#$Percent$#"
 				) else (
-					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!!MAL_Main_LOCALVAR_Main_Input:~,1!"
+					set "FormatedInput=!FormatedInput!!Input:~,1!"
 				)
-				set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:~1!"
-				goto MAL_Main_LOCALTAG_Main_ReplacementLoop
+				set "Input=!Input:~1!"
+				goto LOCALTAG_Main_ReplacementLoop
 			)
-			call :MAL_Main_GLOBALFUNCTION_REP "!MAL_Main_LOCALVAR_Main_FormatedInput!"
+			call :REP "!FormatedInput!"
 			endlocal
 		) %Speed Improve End%
 	)
-goto :MAL_Main_GLOBALFUNCTION_Main
+goto :Main
 
 
 %Speed Improve Start% (
-	:MAL_Main_GLOBALFUNCTION_Read
+	:Read
+		call :GetVars Main Read strMalCode,
+		rem return it directly.
+		set "ReturnValue=!strMalCode!"
+		call :PrepareVars Main Read ReturnValue,
+	goto :eof
+
+	:Eval
 		setlocal
 			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
 		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
@@ -61,16 +148,7 @@ goto :MAL_Main_GLOBALFUNCTION_Main
 		)
 	goto :eof
 
-	:MAL_Main_GLOBALFUNCTION_Eval
-		setlocal
-			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
-		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
-			endlocal
-			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
-		)
-	goto :eof
-
-	:MAL_Main_GLOBALFUNCTION_Print
+	:Print
 		setlocal
 			set "MAL_Main_LOCALVAR_Print_Output=%~1"
 			rem replace all speical symbol back.
@@ -113,11 +191,42 @@ goto :MAL_Main_GLOBALFUNCTION_Main
 		)
 	goto :eof
 
-	:MAL_Main_GLOBALFUNCTION_REP
-		setlocal
-			call :MAL_Main_GLOBALFUNCTION_READ "%~1"
-			call :MAL_Main_GLOBALFUNCTION_EVAL "!MAL_Main_GLOBALVAR_ReturnValue!"
-			call :MAL_Main_GLOBALFUNCTION_PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
-		endlocal
+	:REP strMalCode
+		set "strMalCode=%~1"
+		
+		rem Save the original value of strMalCode.
+		call :PrepareVars Main REP "strMalCode"
+		set GLOBAL_STACK
+		echo.
+		call :GetVars Main REP "strMalCode"
+		set GLOBAL_STACK
+		echo.
+		echo.
+		pause & exit
+
+		rem Prepare arguments for Read.
+		call :PrepareVars Main REP strMalCode,
+		set GLOBAL_STACK
+		echo.
+		call :GetVars Main REP strMalCode,
+		set GLOBAL_STACK
+		echo.
+		call :GetVars Main REP strMalCode,
+		set GLOBAL_STACK
+		echo.
+		pause & exit
+
+		call :READ
+		rem Get return value.
+		call :GetVars Main REP ReturnValue,
+		rem Restore the original value of strMalCode.
+		call :GetVars Main REP strMalCode,
+
+		pause
+		exit
+
+		set ReturnValue
+		call :EVAL "!ReturnValue[1]!"
+		call :PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
 	goto :eof
 ) %Speed Improve End%
