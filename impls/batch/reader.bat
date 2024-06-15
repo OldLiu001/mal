@@ -365,3 +365,34 @@ goto :eof
 	rem check if it is a number
 	:
 	
+
+
+
+rem _____________________________________________________________
+
+rem rewrite above code without using outside libraries
+
+@REM Project name: MAL
+@REM Module name: Reader
+
+@REM Global function list:
+@REM 	ReadString
+@REM 	Tokenize
+@REM 	ReadForm
+@REM 	ReadList
+@REM 	ReadAtom
+@REM 	CheckType
+
+@REM Origin name mapping:
+@REM 	read_str -> ReadString
+@REM 	tokenize -> Tokenize
+@REM 	read_form -> ReadForm
+@REM 	read_list -> ReadList
+@REM 	read_atom -> ReadAtom
+
+@REM Special Symbol Mapping:
+@REM 	! --- #$Exclamation$#
+@REM 	^ --- #$Caret$#
+@REM 	" --- #$Double_Quotation$#
+@REM 	% --- #$Percent$#
+
