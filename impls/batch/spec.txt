@@ -1,0 +1,11 @@
+Special Symbol Mapping:
+	! --- #$Exclamation$#
+	^ --- #$Caret$#
+	" --- #$Double_Quotation$#
+	% --- #$Percent$#
+
+Batchfile Interpreter Speed Improve:
+	%Speed Improve Start% (
+		...
+	) %Speed Improve End%
+
