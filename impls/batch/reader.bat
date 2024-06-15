@@ -9,6 +9,14 @@
 @rem 	ReadAtom
 @rem 	CheckType
 
+@rem Origin name mapping:
+@rem 	read_str -> ReadString
+@rem 	tokenize -> Tokenize
+@rem 	read_form -> ReadForm
+@rem 	read_list -> ReadList
+@rem 	read_atom -> ReadAtom
+
+
 
 set "List=call "%~dp0Lib_Collections\LinearList_LSS_SLL.bat""
 set "Queue=call "%~dp0Lib_Collections\Queue_LSS.bat""
@@ -23,12 +31,12 @@ set "Stack=call "%~dp0Lib_Collections\Stack_LSS.bat""
 	set _TMP_Arguments_=
 goto :eof
 
-:read_str str
-	call :tokenize "%~1"
-	call :read_form "!re!"
+:MAL_Reader_GLOBALFUNCTION_ReadString str
+	call :MAL_Reader_GLOBALFUNCTION_Tokenize "%~1"
+	call :MAL_Reader_GLOBALFUNCTION_ReadForm "!re!"
 goto :eof
 
-:tokenize str
+:MAL_Reader_GLOBALFUNCTION_Tokenize str
 	!Queue! :Init tokens
 	set "str=%~1"
 	:tokenizing
@@ -188,7 +196,7 @@ goto :eof
 	set "re=!tokens!"
 goto :eof
 
-:read_form tokens_queue
+:MAL_Reader_GLOBALFUNCTION_ReadForm tokens_queue
 	!List! :Init GrammarTree
 	!Stack! :Init VariableBackup
 	set "tokens_queue=%~1"
@@ -197,15 +205,15 @@ goto :eof
 		if not "!ErrorLevel!" == "0" (
 			!Queue! :Peep tokens_queue token
 			if "!token!" == "(" (
-				call :read_list "!tokens_queue!"
+				call :MAL_Reader_GLOBALFUNCTION_ReadList "!tokens_queue!"
 			) else (
-				call :read_atom "!tokens_queue!"
+				call :MAL_Reader_GLOBALFUNCTION_ReadAtom "!tokens_queue!"
 			)
 			goto read_form_loop
 		)
 goto :eof
 
-:read_list tokens_queue
+:MAL_Reader_GLOBALFUNCTION_ReadList tokens_queue
 	set "tokens_queue=%~1"
 	!Queue! :Dequeue tokens_queue token
 	:read_list_loop
@@ -215,13 +223,13 @@ goto :eof
 			if "!token!" == ")" (
 				!Queue! :Dequeue tokens_queue token
 			) else (
-				call :read_form "!tokens_queue!"
+				call :MAL_Reader_GLOBALFUNCTION_ReadForm "!tokens_queue!"
 				goto read_list_loop
 			)
 		)
 goto :eof
 
-:read_atom tokens_queue
+:MAL_Reader_GLOBALFUNCTION_ReadAtom tokens_queue
 	set "tokens_queue=%~1"
 	!Queue! :Dequeue tokens_queue token
 
