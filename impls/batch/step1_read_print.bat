@@ -1,106 +1,123 @@
+@rem Project Name: MAL
+@rem Module Name: Main
+
+@rem Global function list:
+@rem 	Main
+@rem 	Read
+@rem 	Eval
+@rem 	Print
+@rem 	REP
+
+@rem Origin name mapping:
+@rem 	READ -> Read
+@rem 	EVAL -> Eval
+@rem 	PRINT -> Print
+@rem 	rep -> REP
+
 @echo off
 setlocal disabledelayedexpansion
+rem cancel all pre-defined variables.
 for /f "delims==" %%a in ('set') do set "%%a="
 
-:main
-	set input=
-	set /p "input=user> "
-	if defined input (
+
+:MAL_Main_GLOBALFUNCTION_Main
+	set MAL_Main_LOCALVAR_Main_Input=
+	set /p "MAL_Main_LOCALVAR_Main_Input=user> "
+	if defined MAL_Main_LOCALVAR_Main_Input (
 		rem first replace double quotation mark.
-		set "input=%input:"=#$Double_Quotation$#%"
+		set "MAL_Main_LOCALVAR_Main_Input=%MAL_Main_LOCALVAR_Main_Input:"=#$Double_Quotation$#%"
 		rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-		call set "input=%%input:!=#$Exclamation$#%%"
+		call set "MAL_Main_LOCALVAR_Main_Input=%%MAL_Main_LOCALVAR_Main_Input:!=#$Exclamation$#%%"
 		setlocal ENABLEDELAYEDEXPANSION
-		%improve speed start% (
+		%Speed Improve Start% (
 			rem Batch has some problem in "^" processing, so replace it.
-			set "input=!input:^=#$Caret$#!"
+			set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:^=#$Caret$#!"
 			rem replace %.
-			set input_formated=
-			:replacement_loop
-			if defined input (
-				if "!input:~,1!" == "%%" (
-					set "input_formated=!input_formated!#$Percent$#"
+			set MAL_Main_LOCALVAR_Main_FormatedInput=
+			:MAL_Main_LOCALTAG_Main_ReplacementLoop
+			if defined MAL_Main_LOCALVAR_Main_Input (
+				if "!MAL_Main_LOCALVAR_Main_Input:~,1!" == "%%" (
+					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!#$Percent$#"
 				) else (
-					set "input_formated=!input_formated!!input:~,1!"
+					set "MAL_Main_LOCALVAR_Main_FormatedInput=!MAL_Main_LOCALVAR_Main_FormatedInput!!MAL_Main_LOCALVAR_Main_Input:~,1!"
 				)
-				set "input=!input:~1!"
-				goto replacement_loop
+				set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:~1!"
+				goto MAL_Main_LOCALTAG_Main_ReplacementLoop
 			)
-			call :rep "!input_formated!"
+			call :MAL_Main_GLOBALFUNCTION_REP "!MAL_Main_LOCALVAR_Main_FormatedInput!"
 			endlocal
-		) %improve speed end%
+		) %Speed Improve End%
 	)
-goto :main
+goto :MAL_Main_GLOBALFUNCTION_Main
 
 
-%improve speed start% (
-	:READ
+%Speed Improve Start% (
+	:MAL_Main_GLOBALFUNCTION_Read
 		setlocal
-			rem re means return, which bring return value.
-			set "re=%~1"
-		for /f "tokens=* eol=" %%a in ("!re!") do (
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
 			endlocal
-			set "re=%%~a"
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
 		)
 	goto :eof
 
-	:EVAL
+	:MAL_Main_GLOBALFUNCTION_Eval
 		setlocal
-			set "re=%~1"
-		for /f "tokens=* eol=" %%a in ("!re!") do (
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
 			endlocal
-			set "re=%%~a"
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
 		)
 	goto :eof
 
-	:PRINT
+	:MAL_Main_GLOBALFUNCTION_Print
 		setlocal
-			set "output=%~1"
+			set "MAL_Main_LOCALVAR_Print_Output=%~1"
 			rem replace all speical symbol back.
-			set output_buffer=
-			:output_loop
-			if "!output:~,15!" == "#$Exclamation$#" (
-				set "output_buffer=!output_buffer!^!"
-				set "output=!output:~15!"
-				goto output_loop
-			) else if "!output:~,9!" == "#$Caret$#" (
-				set "output_buffer=!output_buffer!^^"
-				set "output=!output:~9!"
-				goto output_loop
-			) else if "!output:~,20!" == "#$Double_Quotation$#" (
-				set "output_buffer=!output_buffer!^""
-				set "output=!output:~20!"
-				goto output_loop
-			) else if "!output:~,1!" == "=" (
-				set "output_buffer=!output_buffer!="
-				set "output=!output:~1!"
-				goto output_loop
-			) else if "!output:~,1!" == " " (
-				set "output_buffer=!output_buffer! "
-				set "output=!output:~1!"
-				goto output_loop
-			) else if "!output:~,11!" == "#$Percent$#" (
-				set "output_buffer=!output_buffer!%%"
-				set "output=!output:~11!"
-				goto output_loop
-			) else if defined output (
-				set "output_buffer=!output_buffer!!output:~,1!"
-				set "output=!output:~1!"
-				goto output_loop
+			set MAL_Main_LOCALVAR_Print_OutputBuffer=
+			:MAL_Main_LOCALTAG_Print_OutputLoop
+			if "!MAL_Main_LOCALVAR_Print_Output:~,15!" == "#$Exclamation$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^!"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~15!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,9!" == "#$Caret$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^^"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~9!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,20!" == "#$Double_Quotation$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!^""
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~20!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == "=" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!="
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,1!" == " " (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer! "
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if "!MAL_Main_LOCALVAR_Print_Output:~,11!" == "#$Percent$#" (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!%%"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~11!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
+			) else if defined MAL_Main_LOCALVAR_Print_Output (
+				set "MAL_Main_LOCALVAR_Print_OutputBuffer=!MAL_Main_LOCALVAR_Print_OutputBuffer!!MAL_Main_LOCALVAR_Print_Output:~,1!"
+				set "MAL_Main_LOCALVAR_Print_Output=!MAL_Main_LOCALVAR_Print_Output:~1!"
+				goto MAL_Main_LOCALTAG_Print_OutputLoop
 			)
-			echo.!output_buffer!
-			set "re=%~1"
-		for /f "tokens=* eol=" %%a in ("!re!") do (
+			echo.!MAL_Main_LOCALVAR_Print_OutputBuffer!
+			set "MAL_Main_GLOBALVAR_ReturnValue=%~1"
+		for /f "tokens=* eol=" %%a in ("!MAL_Main_GLOBALVAR_ReturnValue!") do (
 			endlocal
-			set "re=%%~a"
+			set "MAL_Main_GLOBALVAR_ReturnValue=%%~a"
 		)
 	goto :eof
 
-	:rep
+	:MAL_Main_GLOBALFUNCTION_REP
 		setlocal
-			call :READ "%~1"
-			call :EVAL "!re!"
-			call :PRINT "!re!"
+			call :MAL_Main_GLOBALFUNCTION_READ "%~1"
+			call :MAL_Main_GLOBALFUNCTION_EVAL "!MAL_Main_GLOBALVAR_ReturnValue!"
+			call :MAL_Main_GLOBALFUNCTION_PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
 		endlocal
 	goto :eof
-) %improve speed end%
+) %Speed Improve End%
