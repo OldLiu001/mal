@@ -44,7 +44,7 @@ for /f "delims==" %%a in ('set') do set "%%a="
 				set "MAL_Main_LOCALVAR_Main_Input=!MAL_Main_LOCALVAR_Main_Input:~1!"
 				goto MAL_Main_LOCALTAG_Main_ReplacementLoop
 			)
-			call :rep "!MAL_Main_LOCALVAR_Main_FormatedInput!"
+			call :MAL_Main_GLOBALFUNCTION_REP "!MAL_Main_LOCALVAR_Main_FormatedInput!"
 			endlocal
 		) %Speed Improve End%
 	)
@@ -115,9 +115,9 @@ goto :MAL_Main_GLOBALFUNCTION_Main
 
 	:MAL_Main_GLOBALFUNCTION_REP
 		setlocal
-			call :READ "%~1"
-			call :EVAL "!MAL_Main_GLOBALVAR_ReturnValue!"
-			call :PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
+			call :MAL_Main_GLOBALFUNCTION_READ "%~1"
+			call :MAL_Main_GLOBALFUNCTION_EVAL "!MAL_Main_GLOBALVAR_ReturnValue!"
+			call :MAL_Main_GLOBALFUNCTION_PRINT "!MAL_Main_GLOBALVAR_ReturnValue!"
 		endlocal
 	goto :eof
 ) %improve speed end%
