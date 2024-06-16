@@ -21,8 +21,6 @@
 @REM 	% --- #$P$#
 
 @echo off
-rem cancel all pre-defined variables.
-for /f "delims==" %%a in ('set') do set "%%a="
 setlocal ENABLEDELAYEDEXPANSION
 set /a GLOBAL_STACKCNT = -1
 goto Main
@@ -114,36 +112,9 @@ goto Main
 
 :Main
 	set Input=
-	set /p "Input=user> "
-	if defined Input (
-		setlocal disabledelayedexpansion
-			rem first replace double quotation mark.
-			set "Input=%Input:"=#$D$#%"
-			rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-			call set "Input=%%Input:!=#$E$#%%"
-		for /f "tokens=* eol=" %%a in ("%Input%") do (
-			endlocal
-			set "Input=%%a"
-		)
-		
-		%Speed Improve Start% (
-			rem Batch has some problem in "^" processing, so replace it.
-			set "Input=!Input:^=#$C$#!"
-			rem replace %.
-			set FormatedInput=
-			:LOCALTAG_Main_ReplacementLoop
-			if defined Input (
-				if "!Input:~,1!" == "%%" (
-					set "FormatedInput=!FormatedInput!#$P$#"
-				) else (
-					set "FormatedInput=!FormatedInput!!Input:~,1!"
-				)
-				set "Input=!Input:~1!"
-				goto LOCALTAG_Main_ReplacementLoop
-			)
-			call :REP "!FormatedInput!"
-		) %Speed Improve End%
-	)
+	set /p "=user> "<nul
+	for /f "tokens=* eol=" %%a in ('call readline.bat') do set "Input=%%~a"
+	call :REP "!Input!"
 goto :Main
 
 
