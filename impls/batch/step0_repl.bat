@@ -1,30 +1,68 @@
 @rem Project Name: MAL
 @rem Module Name: Main
 
-@rem Global function list:
-@rem 	Main
-@rem 	Read
-@rem 	Eval
-@rem 	Print
-@rem 	REP
-
 @rem Origin name mapping:
 @rem 	READ -> Read
 @rem 	EVAL -> Eval
 @rem 	PRINT -> Print
 @rem 	rep -> REP
 
-@REM Special Symbol Mapping:
-@REM 	! --- #$E$#
-@REM 	^ --- #$C$#
-@REM 	" --- #$D$#
-@REM 	% --- #$P$#
-
 @echo off
 setlocal ENABLEDELAYEDEXPANSION
 set /a GLOBAL_STACKCNT = -1
 goto Main
 
+
+:Main
+	set Input=
+	set /p "=user> "<nul
+	for /f "delims=" %%a in ('call readline.bat') do set "Input=%%~a"
+	call :REP "!Input!"
+goto :Main
+
+
+%Speed Improve Start% (
+	:Read
+		call :GetVars Main Read "MalCode"
+		rem return it directly.
+		set "ReturnValue=!MalCode!"
+		call :SaveVars Main Read "ReturnValue"
+	goto :eof
+
+	:Eval
+		call :GetVars Main Read "MalCode"
+		rem return it directly.
+		set "ReturnValue=!MalCode!"
+		call :SaveVars Main Read "ReturnValue"
+	goto :eof
+
+	:Print
+		call :GetVars Main Read "MalCode"
+		
+		echo."!MalCode!"| call writeall.bat
+	goto :eof
+
+	:REP MalCode
+		set "MalCode=%~1"
+		
+		call :SaveVars Main REP "MalCode"
+		call :READ
+		call :GetVars Main REP "ReturnValue"
+		
+		set "MalCode=!ReturnValue!"
+		call :SaveVars Main REP "MalCode"
+		call :EVAL
+		call :GetVars Main REP "ReturnValue"
+
+		set "MalCode=!ReturnValue!"
+		call :SaveVars Main REP "MalCode"
+		call :PRINT
+	goto :eof
+) %Speed Improve End%
+
+
+
+@REM Batchfile Stackframe support BY OldLiu.
 %Speed Improve Start% (
 	:StackPushVar strVarName
 		rem requirement: enable delayed expansion.
@@ -107,52 +145,5 @@ goto Main
 		)
 		rem Push Var count.
 		call :StackPushVal !VarCount!
-	goto :eof
-) %Speed Improve End%
-
-:Main
-	set Input=
-	set /p "=user> "<nul
-	for /f "delims=" %%a in ('call readline.bat') do set "Input=%%~a"
-	call :REP "!Input!"
-goto :Main
-
-
-%Speed Improve Start% (
-	:Read
-		call :GetVars Main Read "MalCode"
-		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
-	goto :eof
-
-	:Eval
-		call :GetVars Main Read "MalCode"
-		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
-	goto :eof
-
-	:Print
-		call :GetVars Main Read "MalCode"
-		
-		echo."!MalCode!"| writeall.bat
-	goto :eof
-
-	:REP MalCode
-		set "MalCode=%~1"
-		
-		call :SaveVars Main REP "MalCode"
-		call :READ
-		call :GetVars Main REP "ReturnValue"
-		
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
-		call :EVAL
-		call :GetVars Main REP "ReturnValue"
-
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
-		call :PRINT
 	goto :eof
 ) %Speed Improve End%
