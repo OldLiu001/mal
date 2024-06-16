@@ -14,10 +14,16 @@
 @rem 	PRINT -> Print
 @rem 	rep -> REP
 
+@REM Special Symbol Mapping:
+@REM 	! --- #$E$#
+@REM 	^ --- #$C$#
+@REM 	" --- #$D$#
+@REM 	% --- #$P$#
+
 @echo off
-setlocal disabledelayedexpansion
 rem cancel all pre-defined variables.
 for /f "delims==" %%a in ('set') do set "%%a="
+setlocal ENABLEDELAYEDEXPANSION
 set /a GLOBAL_STACKCNT = -1
 goto Main
 
@@ -82,7 +88,7 @@ goto Main
 		)
 	goto :eof
 
-	:PrepareVars ModuleName FnName VarList
+	:SaveVars ModuleName FnName VarList
 		rem requirement: enable delayed expansion.
 		rem requirement: VarList is a string, and each VarName is separated by " ".
 		rem requirement: VarName is different from each other.
@@ -110,20 +116,25 @@ goto Main
 	set Input=
 	set /p "Input=user> "
 	if defined Input (
-		rem first replace double quotation mark.
-		set "Input=%Input:"=#$Double_Quotation$#%"
-		rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-		call set "Input=%%Input:!=#$Exclamation$#%%"
-		setlocal ENABLEDELAYEDEXPANSION
+		setlocal disabledelayedexpansion
+			rem first replace double quotation mark.
+			set "Input=%Input:"=#$D$#%"
+			rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
+			call set "Input=%%Input:!=#$E$#%%"
+		for /f "tokens=* eol=" %%a in ("%Input%") do (
+			endlocal
+			set "Input=%%a"
+		)
+		
 		%Speed Improve Start% (
 			rem Batch has some problem in "^" processing, so replace it.
-			set "Input=!Input:^=#$Caret$#!"
+			set "Input=!Input:^=#$C$#!"
 			rem replace %.
 			set FormatedInput=
 			:LOCALTAG_Main_ReplacementLoop
 			if defined Input (
 				if "!Input:~,1!" == "%%" (
-					set "FormatedInput=!FormatedInput!#$Percent$#"
+					set "FormatedInput=!FormatedInput!#$P$#"
 				) else (
 					set "FormatedInput=!FormatedInput!!Input:~,1!"
 				)
@@ -131,7 +142,6 @@ goto Main
 				goto LOCALTAG_Main_ReplacementLoop
 			)
 			call :REP "!FormatedInput!"
-			endlocal
 		) %Speed Improve End%
 	)
 goto :Main
@@ -139,37 +149,37 @@ goto :Main
 
 %Speed Improve Start% (
 	:Read
-		call :GetVars Main Read "strMalCode"
+		call :GetVars Main Read "MalCode"
 		rem return it directly.
-		set "ReturnValue=!strMalCode!"
-		call :PrepareVars Main Read "ReturnValue"
+		set "ReturnValue=!MalCode!"
+		call :SaveVars Main Read "ReturnValue"
 	goto :eof
 
 	:Eval
-		call :GetVars Main Read "strMalCode"
+		call :GetVars Main Read "MalCode"
 		rem return it directly.
-		set "ReturnValue=!strMalCode!"
-		call :PrepareVars Main Read "ReturnValue"
+		set "ReturnValue=!MalCode!"
+		call :SaveVars Main Read "ReturnValue"
 	goto :eof
 
 	:Print
-		call :GetVars Main Read "strMalCode"
+		call :GetVars Main Read "MalCode"
 		
-		set "Output=!strMalCode!"
+		set "Output=!MalCode!"
 		rem replace all speical symbol back.
 		set OutputBuffer=
 		:LOCALTAG_Print_OutputLoop
-		if "!Output:~,15!" == "#$Exclamation$#" (
+		if "!Output:~,5!" == "#$E$#" (
 			set "OutputBuffer=!OutputBuffer!^!"
-			set "Output=!Output:~15!"
+			set "Output=!Output:~5!"
 			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,9!" == "#$Caret$#" (
+		) else if "!Output:~,5!" == "#$C$#" (
 			set "OutputBuffer=!OutputBuffer!^^"
-			set "Output=!Output:~9!"
+			set "Output=!Output:~5!"
 			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,20!" == "#$Double_Quotation$#" (
+		) else if "!Output:~,5!" == "#$D$#" (
 			set "OutputBuffer=!OutputBuffer!^""
-			set "Output=!Output:~20!"
+			set "Output=!Output:~5!"
 			goto LOCALTAG_Print_OutputLoop
 		) else if "!Output:~,1!" == "=" (
 			set "OutputBuffer=!OutputBuffer!="
@@ -179,9 +189,9 @@ goto :Main
 			set "OutputBuffer=!OutputBuffer! "
 			set "Output=!Output:~1!"
 			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,11!" == "#$Percent$#" (
+		) else if "!Output:~,5!" == "#$P$#" (
 			set "OutputBuffer=!OutputBuffer!%%"
-			set "Output=!Output:~11!"
+			set "Output=!Output:~5!"
 			goto LOCALTAG_Print_OutputLoop
 		) else if defined Output (
 			set "OutputBuffer=!OutputBuffer!!Output:~,1!"
@@ -192,26 +202,26 @@ goto :Main
 		
 		rem return output buffer.
 		set "ReturnValue=!OutputBuffer!"
-		call :PrepareVars Main Read "ReturnValue"
+		call :SaveVars Main Read "ReturnValue"
 	goto :eof
 
-	:REP strMalCode
-		set "strMalCode=%~1"
+	:REP MalCode
+		set "MalCode=%~1"
 		
 		rem Prepare arguments for Read.
-		call :PrepareVars Main REP "strMalCode"
+		call :SaveVars Main REP "MalCode"
 		rem Call function Read.
 		call :READ
 		rem Get return value.
 		call :GetVars Main REP "ReturnValue"
 		
-		set "strMalCode=!ReturnValue!"
-		call :PrepareVars Main REP "strMalCode"
+		set "MalCode=!ReturnValue!"
+		call :SaveVars Main REP "MalCode"
 		call :EVAL
 		call :GetVars Main REP "ReturnValue"
 
-		set "strMalCode=!ReturnValue!"
-		call :PrepareVars Main REP "strMalCode"
+		set "MalCode=!ReturnValue!"
+		call :SaveVars Main REP "MalCode"
 		call :PRINT
 		call :GetVars Main REP "ReturnValue"
 	goto :eof
