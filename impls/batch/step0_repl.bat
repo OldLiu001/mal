@@ -113,7 +113,7 @@ goto Main
 :Main
 	set Input=
 	set /p "=user> "<nul
-	for /f "tokens=* eol=" %%a in ('call readline.bat') do set "Input=%%~a"
+	for /f "delims=" %%a in ('call readline.bat') do set "Input=%%~a"
 	call :REP "!Input!"
 goto :Main
 
@@ -136,54 +136,14 @@ goto :Main
 	:Print
 		call :GetVars Main Read "MalCode"
 		
-		set "Output=!MalCode!"
-		rem replace all speical symbol back.
-		set OutputBuffer=
-		:LOCALTAG_Print_OutputLoop
-		if "!Output:~,5!" == "#$E$#" (
-			set "OutputBuffer=!OutputBuffer!^!"
-			set "Output=!Output:~5!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,5!" == "#$C$#" (
-			set "OutputBuffer=!OutputBuffer!^^"
-			set "Output=!Output:~5!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,5!" == "#$D$#" (
-			set "OutputBuffer=!OutputBuffer!^""
-			set "Output=!Output:~5!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,1!" == "=" (
-			set "OutputBuffer=!OutputBuffer!="
-			set "Output=!Output:~1!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,1!" == " " (
-			set "OutputBuffer=!OutputBuffer! "
-			set "Output=!Output:~1!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if "!Output:~,5!" == "#$P$#" (
-			set "OutputBuffer=!OutputBuffer!%%"
-			set "Output=!Output:~5!"
-			goto LOCALTAG_Print_OutputLoop
-		) else if defined Output (
-			set "OutputBuffer=!OutputBuffer!!Output:~,1!"
-			set "Output=!Output:~1!"
-			goto LOCALTAG_Print_OutputLoop
-		)
-		echo.!OutputBuffer!
-		
-		rem return output buffer.
-		set "ReturnValue=!OutputBuffer!"
-		call :SaveVars Main Read "ReturnValue"
+		echo."!MalCode!"| writeall.bat
 	goto :eof
 
 	:REP MalCode
 		set "MalCode=%~1"
 		
-		rem Prepare arguments for Read.
 		call :SaveVars Main REP "MalCode"
-		rem Call function Read.
 		call :READ
-		rem Get return value.
 		call :GetVars Main REP "ReturnValue"
 		
 		set "MalCode=!ReturnValue!"
@@ -194,6 +154,5 @@ goto :Main
 		set "MalCode=!ReturnValue!"
 		call :SaveVars Main REP "MalCode"
 		call :PRINT
-		call :GetVars Main REP "ReturnValue"
 	goto :eof
 ) %Speed Improve End%
