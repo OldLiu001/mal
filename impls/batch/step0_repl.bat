@@ -119,7 +119,7 @@ goto :Main
 		)
 		rem check if VarList is empty.
 		for %%_ in (!VarList!) do (
-			echo [Mod: Main] [Fn: Read] [Fatal Error] Need more Vars: !VarList! >&2
+			echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] Need more Vars: !VarList! >&2
 			exit /b 1
 		)
 	goto :eof
