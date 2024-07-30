@@ -79,7 +79,7 @@ goto :Main
 	:StackPopVar strVarName
 		rem requirement: enable delayed expansion.
 		if %GLOBAL_STACKCNT% lss 0 (
-			echo [Module: Main] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
+			echo [Module: StackLib] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
 			exit /b 1
 		)
 		for %%i in (!GLOBAL_STACKCNT!) do (
