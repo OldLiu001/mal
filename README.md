@@ -41,7 +41,7 @@ process guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 
-**3. Mal is implemented in 87 languages (93 different implementations and 115 runtime modes)**
+**3. Mal is implemented in 87 languages (93 different implementations and 114 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -87,6 +87,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 | [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
+| [LaTeX3](#latex3) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
 | [Logo](#logo) | [Dov Murik](https://github.com/dubek) |
 | [Lua](#lua) | [Joel Martin](https://github.com/kanaka)  |
@@ -685,6 +686,18 @@ make
 java -jar stepX_YYY.jar
 ```
 
+### LaTeX3
+
+The LaTeX3 implementation of mal has been tested with pdfTeX
+3.141592653-2.6-1.40.24.
+
+Self hosting is too slow for any sensible timeout, and crashes in
+step4, apparently because of hard-coded limitations.
+
+Anybody working on this should uncomment the two lines of (slow)
+debugging options in the step file, and export DEBUG=1 (for more
+output than tests accept).
+
 ### LiveScript
 
 The LiveScript implementation of mal has been tested with LiveScript 1.5.
@@ -1239,7 +1252,6 @@ runs under several different non-web embeddings (runtimes):
 [node](https://nodejs.org),
 [wasmtime](https://github.com/CraneStation/wasmtime),
 [wasmer](https://wasmer.io),
-[lucet](https://github.com/fastly/lucet),
 [wax](https://github.com/kanaka/wac),
 [wace](https://github.com/kanaka/wac),
 [warpy](https://github.com/kanaka/warpy).
@@ -1255,9 +1267,6 @@ wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
 # wasmer
 make wasm_MODE=wasmer
 wasmer run --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
-# lucet
-make wasm_MODE=lucet
-lucet-wasi --dir=./:./ --dir=../:../ --dir=/:/ ./stepX_YYY.so
 # wax
 make wasm_MODE=wax
 wax ./stepX_YYY.wasm
