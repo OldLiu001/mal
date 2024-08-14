@@ -130,6 +130,7 @@ jobs:
             *.log
             *.debug
 
+
   windows:
     needs: get-matrix
     if: ${{ needs.get-matrix.outputs.do-windows == 'true' }}
@@ -176,3 +177,4 @@ jobs:
           path: |
             *.log
             *.debug
+
