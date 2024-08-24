@@ -1,11 +1,6 @@
 Special Symbol Mapping:
-	! --- #$E$#
-	^ --- #$C$#
-	" --- #$D$#
-	% --- #$P$#
-
-Batchfile Interpreter Speed Improve:
-	%Speed Improve Start% (
-		...
-	) %Speed Improve End%
-
+	! --- $E
+	^ --- $C
+	" --- $D
+	% --- $P
+	$ --- $$
