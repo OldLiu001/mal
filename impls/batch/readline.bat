@@ -12,10 +12,9 @@ setlocal disabledelayedexpansion
 
 set Input=
 set /p "Input="
+set "Input=%Input:$=$$%"
 if defined Input (
-	rem First, replace $ to $$.
-	set "Input=%Input:$=$$%"
-	rem Replace double quotation mark.
+	rem Replace double quotation mark to avoid error.
 	set "Input=%Input:"=$D%"
 	rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
 	call set "Input=%%Input:!=$E%%"
