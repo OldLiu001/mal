@@ -1,369 +1,369 @@
-@echo off
-@rem Project name: MAL
-@rem Module name: Reader
+@REM @echo off
+@REM @rem Project name: MAL
+@REM @rem Module name: Reader
 
-@rem Global function list:
-@rem 	ReadString
-@rem 	Tokenize
-@rem 	ReadForm
-@rem 	ReadList
-@rem 	ReadAtom
-@rem 	CheckType
+@REM @rem Global function list:
+@REM @rem 	ReadString
+@REM @rem 	Tokenize
+@REM @rem 	ReadForm
+@REM @rem 	ReadList
+@REM @rem 	ReadAtom
+@REM @rem 	CheckType
 
-@rem Origin name mapping:
-@rem 	read_str -> ReadString
-@rem 	tokenize -> Tokenize
-@rem 	read_form -> ReadForm
-@rem 	read_list -> ReadList
-@rem 	read_atom -> ReadAtom
+@REM @rem Origin name mapping:
+@REM @rem 	read_str -> ReadString
+@REM @rem 	tokenize -> Tokenize
+@REM @rem 	read_form -> ReadForm
+@REM @rem 	read_list -> ReadList
+@REM @rem 	read_atom -> ReadAtom
 
-set Collections_Lib_Embbeded=False
+@REM set Collections_Lib_Embbeded=False
 
-@rem Wrap of lib_collections.
-:MAL_Reader_IMPORTFUNCTION_List Args
-	echo %1
-	if "%Collections_Lib_Embbeded%" == "False" (
-		call "%~dp0Lib_Collections\LinearList_LSS_SLL.bat" %*
-	) else (
-		goto %* 2>nul
-	)
-goto :eof
-set "List=call :MAL_Reader_IMPORTFUNCTION_List"
+@REM @rem Wrap of lib_collections.
+@REM :MAL_Reader_IMPORTFUNCTION_List Args
+@REM 	echo %1
+@REM 	if "%Collections_Lib_Embbeded%" == "False" (
+@REM 		call "%~dp0Lib_Collections\LinearList_LSS_SLL.bat" %*
+@REM 	) else (
+@REM 		goto %* 2>nul
+@REM 	)
+@REM goto :eof
+@REM set "List=call :MAL_Reader_IMPORTFUNCTION_List"
 
-:MAL_Reader_IMPORTFUNCTION_Queue Args
-	echo %1
-	echo %*
-	if "%Collections_Lib_Embbeded%" == "False" (
-		call "%~dp0Lib_Collections\Queue_LSS.bat" %*
-	) else (
-		goto %* 2>nul
-	)
-goto :eof
-set "Queue=call :MAL_Reader_IMPORTFUNCTION_Queue"
+@REM :MAL_Reader_IMPORTFUNCTION_Queue Args
+@REM 	echo %1
+@REM 	echo %*
+@REM 	if "%Collections_Lib_Embbeded%" == "False" (
+@REM 		call "%~dp0Lib_Collections\Queue_LSS.bat" %*
+@REM 	) else (
+@REM 		goto %* 2>nul
+@REM 	)
+@REM goto :eof
+@REM set "Queue=call :MAL_Reader_IMPORTFUNCTION_Queue"
 
-:MAL_Reader_IMPORTFUNCTION_Stack Args
-	echo %1
-	@REM if Collections_Lib_Embbeded=False, call the function in another file. else, call the function in this file.
-	if not "%Collections_Lib_Embbeded%" == "True" (
-		call "%~dp0Lib_Collections\Stack_LSS_SLL.bat" %*
-	) else (
-		goto %* 2>nul
-	)
-goto :eof
-set "Stack=call :MAL_Reader_IMPORTFUNCTION_Stack"
+@REM :MAL_Reader_IMPORTFUNCTION_Stack Args
+@REM 	echo %1
+@REM 	@REM if Collections_Lib_Embbeded=False, call the function in another file. else, call the function in this file.
+@REM 	if not "%Collections_Lib_Embbeded%" == "True" (
+@REM 		call "%~dp0Lib_Collections\Stack_LSS_SLL.bat" %*
+@REM 	) else (
+@REM 		goto %* 2>nul
+@REM 	)
+@REM goto :eof
+@REM set "Stack=call :MAL_Reader_IMPORTFUNCTION_Stack"
 
-@echo off
-setlocal enabledelayedexpansion
-call :MAL_Reader_GLOBALFUNCTION_TokenizeUnitTest
-pause
-exit
+@REM @echo off
+@REM setlocal enabledelayedexpansion
+@REM call :MAL_Reader_GLOBALFUNCTION_TokenizeUnitTest
+@REM pause
+@REM exit
 
-::Start
-	set "_TMP_Arguments_=%*"
-	if "!_TMP_Arguments_:~,1!" Equ ":" (
-		set "_TMP_Arguments_=!_TMP_Arguments_:~1!"
-	)
-	call :MAL_Reader_EXPORTFUNCTION_!_TMP_Arguments_!
-	set _TMP_Arguments_=
-goto :eof
+@REM ::Start
+@REM 	set "_TMP_Arguments_=%*"
+@REM 	if "!_TMP_Arguments_:~,1!" Equ ":" (
+@REM 		set "_TMP_Arguments_=!_TMP_Arguments_:~1!"
+@REM 	)
+@REM 	call :MAL_Reader_EXPORTFUNCTION_!_TMP_Arguments_!
+@REM 	set _TMP_Arguments_=
+@REM goto :eof
 
-:MAL_Reader_GLOBALFUNCTION_ReadString MAL_Reader_LOCALVAR_ReadString_Str
-	set "MAL_Reader_LOCALVAR_ReadString_Str=%~1"
-	call :MAL_Reader_GLOBALFUNCTION_Tokenize "!MAL_Reader_LOCALVAR_ReadString_Str!"
-	call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Main_GLOBALVAR_ReturnValue!"
-goto :eof
+@REM :MAL_Reader_GLOBALFUNCTION_ReadString MAL_Reader_LOCALVAR_ReadString_Str
+@REM 	set "MAL_Reader_LOCALVAR_ReadString_Str=%~1"
+@REM 	call :MAL_Reader_GLOBALFUNCTION_Tokenize "!MAL_Reader_LOCALVAR_ReadString_Str!"
+@REM 	call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Main_GLOBALVAR_ReturnValue!"
+@REM goto :eof
 
-:MAL_Reader_GLOBALFUNCTION_Tokenize MAL_Reader_LOCALVAR_Tokenize_Str
-	!Queue! :Init MAL_Reader_LOCALVAR_Tokenize_Tokens
-	set "MAL_Reader_LOCALVAR_Tokenize_Str=%~1"
-	:MAL_Reader_LOCALTAG_Tokenizing
-		if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == " " (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			goto MAL_Reader_LOCALTAG_Tokenizing
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "	" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			goto MAL_Reader_LOCALTAG_Tokenizing
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "," (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			goto MAL_Reader_LOCALTAG_Tokenizing
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,2!" == "~@" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set MAL_Reader_LOCALVAR_Tokenize_Tmp=~@
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~2!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "[" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=["
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "]" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=]"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "(" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=("
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == ")" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=)"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "{" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp={"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "}" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=}"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "'" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp='"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "`" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=`"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "~" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=~"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "@" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=@"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,9!" == "#$Caret$#" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=#$Caret$#"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~9!"
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!" == "#$Double_Quotation$#" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=#$Double_Quotation$#"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~20!"
-			:MAL_Reader_LOCALTAG_Tokenize_StringRead
-				if not "!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!" == "#$Double_Quotation$#" (
-					set "MAL_Reader_LOCALVAR_Tokenize_Tmp=!MAL_Reader_LOCALVAR_Tokenize_Tmp!!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!"
-					set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-					goto MAL_Reader_LOCALTAG_Tokenize_StringRead
-				) else (
-					set "MAL_Reader_LOCALVAR_Tokenize_Tmp=!MAL_Reader_LOCALVAR_Tokenize_Tmp!!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!"
-					set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~20!"
-					if "!MAL_Reader_LOCALVAR_Tokenize_Tmp:~-21,1!" == "\" (
-						goto MAL_Reader_LOCALTAG_Tokenize_StringRead
-					)
-				)
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
-		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == ";" (
-			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-				set MAL_Reader_LOCALVAR_Tokenize_Normal=
-			)
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Str
-			set "MAL_Reader_LOCALVAR_Tokenize_Str="
-		) else if defined MAL_Reader_LOCALVAR_Tokenize_Str (
-			set "MAL_Reader_LOCALVAR_Tokenize_Normal=!MAL_Reader_LOCALVAR_Tokenize_Normal!!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!"
-			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
-			goto MAL_Reader_LOCALTAG_Tokenizing
-		)
-		if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
-			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
-			set MAL_Reader_LOCALVAR_Tokenize_Normal=
-		)
-	set "MAL_Main_GLOBALVAR_ReturnValue=!MAL_Reader_LOCALVAR_Tokenize_Tokens!"
-goto :eof
+@REM :MAL_Reader_GLOBALFUNCTION_Tokenize MAL_Reader_LOCALVAR_Tokenize_Str
+@REM 	!Queue! :Init MAL_Reader_LOCALVAR_Tokenize_Tokens
+@REM 	set "MAL_Reader_LOCALVAR_Tokenize_Str=%~1"
+@REM 	:MAL_Reader_LOCALTAG_Tokenizing
+@REM 		if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == " " (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			goto MAL_Reader_LOCALTAG_Tokenizing
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "	" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			goto MAL_Reader_LOCALTAG_Tokenizing
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "," (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			goto MAL_Reader_LOCALTAG_Tokenizing
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,2!" == "~@" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set MAL_Reader_LOCALVAR_Tokenize_Tmp=~@
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~2!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "[" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=["
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "]" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=]"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "(" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=("
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == ")" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=)"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "{" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp={"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "}" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=}"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "'" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp='"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "`" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=`"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "~" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=~"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == "@" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=@"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,9!" == "#$Caret$#" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=#$Caret$#"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~9!"
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!" == "#$Double_Quotation$#" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Tmp=#$Double_Quotation$#"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~20!"
+@REM 			:MAL_Reader_LOCALTAG_Tokenize_StringRead
+@REM 				if not "!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!" == "#$Double_Quotation$#" (
+@REM 					set "MAL_Reader_LOCALVAR_Tokenize_Tmp=!MAL_Reader_LOCALVAR_Tokenize_Tmp!!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!"
+@REM 					set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 					goto MAL_Reader_LOCALTAG_Tokenize_StringRead
+@REM 				) else (
+@REM 					set "MAL_Reader_LOCALVAR_Tokenize_Tmp=!MAL_Reader_LOCALVAR_Tokenize_Tmp!!MAL_Reader_LOCALVAR_Tokenize_Str:~,20!"
+@REM 					set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~20!"
+@REM 					if "!MAL_Reader_LOCALVAR_Tokenize_Tmp:~-21,1!" == "\" (
+@REM 						goto MAL_Reader_LOCALTAG_Tokenize_StringRead
+@REM 					)
+@REM 				)
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Tmp
+@REM 		) else if "!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!" == ";" (
+@REM 			if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 				!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 				set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 			)
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Str
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str="
+@REM 		) else if defined MAL_Reader_LOCALVAR_Tokenize_Str (
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Normal=!MAL_Reader_LOCALVAR_Tokenize_Normal!!MAL_Reader_LOCALVAR_Tokenize_Str:~,1!"
+@REM 			set "MAL_Reader_LOCALVAR_Tokenize_Str=!MAL_Reader_LOCALVAR_Tokenize_Str:~1!"
+@REM 			goto MAL_Reader_LOCALTAG_Tokenizing
+@REM 		)
+@REM 		if defined MAL_Reader_LOCALVAR_Tokenize_Normal (
+@REM 			!Queue! :Enqueue MAL_Reader_LOCALVAR_Tokenize_Tokens MAL_Reader_LOCALVAR_Tokenize_Normal
+@REM 			set MAL_Reader_LOCALVAR_Tokenize_Normal=
+@REM 		)
+@REM 	set "MAL_Main_GLOBALVAR_ReturnValue=!MAL_Reader_LOCALVAR_Tokenize_Tokens!"
+@REM goto :eof
 
-rem Built-in Tokenize function unit test.
-:MAL_Reader_GLOBALFUNCTION_TokenizeUnitTest
-	call :MAL_Reader_GLOBALFUNCTION_Tokenize "  (  )  [  ]  {  }  '  `  ~  @  ,  ;  "
+@REM rem Built-in Tokenize function unit test.
+@REM :MAL_Reader_GLOBALFUNCTION_TokenizeUnitTest
+@REM 	call :MAL_Reader_GLOBALFUNCTION_Tokenize "  (  )  [  ]  {  }  '  `  ~  @  ,  ;  "
 
-	rem Check the result.
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "(" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == ")" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "[" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "]" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "{" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "}" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "'" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "`" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "~" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "@" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "," (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
-	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == ";" (
-		echo Tokenize unit test failed.
-		goto :eof
-	)
-	echo Tokenize unit test passed.
-goto :eof
-
-
-:MAL_Reader_GLOBALFUNCTION_ReadForm MAL_Reader_LOCALVAR_ReadForm_TokensQueue
-	!List! :Init MAL_Reader_LOCALVAR_ReadForm_GrammarTree
-	!Stack! :Init MAL_Reader_LOCALVAR_ReadForm_VariableBackup
-	set "MAL_Reader_LOCALVAR_ReadForm_TokensQueue=%~1"
-	:MAL_Reader_LOCALTAG_ReadForm_Loop
-		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadForm_TokensQueue
-		if not "!ErrorLevel!" == "0" (
-			!Queue! :Peep MAL_Reader_LOCALVAR_ReadForm_TokensQueue MAL_Reader_LOCALVAR_ReadForm_TempToken
-			if "!MAL_Reader_LOCALVAR_ReadForm_TempToken!" == "(" (
-				call :MAL_Reader_GLOBALFUNCTION_ReadList "!MAL_Reader_LOCALVAR_ReadForm_TokensQueue"
-			) else (
-				call :MAL_Reader_GLOBALFUNCTION_ReadAtom "!MAL_Reader_LOCALVAR_ReadForm_TokensQueue"
-			)
-			goto MAL_Reader_LOCALTAG_ReadForm_Loop
-		)
-goto :eof
+@REM 	rem Check the result.
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "(" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == ")" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "[" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "]" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "{" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "}" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "'" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "`" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "~" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "@" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == "," (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	!Queue! :Dequeue MAL_Main_GLOBALVAR_ReturnValue MAL_Reader_LOCALVAR_TokenizeUnitTest_Token
+@REM 	if not "!MAL_Reader_LOCALVAR_TokenizeUnitTest_Token!" == ";" (
+@REM 		echo Tokenize unit test failed.
+@REM 		goto :eof
+@REM 	)
+@REM 	echo Tokenize unit test passed.
+@REM goto :eof
 
 
-:MAL_Reader_GLOBALFUNCTION_ReadList MAL_Reader_LOCALVAR_ReadList_TokensQueue
-	set "MAL_Reader_LOCALVAR_ReadList_TokensQueue=%~1"
-	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue token
-	:MAL_Reader_LOCALTAG_ReadList_Loop
-		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadList_TokensQueue
-		if not "!ErrorLevel!" == "0" (
-			!Queue! :Peep MAL_Reader_LOCALVAR_ReadList_TokensQueue token
-			if "!token!" == ")" (
-				!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue token
-			) else (
-				call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Reader_LOCALVAR_ReadList_TokensQueue!"
-				goto MAL_Reader_LOCALTAG_ReadList_Loop
-			)
-		)
-goto :eof
+@REM :MAL_Reader_GLOBALFUNCTION_ReadForm MAL_Reader_LOCALVAR_ReadForm_TokensQueue
+@REM 	!List! :Init MAL_Reader_LOCALVAR_ReadForm_GrammarTree
+@REM 	!Stack! :Init MAL_Reader_LOCALVAR_ReadForm_VariableBackup
+@REM 	set "MAL_Reader_LOCALVAR_ReadForm_TokensQueue=%~1"
+@REM 	:MAL_Reader_LOCALTAG_ReadForm_Loop
+@REM 		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadForm_TokensQueue
+@REM 		if not "!ErrorLevel!" == "0" (
+@REM 			!Queue! :Peep MAL_Reader_LOCALVAR_ReadForm_TokensQueue MAL_Reader_LOCALVAR_ReadForm_TempToken
+@REM 			if "!MAL_Reader_LOCALVAR_ReadForm_TempToken!" == "(" (
+@REM 				call :MAL_Reader_GLOBALFUNCTION_ReadList "!MAL_Reader_LOCALVAR_ReadForm_TokensQueue"
+@REM 			) else (
+@REM 				call :MAL_Reader_GLOBALFUNCTION_ReadAtom "!MAL_Reader_LOCALVAR_ReadForm_TokensQueue"
+@REM 			)
+@REM 			goto MAL_Reader_LOCALTAG_ReadForm_Loop
+@REM 		)
+@REM goto :eof
 
 
-:MAL_Reader_GLOBALFUNCTION_ReadList MAL_Reader_LOCALVAR_ReadList_TokensQueue
-	set "MAL_Reader_LOCALVAR_ReadList_TokensQueue=%~1"
-	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
-	:MAL_Reader_LOCALTAG_ReadList_Loop
-		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadList_TokensQueue
-		if not "!ErrorLevel!" == "0" (
-			!Queue! :Peep MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
-			if "!MAL_Reader_LOCALVAR_ReadList_TempToken!" == ")" (
-				!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
-			) else (
-				call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Reader_LOCALVAR_ReadList_TokensQueue!"
-				goto MAL_Reader_LOCALTAG_ReadList_Loop
-			)
-		)
-goto :eof
+@REM :MAL_Reader_GLOBALFUNCTION_ReadList MAL_Reader_LOCALVAR_ReadList_TokensQueue
+@REM 	set "MAL_Reader_LOCALVAR_ReadList_TokensQueue=%~1"
+@REM 	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue token
+@REM 	:MAL_Reader_LOCALTAG_ReadList_Loop
+@REM 		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadList_TokensQueue
+@REM 		if not "!ErrorLevel!" == "0" (
+@REM 			!Queue! :Peep MAL_Reader_LOCALVAR_ReadList_TokensQueue token
+@REM 			if "!token!" == ")" (
+@REM 				!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue token
+@REM 			) else (
+@REM 				call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Reader_LOCALVAR_ReadList_TokensQueue!"
+@REM 				goto MAL_Reader_LOCALTAG_ReadList_Loop
+@REM 			)
+@REM 		)
+@REM goto :eof
 
 
-:MAL_Reader_GLOBALFUNCTION_ReadAtom MAL_Reader_LOCALVAR_ReadAtom_TokensQueue
-	set "MAL_Reader_LOCALVAR_ReadAtom_TokensQueue=%~1"
-	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadAtom_TokensQueue token
-	!List! :Enqueue MAL_Reader_LOCALVAR_ReadForm_GrammarTree token
+@REM :MAL_Reader_GLOBALFUNCTION_ReadList MAL_Reader_LOCALVAR_ReadList_TokensQueue
+@REM 	set "MAL_Reader_LOCALVAR_ReadList_TokensQueue=%~1"
+@REM 	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
+@REM 	:MAL_Reader_LOCALTAG_ReadList_Loop
+@REM 		!Queue! :IsEmpty MAL_Reader_LOCALVAR_ReadList_TokensQueue
+@REM 		if not "!ErrorLevel!" == "0" (
+@REM 			!Queue! :Peep MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
+@REM 			if "!MAL_Reader_LOCALVAR_ReadList_TempToken!" == ")" (
+@REM 				!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadList_TokensQueue MAL_Reader_LOCALVAR_ReadList_TempToken
+@REM 			) else (
+@REM 				call :MAL_Reader_GLOBALFUNCTION_ReadForm "!MAL_Reader_LOCALVAR_ReadList_TokensQueue!"
+@REM 				goto MAL_Reader_LOCALTAG_ReadList_Loop
+@REM 			)
+@REM 		)
+@REM goto :eof
 
-:check_type token
-	set "token=%~1"
+
+@REM :MAL_Reader_GLOBALFUNCTION_ReadAtom MAL_Reader_LOCALVAR_ReadAtom_TokensQueue
+@REM 	set "MAL_Reader_LOCALVAR_ReadAtom_TokensQueue=%~1"
+@REM 	!Queue! :Dequeue MAL_Reader_LOCALVAR_ReadAtom_TokensQueue token
+@REM 	!List! :Enqueue MAL_Reader_LOCALVAR_ReadForm_GrammarTree token
+
+@REM :check_type token
+@REM 	set "token=%~1"
 	
-	rem check if it is a number
-	:
+@REM 	rem check if it is a number
+@REM 	:
 	
 
 
@@ -397,5 +397,5 @@ rem rewrite above code without using outside libraries
 @REM 	% --- #$P$#
 
 (
-	
+	:Tokenize
 )
