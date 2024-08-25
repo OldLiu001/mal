@@ -420,10 +420,10 @@ goto :eof
 		call Function.bat :GetArgs _StrMalCode
 		call Function.bat :SaveCurrentCallInfo ReadString
 
+		rem Get the tokens.
 		call Namespace.bat :New
 		call Function.bat :GetRetVar _ObjReader
 		set "!_ObjReader!.TotalTokens=0"
-
 		set /a _LineNumber = !_StrMalCode!.LineNumber
 		for /l %%i in (1 1 !_LineNumber!) do (
 			call :CopyVar !_StrMalCode!.Lines[%%i] _Line
@@ -431,6 +431,18 @@ goto :eof
 			call :Tokenize
 			call Function.bat :DropRetVar
 		)
+
+		rem Check if there is any token.
+		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+		if "!_TotalTokenNum!" == "0" (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		rem Translate the tokens to AST.
+		set "!_ObjReader!.CurTokenPtr=1"
 		
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetVar _StrMalCode
@@ -449,8 +461,10 @@ goto :eof
 		:Tokenizing_Loop
 		if "!_CurLine!" == "" (
 			if "!_ParsingStr!" == "True" (
+				rem TODO
 				echo ERROR: STRING not full.
 				pause
+				exit
 			)
 			goto :Tokenizing_Pass
 		)
@@ -699,8 +713,10 @@ goto :eof
 				set "_CurLine="
 				goto :Tokenizing_Loop
 			)
+
 			set "_NormalToken=!_NormalToken!!_CurLine:~,1!"
 			set "_CurLine=!_CurLine:~1!"
+			goto :Tokenizing_Loop
 		) else (
 			rem parsing string now.
 			if "!_CurLine:~,2!" == "\\" (
@@ -728,12 +744,13 @@ goto :eof
 			goto :Tokenizing_Loop
 		)
 		:Tokenizing_Pass
-
 		call :CopyVar _CurTokenNum !_ObjReader!.TotalTokens
-		set !_ObjReader!
 
+		set !_ObjReader!
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetNone
 	goto :eof
+
+	:
 )
