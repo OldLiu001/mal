@@ -6,8 +6,11 @@
 @REM 	:RestoreCallInfo
 @REM 	:PrepareCall _ArgName1 _ArgName2 ...
 @REM 	:GetArgs _ParaName1 _ParaName2 ...
-@REM 	:Return _RetVal
-@REM 	:GetRetVal _VarName
+@REM 	:RetVar _RetVar
+@REM 	:RetVal _RetVal
+@REM 	:RetNone
+@REM 	:GetRetVar _VarName
+@REM 	:DropRetVar
 
 @rem Used Namespaces:
 @rem 	G_CallPath
@@ -40,5 +43,30 @@ goto :eof
 
 	:GetArgs _ParaName1 _ParaName2 ...
 		call Stackframe.bat :GetVars %*
+	goto :eof
+
+	:RetVar _RetVar
+		set "_ReturnValue=!%~1!"
+		call Stackframe.bat :SaveVars _ReturnValue
+	goto :eof
+
+	:RetVal _RetVal
+		set "_ReturnValue=%*"
+		call Stackframe.bat :SaveVars _ReturnValue
+	goto :eof
+
+	:RetNone
+		set "_ReturnValue=_"
+		call Stackframe.bat :SaveVars _ReturnValue
+	goto :eof
+
+	:GetRetVar _VarName
+		call Stackframe.bat :GetVars _ReturnValue
+		set "%~1=!_ReturnValue!"
+	goto :eof
+
+	:DropRetVar
+		call Stackframe.bat :GetVars _ReturnValue
+		set _ReturnValue=
 	goto :eof
 ) % Module - Function - End %
