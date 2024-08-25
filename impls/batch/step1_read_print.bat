@@ -1,3 +1,137 @@
+::TODO: rewrite this & consider string wrap
+
+@REM @rem Project Name: MAL
+@REM @rem Module Name: Main
+
+@REM @rem Origin name mapping:
+@REM @rem 	READ -> Read
+@REM @rem 	EVAL -> Eval
+@REM @rem 	PRINT -> Print
+@REM @rem 	rep -> REP
+
+@REM @echo off
+@REM pushd "%~dp0"
+@REM setlocal ENABLEDELAYEDEXPANSION
+@REM set "G_CallPath=Main(Module)"
+@REM goto Main
+
+
+@REM :Main
+@REM 	rem read input.
+@REM 	set _Input=
+@REM 	set /p "=user> "<nul
+@REM 	for /f "delims=" %%a in ('call Readline.bat') do set "_Input=%%~a"
+
+@REM 	rem wrap an string.
+@REM 	call Namespace.bat :New
+@REM 	call Stackframe.bat :GetVars _ReturnValue
+@REM 	set "_StrObj=!_ReturnValue!"
+@REM 	set "!_StrObj!.LineNumber=1"
+@REM 	set "!_StrObj!.Lines[1]=!_Input!"
+@REM 	call Stackframe.bat :SaveVars _StrObj
+
+@REM 	set "_MalCode=!_StrObj!"
+@REM 	call Stackframe.bat :SaveVars _MalCode
+@REM 	call :REP
+
+@REM 	rem free string.
+@REM 	call Stackframe.bat :GetVars _StrObj
+@REM 	call Namespace.bat :Free !_StrObj!
+@REM goto :Main
+
+
+@REM %Speed Improve Start% (
+@REM 	:Read
+@REM 		rem get args.
+@REM 		call Stackframe.bat :GetVars _MalCode
+
+@REM 		rem set call path.
+@REM 		call Stackframe.bat :SaveVars G_CallPath
+@REM 		set "G_CallPath=!G_CallPath! Read"
+
+@REM 		rem function body.
+@REM 		(
+@REM 			set "_StrMalCode=!_MalCode!"
+@REM 			call Stackframe.bat :SaveVars _StrMalCode
+@REM 			call reader.bat :ReadString
+@REM 			call Stackframe.bat :GetVars _ReturnValue
+@REM 		)
+		
+@REM 		rem restore call path.
+@REM 		call Stackframe.bat :GetVars G_CallPath
+
+@REM 		rem return.
+@REM 		call Stackframe.bat :SaveVars _ReturnValue
+@REM 	goto :eof
+
+@REM 	:Eval
+@REM 		rem get args.
+@REM 		call Stackframe.bat :GetVars _MalCode
+
+@REM 		rem set call path.
+@REM 		call Stackframe.bat :SaveVars G_CallPath
+@REM 		set "G_CallPath=!G_CallPath! Eval"
+
+@REM 		rem function body.
+@REM 		set "_ReturnValue=!_MalCode!"
+		
+		
+@REM 		rem restore call path.
+@REM 		call Stackframe.bat :GetVars G_CallPath
+
+@REM 		rem return.
+@REM 		call Stackframe.bat :SaveVars _ReturnValue
+@REM 	goto :eof
+
+@REM 	:Print
+@REM 		rem get args.
+@REM 		call Stackframe.bat :GetVars _MalCode
+		
+@REM 		rem set call path.
+@REM 		call Stackframe.bat :SaveVars G_CallPath
+@REM 		set "G_CallPath=!G_CallPath! Print"
+		
+@REM 		rem function body.
+@REM 		echo."!_MalCode!"| call writeall.bat
+
+@REM 		rem restore call path.
+@REM 		set G_CallPath
+@REM 		call Stackframe.bat :GetVars G_CallPath
+@REM 		set G_CallPath
+
+@REM 		rem return, no return value.
+@REM 	goto :eof
+
+@REM 	:REP
+@REM 		rem get args.
+@REM 		call Stackframe.bat :GetVars _MalCode
+		
+@REM 		rem set call path.
+@REM 		call Stackframe.bat :SaveVars G_CallPath
+@REM 		set "G_CallPath=!G_CallPath! REP"
+
+@REM 		call Stackframe.bat :SaveVars _MalCode
+@REM 		call :READ
+@REM 		call Stackframe.bat :GetVars _ReturnValue
+		
+@REM 		set "_MalCode=!_ReturnValue!"
+@REM 		call Stackframe.bat :SaveVars _MalCode
+@REM 		call :EVAL
+@REM 		call Stackframe.bat :GetVars _ReturnValue
+
+@REM 		set "_MalCode=!_ReturnValue!"
+@REM 		call Stackframe.bat :SaveVars _MalCode
+@REM 		call :PRINT
+
+@REM 		rem restore call path.
+@REM 		call Stackframe.bat :GetVars G_CallPath
+
+@REM 		rem return, no return value.
+@REM 	goto :eof
+@REM ) %Speed Improve End%
+
+@REM ---------------------------------------------------------------------------
+
 @rem Project Name: MAL
 @rem Module Name: Main
 
@@ -10,121 +144,67 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-set "G_CallPath=Main(Module)"
+call Function.bat :SaveCurrentCallInfo "(Mod)Main"
 goto Main
 
 
 :Main
-	rem read input.
-	set _Input=
-	set /p "=user> "<nul
-	for /f "delims=" %%a in ('call Readline.bat') do set "_Input=%%~a"
-
-	rem wrap an string.
-	call Namespace.bat :New
-	call Stackframe.bat :GetVars _ReturnValue
-	set "_StrObj=!_ReturnValue!"
-	set "!_StrObj!.LineNumber=1"
-	set "!_StrObj!.Lines[1]=!_Input!"
-	call Stackframe.bat :SaveVars _StrObj
-
-	set "_MalCode=!_StrObj!"
-	call Stackframe.bat :SaveVars _MalCode
+	set "_Prompt=user> "
+	call IO.bat :WriteVar _Prompt
+	call IO.bat :ReadEscapedLine
+	call Function.bat :GetRetVar _MalCode
+	
+	call Function.bat :PrepareCall _MalCode
 	call :REP
-
-	rem free string.
-	call Stackframe.bat :GetVars _StrObj
-	call Namespace.bat :Free !_StrObj!
+	call Function.bat :DropRetVar
 goto :Main
 
 
 %Speed Improve Start% (
 	:Read
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
+		call Function.bat :GetArgs _MalCode
+		call Function.bat :SaveCurrentCallInfo Read
 
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Read"
-
-		rem function body.
-		(
-			set "_StrMalCode=!_MalCode!"
-			call Stackframe.bat :SaveVars _StrMalCode
-			call reader.bat :ReadString
-			call Stackframe.bat :GetVars _ReturnValue
-		)
-		
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
-
-		rem return.
-		call Stackframe.bat :SaveVars _ReturnValue
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetVar _MalCode
 	goto :eof
 
 	:Eval
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
+		call Function.bat :GetArgs _MalCode
+		call Function.bat :SaveCurrentCallInfo Eval
 
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Eval"
-
-		rem function body.
-		set "_ReturnValue=!_MalCode!"
-		
-		
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
-
-		rem return.
-		call Stackframe.bat :SaveVars _ReturnValue
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetVar _MalCode
 	goto :eof
 
 	:Print
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
+		call Function.bat :GetArgs _MalCode
+		call Function.bat :SaveCurrentCallInfo Print
 		
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Print"
-		
-		rem function body.
-		echo."!_MalCode!"| call writeall.bat
+		call IO.bat :WriteEscapedLineVar _MalCode
 
-		rem restore call path.
-		set G_CallPath
-		call Stackframe.bat :GetVars G_CallPath
-		set G_CallPath
-
-		rem return, no return value.
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetNone
 	goto :eof
 
 	:REP
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
-		
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! REP"
+		call Function.bat :GetArgs _MalCode
+		call Function.bat :SaveCurrentCallInfo REP
 
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :READ
-		call Stackframe.bat :GetVars _ReturnValue
+		call Function.bat :GetRetVar _MalCode
 		
-		set "_MalCode=!_ReturnValue!"
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :EVAL
-		call Stackframe.bat :GetVars _ReturnValue
+		call Function.bat :GetRetVar _MalCode
 
-		set "_MalCode=!_ReturnValue!"
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :PRINT
+		call Function.bat :DropRetVar
 
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
-
-		rem return, no return value.
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetNone
 	goto :eof
 ) %Speed Improve End%
 
