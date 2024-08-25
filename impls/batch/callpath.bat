@@ -19,8 +19,11 @@ goto :eof
 
 % Module - CallPath - Start % (
 	:SaveCurrentCallInfo _Name
+		if not defined G_CallPath (
+			set "G_CallPath=>"
+		)
 		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! %~1"
+		set "G_CallPath=!G_CallPath!>%~1"
 	goto :eof
 
 	:RestoreCallInfo
