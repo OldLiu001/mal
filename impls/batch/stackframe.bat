@@ -41,7 +41,7 @@ goto :eof
 	:PopVar _VarName
 		if %G_StackPtr% leq 0 (
 			echo [!G_CallPath!] Stack is empty.
-			exit 1
+			pause & exit 1
 		)
 		for %%i in (!G_StackPtr!) do (
 			set "%~1=!G_Stackframe[%%i]!"
@@ -64,7 +64,7 @@ goto :eof
 			for %%j in (!_VarName!) do (
 				if "!_VarList!" == "!_VarList:%%j=!" (
 					echo [!G_CallPath!] _VarName: %%j is not in _VarList.
-					exit 1
+					pause & exit 1
 				)
 
 				rem Remove _VarName from _VarList.
@@ -75,7 +75,7 @@ goto :eof
 		rem check if _VarList is empty.
 		for %%_ in (!_VarList!) do (
 			echo [!G_CallPath!] Need more Vars: !_VarList!
-			exit 1
+			pause & exit 1
 		)
 	goto :eof
 
@@ -88,7 +88,7 @@ goto :eof
 		for %%i in (!_VarList!) do (
 			if not defined %%i (
 				echo [!G_CallPath!] VarName: %%i is not defined.
-				exit 1
+				pause & exit 1
 			)
 			call :PushVar %%i
 			call :PushVal %%i

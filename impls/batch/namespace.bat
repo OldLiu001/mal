@@ -38,7 +38,7 @@ goto :eof
 		set "_VarName=%~1"
 		if not defined !_VarName! (
 			echo [!G_CallPath!] Namespace[%~1] is not defined.
-			exit 1
+			pause & exit 1
 		)
 		for /f "delims==" %%i in (
 			'set !_VarName!'
