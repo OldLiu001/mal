@@ -21,82 +21,57 @@ goto Main
 	for /f "delims=" %%a in ('call Readline.bat') do set "_Input=%%~a"
 
 	set "_MalCode=!_Input!"
-	call Stackframe.bat :SaveVars _MalCode
+	call Function.bat :PrepareCall _MalCode
 	call :REP
+	call Function.bat :DropRetVar
 goto :Main
 
 
 %Speed Improve Start% (
 	:Read
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
-
+		call Function.bat :GetArgs _MalCode
 		call Function.bat :SaveCurrentCallInfo Read
 
-		rem function body.
-		set "_ReturnValue=!_MalCode!"
-		
 		call Function.bat :RestoreCallInfo
-
-		rem return.
-		call Stackframe.bat :SaveVars _ReturnValue
+		call Function.bat :RetVar _MalCode
 	goto :eof
 
 	:Eval
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
-
+		call Function.bat :GetArgs _MalCode
 		call Function.bat :SaveCurrentCallInfo Eval
 
-		rem function body.
-		set "_ReturnValue=!_MalCode!"
-		
-		
 		call Function.bat :RestoreCallInfo
-
-		rem return.
-		call Stackframe.bat :SaveVars _ReturnValue
+		call Function.bat :RetVar _MalCode
 	goto :eof
 
 	:Print
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
-		
+		call Function.bat :GetArgs _MalCode
 		call Function.bat :SaveCurrentCallInfo Print
 		
-		rem function body.
 		echo."!_MalCode!"| call writeall.bat
 
-		rem restore call path.
-		set G_CallPath
 		call Function.bat :RestoreCallInfo
-		set G_CallPath
-
-		rem return, no return value.
+		call Function.bat :RetNone
 	goto :eof
 
 	:REP
-		rem get args.
-		call Stackframe.bat :GetVars _MalCode
-		
+		call Function.bat :GetArgs _MalCode
 		call Function.bat :SaveCurrentCallInfo REP
 
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :READ
-		call Stackframe.bat :GetVars _ReturnValue
+		call Function.bat :GetRetVar _MalCode
 		
-		set "_MalCode=!_ReturnValue!"
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :EVAL
-		call Stackframe.bat :GetVars _ReturnValue
+		call Function.bat :GetRetVar _MalCode
 
-		set "_MalCode=!_ReturnValue!"
-		call Stackframe.bat :SaveVars _MalCode
+		call Function.bat :PrepareCall _MalCode
 		call :PRINT
+		call Function.bat :DropRetVar
 
 		call Function.bat :RestoreCallInfo
-
-		rem return, no return value.
+		call Function.bat :RetNone
 	goto :eof
 ) %Speed Improve End%
 
