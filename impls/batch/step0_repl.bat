@@ -10,7 +10,7 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-call CallPath.bat :SaveCurrentCallInfo "(Mod)Main"
+call Function.bat :SaveCurrentCallInfo "(Mod)Main"
 goto Main
 
 
@@ -31,12 +31,12 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 
-		call CallPath.bat :SaveCurrentCallInfo Read
+		call Function.bat :SaveCurrentCallInfo Read
 
 		rem function body.
 		set "_ReturnValue=!_MalCode!"
 		
-		call CallPath.bat :RestoreCallInfo
+		call Function.bat :RestoreCallInfo
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -46,13 +46,13 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 
-		call CallPath.bat :SaveCurrentCallInfo Eval
+		call Function.bat :SaveCurrentCallInfo Eval
 
 		rem function body.
 		set "_ReturnValue=!_MalCode!"
 		
 		
-		call CallPath.bat :RestoreCallInfo
+		call Function.bat :RestoreCallInfo
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -62,14 +62,14 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 		
-		call CallPath.bat :SaveCurrentCallInfo Print
+		call Function.bat :SaveCurrentCallInfo Print
 		
 		rem function body.
 		echo."!_MalCode!"| call writeall.bat
 
 		rem restore call path.
 		set G_CallPath
-		call CallPath.bat :RestoreCallInfo
+		call Function.bat :RestoreCallInfo
 		set G_CallPath
 
 		rem return, no return value.
@@ -79,7 +79,7 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 		
-		call CallPath.bat :SaveCurrentCallInfo REP
+		call Function.bat :SaveCurrentCallInfo REP
 
 		call Stackframe.bat :SaveVars _MalCode
 		call :READ
@@ -94,7 +94,7 @@ goto :Main
 		call Stackframe.bat :SaveVars _MalCode
 		call :PRINT
 
-		call CallPath.bat :RestoreCallInfo
+		call Function.bat :RestoreCallInfo
 
 		rem return, no return value.
 	goto :eof

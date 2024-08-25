@@ -1,9 +1,10 @@
 @echo off
-@REM Module Name: CallPath
+@REM Module Name: Function
 
 @rem Export Functions:
 @REM 	:SaveCurrentCallInfo _Name
 @REM 	:RestoreCallInfo
+
 
 @rem Used Namespaces:
 @rem 	G_CallPath
@@ -17,7 +18,7 @@
 	set _Arguments=
 goto :eof
 
-% Module - CallPath - Start % (
+% Module - Function - Start % (
 	:SaveCurrentCallInfo _Name
 		if not defined G_CallPath (
 			set "G_CallPath=>"
@@ -29,4 +30,4 @@ goto :eof
 	:RestoreCallInfo
 		call Stackframe.bat :GetVars G_CallPath
 	goto :eof
-) % Module - CallPath - End %
+) % Module - Function - End %
