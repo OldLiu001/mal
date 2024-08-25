@@ -8,142 +8,67 @@
 @rem 	rep -> REP
 
 @echo off
+pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-set /a GLOBAL_STACKCNT = -1
+set "G_CallPath=Main(Module)"
 goto Main
 
 
 :Main
-	set Input=
+	set _Input=
 	set /p "=user> "<nul
-	for /f "delims=" %%a in ('call readline.bat') do set "Input=%%~a"
-	call :REP "!Input!"
+	for /f "delims=" %%a in ('call Readline.bat') do set "_Input=%%~a"
+
+	set "_MalCode=!_Input!"
+	call Stackframe.bat :SaveVars _MalCode
+	call :REP
 goto :Main
 
 
 %Speed Improve Start% (
 	:Read
-		call :GetVars Main Read "MalCode"
+		call Stackframe.bat :GetVars _MalCode
+
 		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
+		set "_ReturnValue=!_MalCode!"
+		
+		call Stackframe.bat :SaveVars _ReturnValue
 	goto :eof
 
 	:Eval
-		call :GetVars Main Read "MalCode"
+		call Stackframe.bat :GetVars _MalCode
+
 		rem return it directly.
-		set "ReturnValue=!MalCode!"
-		call :SaveVars Main Read "ReturnValue"
+		set "_ReturnValue=!_MalCode!"
+		
+		call Stackframe.bat :SaveVars _ReturnValue
 	goto :eof
 
 	:Print
-		call :GetVars Main Read "MalCode"
+		call Stackframe.bat :GetVars _MalCode
 		
-		echo."!MalCode!"| call writeall.bat
+		echo."!_MalCode!"| call writeall.bat
+
+		rem no return value.
 	goto :eof
 
-	:REP MalCode
-		set "MalCode=%~1"
+	:REP
+		call Stackframe.bat :GetVars _MalCode
 		
-		call :SaveVars Main REP "MalCode"
+		call Stackframe.bat :SaveVars _MalCode
 		call :READ
-		call :GetVars Main REP "ReturnValue"
+		call Stackframe.bat :GetVars _ReturnValue
 		
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
+		set "_MalCode=!_ReturnValue!"
+		call Stackframe.bat :SaveVars _MalCode
 		call :EVAL
-		call :GetVars Main REP "ReturnValue"
+		call Stackframe.bat :GetVars _ReturnValue
 
-		set "MalCode=!ReturnValue!"
-		call :SaveVars Main REP "MalCode"
+		set "_MalCode=!_ReturnValue!"
+		call Stackframe.bat :SaveVars _MalCode
 		call :PRINT
+
+		rem no return value.
 	goto :eof
 ) %Speed Improve End%
 
-
-
-@REM Batchfile Stackframe support BY OldLiu.
-%Speed Improve Start% (
-	:StackPushVar strVarName
-		rem requirement: enable delayed expansion.
-		set /a GLOBAL_STACKCNT += 1
-		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=!%~1!"
-	goto :eof
-
-	:StackPushVal str
-		rem requirement: enable delayed expansion.
-		set /a GLOBAL_STACKCNT += 1
-		set "GLOBAL_STACK[!GLOBAL_STACKCNT!]=%~1"
-	goto :eof
-
-	:StackPopVar strVarName
-		rem requirement: enable delayed expansion.
-		if %GLOBAL_STACKCNT% lss 0 (
-			echo [Module: StackLib] [Fn: StackPopVar] [Fatal Error] Stack is empty. >&2
-			exit /b 1
-		)
-		for %%i in (!GLOBAL_STACKCNT!) do (
-			set "%~1=!GLOBAL_STACK[%%i]!"
-			set "GLOBAL_STACK[%%i]="
-		)
-		set /a GLOBAL_STACKCNT -= 1
-	goto :eof
-
-	:GetVars ModuleName FnName VarList
-		rem requirement: enable delayed expansion.
-		rem requirement: VarList is a string, and each VarName is separated by " ".
-		rem requirement: VarName is different from each other.
-		set "ModuleName=%~1"
-		set "FnName=%~2"
-		set "VarList=%~3"
-		
-		rem Pop Vars.
-		rem Pop Var count.
-		call :StackPopVar VarCount
-		for /l %%i in (1 1 !VarCount!) do (
-			call :StackPopVar VarName
-
-			rem check if VarName in VarList.
-			for %%j in (!VarName!) do (
-				@REM echo varlist "!VarList!" "%%j"
-				@REM echo varlist "!VarList:%%j=!"
-				if "!VarList!" == "!VarList:%%j=!" (
-					echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%j is not in VarList. >&2
-					exit /b 1
-				)
-
-				rem Remove VarName from VarList.
-				set VarList=!VarList:%%j=!
-			)
-			call :StackPopVar !VarName!
-		)
-		rem check if VarList is empty.
-		for %%_ in (!VarList!) do (
-			echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] Need more Vars: !VarList! >&2
-			exit /b 1
-		)
-	goto :eof
-
-	:SaveVars ModuleName FnName VarList
-		rem requirement: enable delayed expansion.
-		rem requirement: VarList is a string, and each VarName is separated by " ".
-		rem requirement: VarName is different from each other.
-		set "ModuleName=%~1"
-		set "FnName=%~2"
-		set "VarList=%~3"
-		
-		rem Cout Var number.
-		set "VarCount=0"
-		for %%i in (!VarList!) do (
-			if not defined %%i (
-				echo [Mod: !ModuleName!] [Fn: !FnName!] [Fatal Error] VarName: %%i is not defined. >&2
-				exit /b 1
-			)
-			call :StackPushVar %%i
-			call :StackPushVal %%i
-			set /a VarCount += 1
-		)
-		rem Push Var count.
-		call :StackPushVal !VarCount!
-	goto :eof
-) %Speed Improve End%

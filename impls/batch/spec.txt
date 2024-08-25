@@ -4,3 +4,8 @@ Special Symbol Mapping:
 	" --- $D
 	% --- $P
 	$ --- $$
+
+Naming Rule:
+	Function Naming: FunctionName
+	Local Variable Naming: _VarName
+	Global Variable Naming: G_VarName
