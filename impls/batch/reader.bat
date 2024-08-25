@@ -447,13 +447,14 @@ goto :eof
 		call :ReadForm
 		
 		@REM TODO
-		call Function.bat :DropRetVar
+		call Function.bat :GetRetVar _ObjMalCode
 
 		@REM TODO: check if there has more token.
 		@REM CurTokenPtr <= _TotalTokenNum
 		
+		
 		call Function.bat :RestoreCallInfo
-		call Function.bat :RetVar _StrMalCode
+		call Function.bat :RetVar _ObjMalCode
 	goto :eof
 
 	:ReadForm
