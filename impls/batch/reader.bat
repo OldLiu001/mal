@@ -446,6 +446,12 @@ goto :eof
 		call Function.bat :PrepareCall _ObjReader
 		call :ReadForm
 		
+		@REM TODO
+		call Function.bat :DropRetVar
+
+		@REM TODO: check if there has more token.
+		@REM CurTokenPtr <= _TotalTokenNum
+		
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetVar _StrMalCode
 	goto :eof
@@ -482,6 +488,7 @@ goto :eof
 	goto :eof
 
 	:ReadAtom
+		echo readatom
 		call Function.bat :GetArgs _ObjReader
 		call Function.bat :SaveCurrentCallInfo ReadAtom
 
@@ -496,6 +503,8 @@ goto :eof
 		)
 
 		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		set /a _CurTokenPtr += 1
+		call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
 		
 		call Namespace.bat :New
 		call Function.bat :GetRetVar _ObjMalCode
@@ -516,6 +525,7 @@ goto :eof
 	goto :eof
 
 	:ReadList
+		echo readlist
 		call Function.bat :GetArgs _ObjReader
 		call Function.bat :SaveCurrentCallInfo ReadList
 
@@ -539,6 +549,7 @@ goto :eof
 		)
 
 		set /a _CurTokenPtr += 1
+		call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
 
 		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
 			rem TODO
@@ -555,17 +566,20 @@ goto :eof
 		set "_Length=0"
 		:ReadList_Loop
 			call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+			echo !_CurToken!
+			echo !_CurTokenPtr!
 			if "!_CurToken!" == ")" (
 				set /a _CurTokenPtr += 1
+				call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
 				goto :ReadList_Pass
 			)
 			set /a _Length += 1
 
-			call :Stackframe :SaveVars _ObjMalCode _Length _CurToken
+			call Stackframe.bat :SaveVars _ObjMalCode _Length _CurToken
 			call Function.bat :PrepareCall _ObjReader
 			call :ReadForm
 			call Function.bat :GetRetVar !_ObjMalCode!.Item[!_Length!]
-			call :Stackframe :GetVars _ObjMalCode _Length _CurToken
+			call Stackframe.bat :GetVars _ObjMalCode _Length _CurToken
 
 			goto :ReadList_Loop
 		:ReadList_Pass
@@ -874,6 +888,13 @@ goto :eof
 			goto :Tokenizing_Loop
 		)
 		:Tokenizing_Pass
+		if defined _NormalToken (
+			rem save normal token.
+			call :CopyVar _NormalToken _CurToken
+			set /a _CurTokenNum += 1
+			call :CopyVar _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			set _NormalToken=
+		)
 		call :CopyVar _CurTokenNum !_ObjReader!.TotalTokens
 
 		set !_ObjReader!
