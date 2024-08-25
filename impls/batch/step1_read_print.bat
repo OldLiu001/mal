@@ -154,16 +154,30 @@ goto Main
 	call IO.bat :ReadEscapedLine
 	call Function.bat :GetRetVar _MalCode
 	
-	call Function.bat :PrepareCall _MalCode
+	rem wrap a string.
+	call Namespace.bat :New
+	call Function.bat :GetRetVar _StrObj
+	set "!_StrObj!.LineNumber=1"
+	set "!_StrObj!.Lines[1]=!_MalCode!"
+
+	call Function.bat :PrepareCall _StrObj
 	call :REP
 	call Function.bat :DropRetVar
+
+	rem free string.
+	call Namespace.bat :Free !_StrObj!
 goto :Main
 
 
 %Speed Improve Start% (
 	:Read
-		call Function.bat :GetArgs _MalCode
+		call Function.bat :GetArgs _StrObj
 		call Function.bat :SaveCurrentCallInfo Read
+
+		set "_StrMalCode=!_StrObj!"
+		call Function :PrepareCall _StrMalCode
+		call Reader.bat :ReadString
+		call Function.bat :DropRetVar
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetVar _MalCode
@@ -188,10 +202,10 @@ goto :Main
 	goto :eof
 
 	:REP
-		call Function.bat :GetArgs _MalCode
+		call Function.bat :GetArgs _StrObj
 		call Function.bat :SaveCurrentCallInfo REP
 
-		call Function.bat :PrepareCall _MalCode
+		call Function.bat :PrepareCall _StrObj
 		call :READ
 		call Function.bat :GetRetVar _MalCode
 		
