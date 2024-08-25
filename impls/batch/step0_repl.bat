@@ -10,7 +10,7 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-set "G_CallPath=Main(Module)"
+call CallPath.bat :SaveCurrentCallInfo "(Mod)Main"
 goto Main
 
 
@@ -31,15 +31,12 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Read"
+		call CallPath.bat :SaveCurrentCallInfo Read
 
 		rem function body.
 		set "_ReturnValue=!_MalCode!"
 		
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
+		call CallPath.bat :RestoreCallInfo
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -49,16 +46,13 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Eval"
+		call CallPath.bat :SaveCurrentCallInfo Eval
 
 		rem function body.
 		set "_ReturnValue=!_MalCode!"
 		
 		
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
+		call CallPath.bat :RestoreCallInfo
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -68,16 +62,14 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 		
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! Print"
+		call CallPath.bat :SaveCurrentCallInfo Print
 		
 		rem function body.
 		echo."!_MalCode!"| call writeall.bat
 
 		rem restore call path.
 		set G_CallPath
-		call Stackframe.bat :GetVars G_CallPath
+		call CallPath.bat :RestoreCallInfo
 		set G_CallPath
 
 		rem return, no return value.
@@ -87,9 +79,7 @@ goto :Main
 		rem get args.
 		call Stackframe.bat :GetVars _MalCode
 		
-		rem set call path.
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath! REP"
+		call CallPath.bat :SaveCurrentCallInfo REP
 
 		call Stackframe.bat :SaveVars _MalCode
 		call :READ
@@ -104,8 +94,7 @@ goto :Main
 		call Stackframe.bat :SaveVars _MalCode
 		call :PRINT
 
-		rem restore call path.
-		call Stackframe.bat :GetVars G_CallPath
+		call CallPath.bat :RestoreCallInfo
 
 		rem return, no return value.
 	goto :eof
