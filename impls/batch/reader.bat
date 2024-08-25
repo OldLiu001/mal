@@ -443,10 +443,122 @@ goto :eof
 
 		rem Translate the tokens to AST.
 		set "!_ObjReader!.CurTokenPtr=1"
+		call Function.bat :PrepareCall _ObjReader
+		call :ReadForm
 		
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetVar _StrMalCode
 	goto :eof
+
+	:ReadForm
+		call Function.bat :GetArgs _ObjReader
+		call Function.bat :SaveCurrentCallInfo ReadForm
+
+		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
+		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+
+		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		
+		if "!_CurToken!" == "(" (
+			call Function.bat :PrepareCall _ObjReader
+			call :ReadList
+			call Function.bat :GetRetVar _ObjMalCode
+		) else (
+			rem Atom.
+			call Function.bat :PrepareCall _ObjReader
+			call :ReadAtom
+			call Function.bat :GetRetVar _ObjMalCode
+		)
+
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetVar _ObjMalCode
+	goto :eof
+
+	:ReadAtom
+		call Function.bat :GetArgs _ObjReader
+		call Function.bat :SaveCurrentCallInfo ReadAtom
+
+		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
+		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+
+		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		
+		call Namespace.bat :New
+		call Function.bat :GetRetVar _ObjMalCode
+		set "!_ObjMalCode!.Type=MalType"
+		set "!_ObjMalCode!.Value=!_CurToken!"
+
+		rem check token's MalType.
+		set /a _TestNum = _CurToken
+		if "!_TestNum!" == "!_CurToken!" (
+			set "!_ObjMalCode!.MalType=Number"
+		) else (
+			set "!_ObjMalCode!.Type=Symbol"
+		)
+		rem TODO: CheckMore.
+
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetVar _ObjMalCode
+	goto :eof
+
+	:ReadList
+		call Function.bat :GetArgs _ObjReader
+		call Function.bat :SaveCurrentCallInfo ReadList
+
+		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
+		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+
+		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+
+		if "!_CurToken!" Neq "(" (
+			rem TODO
+			echo ERROR: Not a list.
+			pause
+			exit
+		)
+
+		set /a _CurTokenPtr += 1
+
+		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		:ReadList_Loop
+			if "!_CurToken!" == ")" (
+				set /a _CurTokenPtr += 1
+				goto :ReadList_Pass
+			)
+
+
+
+	goto :eof
+
+
 
 	:Tokenize
 		call Function.bat :GetArgs _Line _ObjReader
@@ -751,6 +863,4 @@ goto :eof
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetNone
 	goto :eof
-
-	:
 )
