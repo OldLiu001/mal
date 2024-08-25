@@ -30,7 +30,7 @@ goto :eof
 		set /a G_NamespacePtr += 1
 		set "G_Namespace[!G_NamespacePtr!]=_"
 
-		call Function.bat :RetVal "G_Namespace[!G_NamespacePtr!]"
+		call Function.bat :RetVal G_Namespace[!G_NamespacePtr!]
 	goto :eof
 
 	:Free _VarName
