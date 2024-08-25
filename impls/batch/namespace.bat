@@ -36,9 +36,14 @@ goto :eof
 	:Free _VarName
 		set "_VarName=%~1"
 		if not defined !_VarName! (
-			echo [!G_CallPath!] Namespace[%~1] is not defined.
+			echo [!G_CallPath!] !_VarName! is not defined.
 			pause & exit 1
 		)
+		if "!_VarName:~,11!" Neq "G_Namespace" (
+			echo [!G_CallPath!] !_VarName! is not a namespace.
+			pause & exit 1
+		)
+
 		for /f "delims==" %%i in (
 			'set !_VarName!'
 		) do (
