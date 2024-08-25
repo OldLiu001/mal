@@ -372,10 +372,11 @@ rem _____________________________________________________________
 
 rem rewrite above code without using outside libraries
 
-@REM Project name: MAL
-@REM Module name: Reader
 
-@REM Global function list:
+@echo off
+@REM Module Name: Reader
+
+@rem Export Functions:
 @REM 	ReadString
 @REM 	Tokenize
 @REM 	ReadForm
@@ -390,12 +391,47 @@ rem rewrite above code without using outside libraries
 @REM 	read_list -> ReadList
 @REM 	read_atom -> ReadAtom
 
-@REM Special Symbol Mapping:
-@REM 	! --- #$E$#
-@REM 	^ --- #$C$#
-@REM 	" --- #$D$#
-@REM 	% --- #$P$#
+::Start
+	rem set call path.
+	call Stackframe.bat :SaveVars G_CallPath
+	set "G_CallPath=!G_CallPath! Reader(Module)"
+
+	set "_Arguments=%*"
+	if "!_Arguments:~,1!" Equ ":" (
+		Set "_Arguments=!_Arguments:~1!"
+	)
+	call :!_Arguments!
+	set _Arguments=
+
+	rem restore call path.
+	call Stackframe.bat :GetVars G_CallPath
+goto :eof
 
 (
+	:ReadString
+		rem get args.
+		call Stackframe.bat :GetVars _StrMalCode
+
+		rem set call path.
+		call Stackframe.bat :SaveVars G_CallPath
+		set "G_CallPath=!G_CallPath! ReadString"
+
+		rem function body.
+		(
+			set "_ReturnValue=!_StrMalCode!"
+		)
+
+		rem restore call path.
+		call Stackframe.bat :GetVars G_CallPath
+
+		rem return.
+		call Stackframe.bat :SaveVars _ReturnValue
+	goto :eof
+
 	:Tokenize
+		call Stackframe.bat :GetVars _StrMalCode
+		call Stackframe.bat :SaveVars G_CallPath
+		set "G_CallPath=!G_CallPath! ReadString"
+		
+	goto :eof
 )
