@@ -546,16 +546,34 @@ goto :eof
 			pause
 			exit
 		)
-
-		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		
+		call Namespace.bat :New
+		call Function.bat :GetRetVar _ObjMalCode
+		set "!_ObjMalCode!.Type=MalType"
+		set "!_ObjMalCode!.MalType=List"
+		
+		set "_Length=0"
 		:ReadList_Loop
+			call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
 			if "!_CurToken!" == ")" (
 				set /a _CurTokenPtr += 1
 				goto :ReadList_Pass
 			)
+			set /a _Length += 1
+
+			call :Stackframe :SaveVars _ObjMalCode _Length _CurToken
+			call Function.bat :PrepareCall _ObjReader
+			call :ReadForm
+			call Function.bat :GetRetVar !_ObjMalCode!.Item[!_Length!]
+			call :Stackframe :GetVars _ObjMalCode _Length _CurToken
+
+			goto :ReadList_Loop
+		:ReadList_Pass
+		call :CopyVar _Length !_ObjMalCode!.Length
 
 
-
+		call Function.bat :RestoreCallInfo
+		call Function.bat :RetVar _ObjMalCode
 	goto :eof
 
 
