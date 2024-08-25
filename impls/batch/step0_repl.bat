@@ -15,12 +15,11 @@ goto Main
 
 
 :Main
-	rem read input.
-	set _Input=
-	set /p "=user> "<nul
-	for /f "delims=" %%a in ('call Readline.bat') do set "_Input=%%~a"
-
-	set "_MalCode=!_Input!"
+	set "_Prompt=user> "
+	call IO.bat :WriteVar _Prompt
+	call IO.bat :ReadEscapedLine
+	call Function.bat :GetRetVar _MalCode
+	
 	call Function.bat :PrepareCall _MalCode
 	call :REP
 	call Function.bat :DropRetVar
@@ -48,7 +47,7 @@ goto :Main
 		call Function.bat :GetArgs _MalCode
 		call Function.bat :SaveCurrentCallInfo Print
 		
-		echo."!_MalCode!"| call writeall.bat
+		call IO.bat :WriteEscapedLineVar _MalCode
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetNone
