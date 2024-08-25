@@ -4,6 +4,7 @@
 @REM 	:ReadEscapedLine
 @REM 	:WriteEscapedLineVar _Var
 @REM 	:WriteVal _Val
+@REM 	:WriteVar _Var
 @REM 	:WriteLineVal _Val
 @REM 	:WriteErrVal _Val
 @REM 	:WriteErrLineVal _Val
@@ -28,10 +29,14 @@ goto :eof
 	goto :eof
 
 	:WriteEscapedLineVar _Var
-		echo."!%~1!"| call WriteLine.bat
+		echo."!%~1!"| call WriteAll.bat
 	goto :eof
 
 	:WriteVal _Val
-		set /p "=%~1"<nul
+		<nul set /p "=%~1"
+	goto :eof
+
+	:WriteVar _Var
+		<nul set /p "=!%~1!"
 	goto :eof
 ) % Module - IO - End %
