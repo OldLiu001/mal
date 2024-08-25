@@ -30,8 +30,7 @@ goto :eof
 		set /a G_NamespacePtr += 1
 		set "G_Namespace[!G_NamespacePtr!]=_"
 
-		set "_ReturnValue=G_Namespace[!G_NamespacePtr!]"
-		call Stackframe.bat :SaveVars _ReturnValue
+		call Function.bat :RetVal "G_Namespace[!G_NamespacePtr!]"
 	goto :eof
 
 	:Free _VarName
