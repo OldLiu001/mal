@@ -1,9 +1,8 @@
 @rem Module Name: Stackframe
 
 @rem Export Functions:
-@rem 	:PushVar str_VarName
-@rem 	:PushVal str
-@rem 	:PopVar str_VarName
+@rem 	:SaveVars _VarName1 _VarName2 ...
+@rem 	:GetVars  _VarName1 _VarName2 ...
 
 @rem Requirement: enable delayed expansion.
 

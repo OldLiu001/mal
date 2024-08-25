@@ -32,14 +32,14 @@ goto :Main
 		call Stackframe.bat :GetVars _MalCode
 
 		rem set call path.
-		call Stackframe.bat :PushVar G_CallPath
+		call Stackframe.bat :SaveVars G_CallPath
 		set "G_CallPath=!G_CallPath! Read"
 
 		rem function body.
 		set "_ReturnValue=!_MalCode!"
 		
 		rem restore call path.
-		call Stackframe.bat :PopVar G_CallPath
+		call Stackframe.bat :GetVars G_CallPath
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -50,7 +50,7 @@ goto :Main
 		call Stackframe.bat :GetVars _MalCode
 
 		rem set call path.
-		call Stackframe.bat :PushVar G_CallPath
+		call Stackframe.bat :SaveVars G_CallPath
 		set "G_CallPath=!G_CallPath! Eval"
 
 		rem function body.
@@ -58,7 +58,7 @@ goto :Main
 		
 		
 		rem restore call path.
-		call Stackframe.bat :PopVar G_CallPath
+		call Stackframe.bat :GetVars G_CallPath
 
 		rem return.
 		call Stackframe.bat :SaveVars _ReturnValue
@@ -69,7 +69,7 @@ goto :Main
 		call Stackframe.bat :GetVars _MalCode
 		
 		rem set call path.
-		call Stackframe.bat :PushVar G_CallPath
+		call Stackframe.bat :SaveVars G_CallPath
 		set "G_CallPath=!G_CallPath! Print"
 		
 		rem function body.
@@ -77,7 +77,7 @@ goto :Main
 
 		rem restore call path.
 		set G_CallPath
-		call Stackframe.bat :PopVar G_CallPath
+		call Stackframe.bat :GetVars G_CallPath
 		set G_CallPath
 
 		rem return, no return value.
@@ -88,7 +88,7 @@ goto :Main
 		call Stackframe.bat :GetVars _MalCode
 		
 		rem set call path.
-		call Stackframe.bat :PushVar G_CallPath
+		call Stackframe.bat :SaveVars G_CallPath
 		set "G_CallPath=!G_CallPath! REP"
 
 		call Stackframe.bat :SaveVars _MalCode
@@ -105,7 +105,7 @@ goto :Main
 		call :PRINT
 
 		rem restore call path.
-		call Stackframe.bat :PopVar G_CallPath
+		call Stackframe.bat :GetVars G_CallPath
 
 		rem return, no return value.
 	goto :eof
