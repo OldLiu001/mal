@@ -25,18 +25,18 @@
 @REM 	rem wrap an string.
 @REM 	call Namespace.bat :New
 @REM 	call Stackframe.bat :GetVars _ReturnValue
-@REM 	set "_StrObj=!_ReturnValue!"
-@REM 	set "!_StrObj!.LineNumber=1"
-@REM 	set "!_StrObj!.Lines[1]=!_Input!"
-@REM 	call Stackframe.bat :SaveVars _StrObj
+@REM 	set "_StrMalCode=!_ReturnValue!"
+@REM 	set "!_StrMalCode!.LineCount=1"
+@REM 	set "!_StrMalCode!.Lines[1]=!_Input!"
+@REM 	call Stackframe.bat :SaveVars _StrMalCode
 
-@REM 	set "_MalCode=!_StrObj!"
+@REM 	set "_MalCode=!_StrMalCode!"
 @REM 	call Stackframe.bat :SaveVars _MalCode
 @REM 	call :REP
 
 @REM 	rem free string.
-@REM 	call Stackframe.bat :GetVars _StrObj
-@REM 	call Namespace.bat :Free !_StrObj!
+@REM 	call Stackframe.bat :GetVars _StrMalCode
+@REM 	call Namespace.bat :Free !_StrMalCode!
 @REM goto :Main
 
 
@@ -156,64 +156,63 @@ goto Main
 	
 	rem wrap a string.
 	call Namespace.bat :New
-	call Function.bat :GetRetVar _StrObj
-	set "!_StrObj!.LineNumber=1"
-	set "!_StrObj!.Lines[1]=!_MalCode!"
+	call Function.bat :GetRetVar _StrMalCode
+	set "!_StrMalCode!.LineCount=1"
+	set "!_StrMalCode!.Lines[1]=!_MalCode!"
 
-	call Function.bat :PrepareCall _StrObj
+	call Function.bat :PrepareCall _StrMalCode
 	call :REP
 	call Function.bat :DropRetVar
 
 	rem free string.
-	call Namespace.bat :Free !_StrObj!
+	call Namespace.bat :Free !_StrMalCode!
 goto :Main
 
 
 %Speed Improve Start% (
 	:Read
-		call Function.bat :GetArgs _StrObj
+		call Function.bat :GetArgs _StrMalCode
 		call Function.bat :SaveCurrentCallInfo Read
 
-		set "_StrMalCode=!_StrObj!"
 		call Function :PrepareCall _StrMalCode
 		call Reader.bat :ReadString
-		call Function.bat :DropRetVar
+		call Function.bat :GetRetVar _ObjMalCode
 
 		call Function.bat :RestoreCallInfo
-		call Function.bat :RetVar _MalCode
+		call Function.bat :RetVar _ObjMalCode
 	goto :eof
 
 	:Eval
-		call Function.bat :GetArgs _MalCode
+		call Function.bat :GetArgs _ObjMalCode
 		call Function.bat :SaveCurrentCallInfo Eval
 
 		call Function.bat :RestoreCallInfo
-		call Function.bat :RetVar _MalCode
+		call Function.bat :RetVar _ObjMalCode
 	goto :eof
 
 	:Print
-		call Function.bat :GetArgs _MalCode
+		call Function.bat :GetArgs _ObjMalCode
 		call Function.bat :SaveCurrentCallInfo Print
 		
-		call IO.bat :WriteEscapedLineVar _MalCode
+		@REM call IO.bat :WriteEscapedLineVar _MalCode
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetNone
 	goto :eof
 
 	:REP
-		call Function.bat :GetArgs _StrObj
+		call Function.bat :GetArgs _StrMalCode
 		call Function.bat :SaveCurrentCallInfo REP
 
-		call Function.bat :PrepareCall _StrObj
+		call Function.bat :PrepareCall _StrMalCode
 		call :READ
-		call Function.bat :GetRetVar _MalCode
+		call Function.bat :GetRetVar _ObjMalCode
 		
-		call Function.bat :PrepareCall _MalCode
+		call Function.bat :PrepareCall _ObjMalCode
 		call :EVAL
-		call Function.bat :GetRetVar _MalCode
+		call Function.bat :GetRetVar _ObjMalCode
 
-		call Function.bat :PrepareCall _MalCode
+		call Function.bat :PrepareCall _ObjMalCode
 		call :PRINT
 		call Function.bat :DropRetVar
 

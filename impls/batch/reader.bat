@@ -423,9 +423,9 @@ goto :eof
 		rem Get the tokens.
 		call Namespace.bat :New
 		call Function.bat :GetRetVar _ObjReader
-		set "!_ObjReader!.TotalTokens=0"
-		set /a _LineNumber = !_StrMalCode!.LineNumber
-		for /l %%i in (1 1 !_LineNumber!) do (
+		set "!_ObjReader!.TokenCount=0"
+		set /a _LineCount = !_StrMalCode!.LineCount
+		for /l %%i in (1 1 !_LineCount!) do (
 			call :CopyVar !_StrMalCode!.Lines[%%i] _Line
 			call Function.bat :PrepareCall _Line _ObjReader
 			call :Tokenize
@@ -433,7 +433,7 @@ goto :eof
 		)
 
 		rem Check if there is any token.
-		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+		call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
 		if "!_TotalTokenNum!" == "0" (
 			rem TODO
 			echo ERROR: No token found.
@@ -442,7 +442,7 @@ goto :eof
 		)
 
 		rem Translate the tokens to AST.
-		set "!_ObjReader!.CurTokenPtr=1"
+		set "!_ObjReader!.TokenPtr=1"
 		call Function.bat :PrepareCall _ObjReader
 		call :ReadForm
 		
@@ -450,7 +450,7 @@ goto :eof
 		call Function.bat :GetRetVar _ObjMalCode
 
 		@REM TODO: check if there has more token.
-		@REM CurTokenPtr <= _TotalTokenNum
+		@REM TokenPtr <= _TotalTokenNum
 		
 		
 		call Function.bat :RestoreCallInfo
@@ -461,17 +461,17 @@ goto :eof
 		call Function.bat :GetArgs _ObjReader
 		call Function.bat :SaveCurrentCallInfo ReadForm
 
-		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
-		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+		call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
+		call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
 
-		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+		if !_TokenPtr! Gtr !_TotalTokenNum! (
 			rem TODO
 			echo ERROR: No token found.
 			pause
 			exit
 		)
 
-		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 		
 		if "!_CurToken!" == "(" (
 			call Function.bat :PrepareCall _ObjReader
@@ -493,19 +493,19 @@ goto :eof
 		call Function.bat :GetArgs _ObjReader
 		call Function.bat :SaveCurrentCallInfo ReadAtom
 
-		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
-		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+		call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
+		call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
 
-		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+		if !_TokenPtr! Gtr !_TotalTokenNum! (
 			rem TODO
 			echo ERROR: No token found.
 			pause
 			exit
 		)
 
-		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
-		set /a _CurTokenPtr += 1
-		call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
+		call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
+		set /a _TokenPtr += 1
+		call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
 		
 		call Namespace.bat :New
 		call Function.bat :GetRetVar _ObjMalCode
@@ -530,17 +530,17 @@ goto :eof
 		call Function.bat :GetArgs _ObjReader
 		call Function.bat :SaveCurrentCallInfo ReadList
 
-		call :CopyVar !_ObjReader!.CurTokenPtr _CurTokenPtr
-		call :CopyVar !_ObjReader!.TotalTokens _TotalTokenNum
+		call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
+		call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
 
-		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+		if !_TokenPtr! Gtr !_TotalTokenNum! (
 			rem TODO
 			echo ERROR: No token found.
 			pause
 			exit
 		)
 
-		call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+		call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 
 		if "!_CurToken!" Neq "(" (
 			rem TODO
@@ -549,10 +549,10 @@ goto :eof
 			exit
 		)
 
-		set /a _CurTokenPtr += 1
-		call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
+		set /a _TokenPtr += 1
+		call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
 
-		if !_CurTokenPtr! Gtr !_TotalTokenNum! (
+		if !_TokenPtr! Gtr !_TotalTokenNum! (
 			rem TODO
 			echo ERROR: No token found.
 			pause
@@ -566,12 +566,12 @@ goto :eof
 		
 		set "_Length=0"
 		:ReadList_Loop
-			call :CopyVar !_ObjReader!.Tokens[!_CurTokenPtr!] _CurToken
+			call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 			echo !_CurToken!
-			echo !_CurTokenPtr!
+			echo !_TokenPtr!
 			if "!_CurToken!" == ")" (
-				set /a _CurTokenPtr += 1
-				call :CopyVar _CurTokenPtr !_ObjReader!.CurTokenPtr
+				set /a _TokenPtr += 1
+				call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
 				goto :ReadList_Pass
 			)
 			set /a _Length += 1
@@ -598,7 +598,7 @@ goto :eof
 		call Function.bat :SaveCurrentCallInfo Tokenize
 
 		call :CopyVar _Line _CurLine
-		call :CopyVar !_ObjReader!.TotalTokens _CurTokenNum
+		call :CopyVar !_ObjReader!.TokenCount _CurTokenNum
 
 		rem Tokenize the _CurLine.
 		set _ParsingStr=False
@@ -896,7 +896,7 @@ goto :eof
 			call :CopyVar _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
 			set _NormalToken=
 		)
-		call :CopyVar _CurTokenNum !_ObjReader!.TotalTokens
+		call :CopyVar _CurTokenNum !_ObjReader!.TokenCount
 
 		set !_ObjReader!
 

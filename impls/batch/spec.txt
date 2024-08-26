@@ -9,3 +9,24 @@ Naming Rule:
 	Function Naming: FunctionName
 	Local Variable Naming: _VarName
 	Global Variable Naming: G_VarName
+
+Type
+	String
+	Reader
+	MalType
+	
+
+MalType
+	Number
+	Symbol
+	List
+	String
+
+String
+	LineCount
+	Lines[]
+
+Reader
+	TokenCount
+	Tokens[]
+	TokenPtr
