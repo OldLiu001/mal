@@ -17,8 +17,8 @@ Type
 	
 
 MalType
-	Number
-	Symbol
+	Number (Atom)
+	Symbol (Atom)
 	List
 	String
 
@@ -30,3 +30,10 @@ Reader
 	TokenCount
 	Tokens[]
 	TokenPtr
+
+MalList
+	Length
+	Item[]
+
+MalAtom
+	Value

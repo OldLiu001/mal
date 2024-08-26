@@ -194,7 +194,15 @@ goto :Main
 		call Function.bat :GetArgs _ObjMalCode
 		call Function.bat :SaveCurrentCallInfo Print
 		
-		@REM call IO.bat :WriteEscapedLineVar _MalCode
+		call Function.bat :PrepareCall _ObjMalCode
+		call Printer.bat :PrintMalType
+		call Function.bat :GetRetVar _StrMalCode
+		
+		call Variable.bat :CopyVar !_StrMalCode!.LineCount _LineCount
+		for /l %%i in (1 1 !_LineCount!) do (
+			call Variable.bat :CopyVar !_StrMalCode!.Lines[%%i] _Line
+			call IO.bat :WriteEscapedLineVar _Line
+		)
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetNone

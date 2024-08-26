@@ -28,7 +28,7 @@ goto :eof
 
 (
 	:PrintMalType
-		call Function.bat :GetVars _ObjMalCode
+		call Function.bat :GetArgs _ObjMalCode
 		call Function.bat :SaveCurrentCallInfo PrintMalType
 
 		if not defined !_ObjMalCode! (
@@ -57,20 +57,20 @@ goto :eof
 		call Namespace.bat :New
 		call Function.bat :GetRetVar _StrMalCode
 		set "!_StrMalCode!.Type=String"
-		
+		set "!_StrMalCode!.LineCount=1"
+
 		
 		if "!_MalType!" == "Number" (
-
+			call :CopyVar !_ObjMalCode!.Value !_StrMalCode!.Lines[1]
 		) else if "!_MalType!" == "Symbol" (
-
+			call :CopyVar !_ObjMalCode!.Value !_StrMalCode!.Lines[1]
 		) else if "!_MalType!" == "List" (
-
+			rem 
 		) else (
 			rem TOOD
 			echo MalType !_MalType! not support yet!
 			pause & exit
 		)
-
 
 		call Function.bat :RestoreCallInfo
 		call Function.bat :RetVar _StrMalCode
