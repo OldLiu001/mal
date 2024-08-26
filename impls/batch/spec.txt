@@ -14,13 +14,6 @@ Type
 	String
 	Reader
 	MalType
-	
-
-MalType
-	Number (Atom)
-	Symbol (Atom)
-	List
-	String
 
 String
 	LineCount
@@ -29,10 +22,17 @@ String
 Reader
 	TokenCount
 	Tokens[]
-	TokenPtr
+	TokenPtr	
+
+MalType
+	Number (Atom)
+	Symbol (Atom)
+	List
+	String
+
 
 MalList
-	Length
+	Count
 	Item[]
 
 MalAtom

@@ -517,7 +517,7 @@ goto :eof
 		if "!_TestNum!" == "!_CurToken!" (
 			set "!_ObjMalCode!.MalType=Number"
 		) else (
-			set "!_ObjMalCode!.Type=Symbol"
+			set "!_ObjMalCode!.MalType=Symbol"
 		)
 		rem TODO: CheckMore.
 
@@ -564,7 +564,7 @@ goto :eof
 		set "!_ObjMalCode!.Type=MalType"
 		set "!_ObjMalCode!.MalType=List"
 		
-		set "_Length=0"
+		set "_Count=0"
 		:ReadList_Loop
 			call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 			echo !_CurToken!
@@ -574,17 +574,18 @@ goto :eof
 				call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
 				goto :ReadList_Pass
 			)
-			set /a _Length += 1
+			set /a _Count += 1
 
-			call Stackframe.bat :SaveVars _ObjMalCode _Length _CurToken
+			call Stackframe.bat :SaveVars _ObjMalCode _Count _CurToken
 			call Function.bat :PrepareCall _ObjReader
 			call :ReadForm
-			call Function.bat :GetRetVar !_ObjMalCode!.Item[!_Length!]
-			call Stackframe.bat :GetVars _ObjMalCode _Length _CurToken
+			call Function.bat :GetRetVar _MalItem
+			call Stackframe.bat :GetVars _ObjMalCode _Count _CurToken
+			call Variable.bat :CopyVar _MalItem !_ObjMalCode!.Item[!_Count!]
 
 			goto :ReadList_Loop
 		:ReadList_Pass
-		call :CopyVar _Length !_ObjMalCode!.Length
+		call :CopyVar _Count !_ObjMalCode!.Count
 
 
 		call Function.bat :RestoreCallInfo
