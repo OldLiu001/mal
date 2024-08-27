@@ -21,7 +21,7 @@ exit /b 0
 
 		!_C_Copy! !_L{%%.}_StrMalCode!.LineCount _L{%%.}_LineCount
 		for /l %%i in (1 1 !_L{%%.}_LineCount!) do (
-			!_C_Invoke! :Tokenize !_L{%%.}_StrMalCode!.Lines[%%i] _L{%%.}_ObjReader
+			!_C_Invoke! :Tokenize !_L{%%.}_StrMalCode!.Line[%%i] _L{%%.}_ObjReader
 		)
 
 		rem Check if there is any token.
@@ -60,7 +60,7 @@ exit /b 0
 			exit
 		)
 
-		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 		
 		if "!_L{%%.}_CurToken!" == "(" (
 			!_C_Invoke! :ReadList _L{%%.}_ObjReader
@@ -89,20 +89,20 @@ exit /b 0
 			exit
 		)
 
-		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 		set /a _L{%%.}_TokenPtr += 1
 		!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
 		
 		!_C_Invoke! NS.bat :New
 		!_C_Copy! _G_RET _L{%%.}_ObjMalCode
-		set "!_L{%%.}_ObjMalCode!.Value=!_L{%%.}_CurToken!"
-
+		!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjMalCode!.Value
+		
 		rem check token's MalType.
 		set /a _L{%%.}_TestNum = _L{%%.}_CurToken
 		if "!_L{%%.}_TestNum!" == "!_L{%%.}_CurToken!" (
-			set "!_ObjMalCode!.Type=MalNum"
+			set "!_L{%%.}_ObjMalCode!.Type=MalNum"
 		) else (
-			set "!_ObjMalCode!.Type=MalSym"
+			set "!_L{%%.}_ObjMalCode!.Type=MalSym"
 		)
 		rem TODO: CheckMore.
 
@@ -125,7 +125,7 @@ exit /b 0
 			exit
 		)
 
-		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
 		if "!_L{%%.}_CurToken!" Neq "(" (
 			rem TODO
@@ -152,7 +152,7 @@ exit /b 0
 	:ReadList_Loop
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
-		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
 		if "!_L{%%.}_CurToken!" == ")" (
 			set /a _L{%%.}_TokenPtr += 1
@@ -207,7 +207,7 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
@@ -218,7 +218,7 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
@@ -229,7 +229,7 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
@@ -240,12 +240,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=~@"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				goto :Tokenizing_Loop
@@ -255,12 +255,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=["
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -270,12 +270,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=]"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -285,12 +285,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=("
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -300,12 +300,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=)"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -315,12 +315,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken={"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -330,12 +330,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=}"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -345,12 +345,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken='"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -360,12 +360,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=`"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -375,12 +375,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=~"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -390,12 +390,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=@"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
@@ -406,12 +406,12 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				set "_L{%%.}_CurToken=$C"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				goto :Tokenizing_Loop
@@ -422,7 +422,7 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				rem string.
@@ -436,13 +436,13 @@ exit /b 0
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 					set /a _L{%%.}_CurTokenNum += 1
-					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
 				rem comment.
 				!_C_Copy! _L{%%.}_CurLine _L{%%.}_CurToken
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 				set "_L{%%.}_CurLine="
 				goto :Tokenizing_Loop
 			)
@@ -469,7 +469,7 @@ exit /b 0
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				set "_L{%%.}_ParsingStr=False"
 				set /a _L{%%.}_CurTokenNum += 1
-				!_C_Copy! _L{%%.}_StrToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				!_C_Copy! _L{%%.}_StrToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 				goto :Tokenizing_Loop
 			)
 			set "_L{%%.}_StrToken=!_L{%%.}_StrToken!!_L{%%.}_CurLine:~,1!"
@@ -483,7 +483,7 @@ exit /b 0
 			rem save normal token first.
 			!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
 			set /a _L{%%.}_CurTokenNum += 1
-			!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+			!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 			set _L{%%.}_NormalToken=
 		)
 		!_C_Copy! _L{%%.}_CurTokenNum !_L{%%.}_ObjReader!.TokenCount
