@@ -24,8 +24,6 @@ exit /b 0
 	
 	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
-	@REM set _ & pause
-
 	set "_G_RET="
 	!_C_Clear!
 goto :Main
@@ -57,6 +55,8 @@ exit /b 0
 		set "_L{%%.}_StrMalCode=!_G_RET!"
 
 		!_C_Invoke! IO.bat :WriteStr _L{%%.}_StrMalCode
+
+		!_C_Invoke! NS.bat :Free _L{%%.}_StrMalCode
 
 		!_C_Clear!
 	)

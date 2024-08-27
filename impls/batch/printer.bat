@@ -41,6 +41,7 @@ exit /b 0
 				!_C_Invoke! :PrintMalType !_L{%%.}_ObjMalCode!.Item[%%i]
 				!_C_Copy! _G_RET _L{%%.}_RetStrMalCode
 				!_C_Invoke! Str.bat :AppendStr _L{%%.}_StrMalCode _L{%%.}_RetStrMalCode
+				!_C_Invoke! NS.bat :Free _L{%%.}_RetStrMalCode
 				
 				if  "%%i" neq "!_L{%%.}_Count!" (
 					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode " "
@@ -52,6 +53,7 @@ exit /b 0
 			echo MalType !_L{%%.}_Type! not support yet!
 			pause & exit
 		)
+		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
 
 		set "_G_RET=!_L{%%.}_StrMalCode!"
 		call :ClearLocalVars
