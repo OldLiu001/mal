@@ -18,7 +18,6 @@ exit /b 0
 	!_C_Invoke! IO.bat :ReadEscapedLine
 	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
 	!_C_Invoke! :REP _L{!_G_LEVEL!}_Input
-	set _
 	set "_G_RET="
 	!_C_Clear!
 goto :Main
