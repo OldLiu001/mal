@@ -20,7 +20,7 @@ Global Variables
 	_G_ERR
 	_G_TRACE
 	_G_LEVEL
-	_G_TMP
+	_G_TMP_*
 
 Type
 	String
