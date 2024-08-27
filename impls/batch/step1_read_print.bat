@@ -244,84 +244,54 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-call Function.bat :SaveCurrentCallInfo "(Mod)Main"
 goto Main
 
 
 :Main
 	set "_Prompt=user> "
 	call IO.bat :WriteVar _Prompt
-	call IO.bat :ReadEscapedLine
-	call Function.bat :GetRetVar _MalCode
 	
-	rem wrap a string.
-	call Namespace.bat :New
-	call Function.bat :GetRetVar _StrMalCode
-	set "!_StrMalCode!.LineCount=1"
-	set "!_StrMalCode!.Lines[1]=!_MalCode!"
-
-	call Function.bat :PrepareCall _StrMalCode
-	call :REP
-	call Function.bat :DropRetVar
-
-	rem free string.
-	call Namespace.bat :Free !_StrMalCode!
+	call IO.bat :ReadEscapedLine
+	call Str.bat :New G_RET
+	set "_Str=!G_RET!"
+	
+	call SF.bat :SaveVars _Str
+	call :REP _Str
+	call SF.bat :GetVars _Str
+	
+	call NS.bat :Free !_StrMalCode!
 goto :Main
 
-:Read
-	call Function.bat :GetArgs _StrMalCode
-	call Function.bat :SaveCurrentCallInfo Read
-
-	call Function :PrepareCall _StrMalCode
-	call Reader.bat :ReadString
-	call Function.bat :GetRetVar _ObjMalCode
-
-	call Function.bat :RestoreCallInfo
-	call Function.bat :RetVar _ObjMalCode
+:Read _StrMalCode
+	set "_StrMalCode=!%~1!"
+	
+	call Reader.bat :ReadString _StrMalCode
 goto :eof
 
-:Eval
-	call Function.bat :GetArgs _ObjMalCode
-	call Function.bat :SaveCurrentCallInfo Eval
-
-	call Function.bat :RestoreCallInfo
-	call Function.bat :RetVar _ObjMalCode
+:Eval _ObjMalCode
+	set "G_RET=!%~1!"
 goto :eof
 
-:Print
-	call Function.bat :GetArgs _ObjMalCode
-	call Function.bat :SaveCurrentCallInfo Print
+:Print _ObjMalCode
+	set "_ObjMalCode=!%~1!"
 	
-	call Function.bat :PrepareCall _ObjMalCode
-	call Printer.bat :PrintMalType
-	call Function.bat :GetRetVar _StrMalCode
+	call Printer.bat :PrintMalType _ObjMalCode
+	@REM call Function.bat :GetRetVar _StrMalCode
 	
-	call Variable.bat :CopyVar !_StrMalCode!.LineCount _LineCount
-	for /l %%i in (1 1 !_LineCount!) do (
-		call Variable.bat :CopyVar !_StrMalCode!.Lines[%%i] _Line
-		call IO.bat :WriteEscapedLineVar _Line
-	)
+	@REM call Variable.bat :CopyVar !_StrMalCode!.LineCount _LineCount
+	@REM for /l %%i in (1 1 !_LineCount!) do (
+	@REM 	call Variable.bat :CopyVar !_StrMalCode!.Lines[%%i] _Line
+	@REM 	call IO.bat :WriteEscapedLineVar _Line
+	@REM )
 
-	call Function.bat :RestoreCallInfo
-	call Function.bat :RetNone
+	@REM call Function.bat :RestoreCallInfo
+	@REM call Function.bat :RetNone
 goto :eof
 
-:REP
-	call Function.bat :GetArgs _StrMalCode
-	call Function.bat :SaveCurrentCallInfo REP
-
-	call Function.bat :PrepareCall _StrMalCode
-	call :READ
-	call Function.bat :GetRetVar _ObjMalCode
+:REP _StrMalCode
+	set "_StrMalCode=!%~1!"
 	
-	call Function.bat :PrepareCall _ObjMalCode
-	call :EVAL
-	call Function.bat :GetRetVar _ObjMalCode
-
-	call Function.bat :PrepareCall _ObjMalCode
-	call :PRINT
-	call Function.bat :DropRetVar
-
-	call Function.bat :RestoreCallInfo
-	call Function.bat :RetNone
+	call :Read _StrMalCode
+	call :EVAL G_RET
+	call :PRINT G_RET
 goto :eof
