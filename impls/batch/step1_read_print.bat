@@ -1,93 +1,117 @@
+@REM v:0.4, untested
+
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-set "C_Invoke=call :Invoke"
-!C_Invoke! :Main
+set "_G_LEVEL=0"
+set "_C_Invoke=call :Invoke"
+set "_C_Copy=call :CopyVar"
+set "_C_Clear=call :ClearLocalVars"
+
+!_C_Invoke! :Main
 exit /b 0
 
-
 :Main
-	set "_Prompt=user> "
-	!C_Invoke! IO.bat :WriteVar _Prompt
-	!C_Invoke! IO.bat :ReadEscapedLine
-	set "_Input=!G_RET!"
-	!C_Invoke! Str.bat :FromVar _Input
-	set "_Str=!G_RET!"
+	set "_L{!_G_LEVEL!}_Prompt=user> "
+	!_C_Invoke! IO.bat :WriteVar _L{!_G_LEVEL!}_Prompt
+	!_C_Invoke! IO.bat :ReadEscapedLine
+	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
 	
-	!C_Invoke! :REP _Str
+	!_C_Invoke! Str.bat :FromVar _L{!_G_LEVEL!}_Input
+	set "_L{!_G_LEVEL!}_Str=!G_RET!"
 	
-	@REM set _
-	@REM set G_
-	@REM pause
-	!C_Invoke! NS.bat :Free !_Str!
+	set _
+	pause
+
+	!_C_Invoke! :REP _L{!_G_LEVEL!}_Str
+	
+	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
 	set "G_RET="
-	call :ClearLocalVars
+	!_C_Clear!
 goto :Main
 
 :Read _StrMalCode
-	set "_StrMalCode=!%~1!"
-	
-	!C_Invoke! Reader.bat :ReadString _StrMalCode
-	set "_ObjMalCode=!G_RET!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_StrMalCode=!%~1!"
+		
+		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
+		set "_L{%%.}_ObjMalCode=!G_RET!"
 
-	set "G_RET=!_ObjMalCode!"
-	call :ClearLocalVars
+		set "G_RET=!_L{%%.}_ObjMalCode!"
+		!_C_Clear!
+	)
 exit /b 0
 
-:Eval _ObjMalCode
-	set "_ObjMalCode=!%~1!"
+:Eval _MalCode
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
-	set "G_RET=!_ObjMalCode!"
-	call :ClearLocalVars
+	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	!_C_Clear!
 exit /b 0
 
 :Print _ObjMalCode
-	set "_ObjMalCode=!%~1!"
-	
-	!C_Invoke! Printer.bat :PrintMalType _ObjMalCode
-	set "_StrMalCode=!G_RET!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_ObjMalCode=!%~1!"
+		
+		!_C_Invoke! Printer.bat :PrintMalType _L{%%.}_ObjMalCode
+		set "_L{%%.}_StrMalCode=!G_RET!"
 
-	!C_Invoke! IO.bat :WriteStr _StrMalCode
+		!_C_Invoke! IO.bat :WriteStr _L{%%.}_StrMalCode
 
-	call :ClearLocalVars
+		!_C_Clear!
+	)
 exit /b 0
 
-:REP _StrMalCode
-	set "_StrMalCode=!%~1!"
+:REP _MalCode
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 	
-	!C_Invoke! :Read _StrMalCode
-	set "_ObjMalCode=!G_RET!"
+	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
+	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
+	!_C_Invoke! :Eval _L{!_G_LEVEL!}_MalCode
+	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
+	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
 
-	!C_Invoke! :Eval _ObjMalCode
-	set "_ObjMalCode=!G_RET!"
-	
-	!C_Invoke! :Print _ObjMalCode
-
-	set "G_RET="
-	call :ClearLocalVars
+	!_C_Clear!
 exit /b 0
 
 (
+	@REM Version 0.4
 	:Invoke
-		if not defined G_TRACE (
-			set "G_TRACE=MAIN"
+		if not defined _G_TRACE (
+			set "_G_TRACE=>"
 		)
-		call SF.Bat :PushVar G_TRACE
-		set "G_TMP=%~1"
-		if /i "!G_TMP:~,1!" Equ ":" (
-			set "G_TRACE=!G_TRACE!>%~1"
+
+		set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
+		
+		set "_G_TMP=%~1"
+		if /i "!_G_TMP:~,1!" Equ ":" (
+			set "_G_TRACE=!_G_TRACE!>%~1"
 		) else (
-			set "G_TRACE=!G_TRACE!>%~1>%~2"
+			set "_G_TRACE=!_G_TRACE!>%~1>%~2"
 		)
-		set "G_TMP="
-		call SF.Bat :SaveLocalVars
+		set "_G_TMP="
+		
+		set /a _G_LEVEL += 1
 		call %*
-		call SF.Bat :RestoreLocalVars
-		call SF.Bat :PopVar G_TRACE
+		set /a _G_LEVEL -= 1
+		
+		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
+		set "_G_TRACE_{!_G_LEVEL}="
 	exit /b 0
 
+	:CopyVar _VarFrom _VarTo
+		if not defined %~1 (
+			2>&1 echo [!_G_TRACE!] '%~1' undefined.
+			pause & exit 1
+		)
+		set "%~2=!%~1!"
+	exit /b 0
+	
 	:ClearLocalVars
-		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
+		for /f "delims==" %%a in (
+			'set _L{!_G_LEVEL!}_ 2^>nul'
+		) do set "%%a="
 	exit /b 0
 )
+
