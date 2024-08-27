@@ -106,9 +106,7 @@ goto :eof
 
 :Print _MalCode
 	set "_MalCode=!%~1!"
-	
 	call IO.bat :WriteEscapedLineVar _MalCode
-
 	set "G_RET="
 goto :eof
 

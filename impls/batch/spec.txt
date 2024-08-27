@@ -9,6 +9,7 @@ Naming Rule:
 	Function Naming: FunctionName
 	Local Variable Naming: _VarName
 	Global Variable Naming: G_VarName
+	Global Variables: G_RET G_ERR
 
 Type
 	String
