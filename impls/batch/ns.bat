@@ -1,4 +1,4 @@
-@REM v0.3, untested
+@REM v0.4, untested
 
 @rem Module Name: Namespace
 
