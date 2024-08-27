@@ -18,12 +18,12 @@
 	rem If G_StackPtr is not defined, then set it to 0.
 	set /a G_StackPtr = G_StackPtr
 
-	set "_Arguments=%*"
-	if "!_Arguments:~,1!" Equ ":" (
-		Set "_Arguments=!_Arguments:~1!"
+	set "_Args=%*"
+	if "!_Args:~,1!" Equ ":" (
+		Set "_Args=!_Args:~1!"
 	)
-	call :!_Arguments!
-	set _Arguments=
+	call :!_Args!
+	set _Args=
 goto :eof
 
 @REM Batchfile Stackframe support BY OldLiu.

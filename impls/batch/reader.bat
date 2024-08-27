@@ -59,12 +59,12 @@
 @REM exit
 
 @REM ::Start
-@REM 	set "_TMP_Arguments_=%*"
-@REM 	if "!_TMP_Arguments_:~,1!" Equ ":" (
-@REM 		set "_TMP_Arguments_=!_TMP_Arguments_:~1!"
+@REM 	set "_TMP_Args_=%*"
+@REM 	if "!_TMP_Args_:~,1!" Equ ":" (
+@REM 		set "_TMP_Args_=!_TMP_Args_:~1!"
 @REM 	)
-@REM 	call :MAL_Reader_EXPORTFUNCTION_!_TMP_Arguments_!
-@REM 	set _TMP_Arguments_=
+@REM 	call :MAL_Reader_EXPORTFUNCTION_!_TMP_Args_!
+@REM 	set _TMP_Args_=
 @REM goto :eof
 
 @REM :MAL_Reader_GLOBALFUNCTION_ReadString MAL_Reader_LOCALVAR_ReadString_Str
@@ -399,12 +399,12 @@ rem rewrite above code without using outside libraries
 @REM 	$ --- $$
 
 ::Start
-	set "_Arguments=%*"
-	if "!_Arguments:~,1!" Equ ":" (
-		Set "_Arguments=!_Arguments:~1!"
+	set "_Args=%*"
+	if "!_Args:~,1!" Equ ":" (
+		Set "_Args=!_Args:~1!"
 	)
-	call :!_Arguments!
-	set _Arguments=
+	call :!_Args!
+	set _Args=
 goto :eof
 
 (

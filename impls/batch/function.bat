@@ -16,12 +16,12 @@
 @REM @rem 	G_CallPath
 
 @REM ::Start
-@REM 	set "_Arguments=%*"
-@REM 	if "!_Arguments:~,1!" Equ ":" (
-@REM 		Set "_Arguments=!_Arguments:~1!"
+@REM 	set "_Args=%*"
+@REM 	if "!_Args:~,1!" Equ ":" (
+@REM 		Set "_Args=!_Args:~1!"
 @REM 	)
-@REM 	call :!_Arguments!
-@REM 	set _Arguments=
+@REM 	call :!_Args!
+@REM 	set _Args=
 @REM goto :eof
 
 @REM % Module - Function - Start % (
