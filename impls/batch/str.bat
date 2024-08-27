@@ -1,12 +1,3 @@
-@rem Module Name: String
-
-@rem Export Functions:
-@rem 	:New _FirstLine
-@rem 	:Append _Str _AppendStr
-
-@REM Dependencies:
-@REM 	NS.bat - [Mod] Namespace
-
 @echo off
 
 ::Start
@@ -20,7 +11,7 @@ goto :eof
 
 :New _FirstLine
 	set "_FirstLine=!%~1!"
-	call Namespace.bat :New String
+	call NS.bat :New String
 	set "!G_RET!.LineCount=1"
 	set "!G_RET!.Lines[1]=!_FirstLine!"
 goto :eof
