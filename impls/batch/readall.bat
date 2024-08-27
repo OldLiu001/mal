@@ -13,4 +13,4 @@ setlocal disabledelayedexpansion
 for /f "tokens=* eol=" %%a in ('more') do (
 	echo "%%a"|readline.bat
 )
-goto :eof
+exit /b 0

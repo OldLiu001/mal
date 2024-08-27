@@ -10,17 +10,17 @@
 	)
 	call :!_Args!
 	set _Args=
-goto :eof
+exit /b 0
 
 :PushVar _VarName
 	set /a G_SP += 1
 	set "G_SF[!G_SP!]=!%~1!"
-goto :eof
+exit /b 0
 
 :PushVal _Value
 	set /a G_SP += 1
 	set "G_SF[!G_SP!]=%~1"
-goto :eof
+exit /b 0
 
 :PopVar _VarName
 	if %G_SP% leq 0 (
@@ -32,7 +32,7 @@ goto :eof
 		set "G_SF[%%i]="
 	)
 	set /a G_SP -= 1
-goto :eof
+exit /b 0
 
 :SaveLocalVars
 	set "G_TMP=0"
@@ -43,7 +43,7 @@ goto :eof
 	)
 	call :PushVal !G_TMP!
 	set "G_TMP="
-goto :eof
+exit /b 0
 
 :RestoreLocalVars
 	call :PopVar G_TMP_COUNT
@@ -53,4 +53,4 @@ goto :eof
 	)
 	set "G_TMP_COUNT="
 	set "G_TMP_VARNAME="
-goto :eof
+exit /b 0

@@ -6,7 +6,7 @@
 	)
 	call :!_Args!
 	set _Args=
-goto :eof
+exit /b 0
 
 
 :PrintMalType _ObjMalCode
@@ -58,7 +58,7 @@ goto :eof
 
 	set "G_RET=!_StrMalCode!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 (
 	:Invoke
@@ -77,16 +77,16 @@ goto :eof
 		call %*
 		call SF.Bat :RestoreLocalVars
 		call SF.Bat :PopVar G_TRACE
-	goto :eof
+	exit /b 0
 
 	:ClearLocalVars
 		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-	goto :eof
+	exit /b 0
 
 	:CopyVar _VarFrom _VarTo
 		if not defined %~1 (
 			2>&1 echo [!G_TRACE!] %~1 is not defined.
 		)
 		set "%~2=!%~1!"
-	goto :eof
+	exit /b 0
 )
