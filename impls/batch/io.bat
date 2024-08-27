@@ -20,23 +20,21 @@
 	set _Args=
 goto :eof
 
-% Module - IO - Start % (
-	:ReadEscapedLine
-		for /f "delims=" %%a in (
-			'call Readline.bat'
-		) do set "_Input=%%~a"
-		set "G_RET=!_Input!"
-	goto :eof
+:ReadEscapedLine
+	for /f "delims=" %%a in (
+		'call Readline.bat'
+	) do set "_Input=%%~a"
+	set "G_RET=!_Input!"
+goto :eof
 
-	:WriteEscapedLineVar _Var
-		echo."!%~1!"| call WriteAll.bat
-	goto :eof
+:WriteEscapedLineVar _Var
+	echo."!%~1!"| call WriteAll.bat
+goto :eof
 
-	:WriteVal _Val
-		<nul set /p "=%~1"
-	goto :eof
+:WriteVal _Val
+	<nul set /p "=%~1"
+goto :eof
 
-	:WriteVar _Var
-		<nul set /p "=!%~1!"
-	goto :eof
-) % Module - IO - End %
+:WriteVar _Var
+	<nul set /p "=!%~1!"
+goto :eof

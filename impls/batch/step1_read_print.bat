@@ -9,7 +9,7 @@ goto Main
 	call IO.bat :WriteVar _Prompt
 	
 	call IO.bat :ReadEscapedLine
-	call Str.bat :New G_RET
+	call Str.bat :FromVar G_RET
 	set "_Str=!G_RET!"
 	
 	call SF.bat :SaveLocalVars

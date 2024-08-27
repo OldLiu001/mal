@@ -55,6 +55,7 @@ goto :eof
 	@REM TokenPtr <= _TotalTokenNum
 	pause
 
+	set !G_RET!
 	call :ClearLocalVars
 goto :eof
 
@@ -102,7 +103,6 @@ goto :eof
 	
 	call NS.bat :New
 	call :CopyVar G_RET _ObjMalCode
-	set "!_ObjMalCode!.Type=MalType"
 	set "!_ObjMalCode!.Value=!_CurToken!"
 
 	rem check token's MalType.
@@ -110,7 +110,7 @@ goto :eof
 	if "!_TestNum!" == "!_CurToken!" (
 		set "!_ObjMalCode!.Type=MalNum"
 	) else (
-		set "!_ObjMalCode!.MalType=MalSym"
+		set "!_ObjMalCode!.Type=MalSym"
 	)
 	rem TODO: CheckMore.
 
