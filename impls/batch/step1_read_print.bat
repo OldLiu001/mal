@@ -35,8 +35,6 @@ goto :Main
 		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
 		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
-		set _
-		pause
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
 		!_C_Clear!
 	)

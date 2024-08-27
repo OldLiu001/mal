@@ -30,11 +30,11 @@ exit /b 0
 		!_C_Invoke! Str.bat :New
 		!_C_Copy! _G_RET _L{%%.}_StrMalCode
 		
-		if "!_Type!" == "MalNum" (
+		if "!_L{%%.}_Type!" == "MalNum" (
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_Type!" == "MalSym" (
+		) else if "!_L{%%.}_Type!" == "MalSym" (
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_Type!" == "MalLst" (
+		) else if "!_L{%%.}_Type!" == "MalLst" (
 			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "("
 			!_C_Copy! !_L{%%.}_ObjMalCode!.Count _L{%%.}_Count
 			for /l %%i in (1 1 !_L{%%.}_Count!) do (

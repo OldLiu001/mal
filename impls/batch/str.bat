@@ -63,14 +63,20 @@ exit /b 0
 
 :AppendVal _Str _Val
 	for %%. in (!_G_LEVEL!) do (
+		echo. & set _
 		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
 		if "!_L{%%.}_LineCount!" == "0" (
 			set "!%~1!.LineCount=1"
 			set _L{%%.}_LineCount=1
 		)
-		!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
-		set "_L{%%.}_LastLine=!_L{%%.}_LastLine!%~2"
-		!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		if defined !%~1!.Lines[!_L{%%.}_LineCount!] (
+			!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
+			set "_L{%%.}_LastLine=!_L{%%.}_LastLine!%~2"
+			!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		) else (
+			set "_L{%%.}_LastLine=%~2"
+			!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		)
 		set "_G_RET="
 		!_C_Clear!
 	)
@@ -83,9 +89,14 @@ exit /b 0
 			set "!%~1!.LineCount=1"
 			set _L{%%.}_LineCount=1
 		)
-		!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
-		set "_L{%%.}_LastLine=!_L{%%.}_LastLine!!%~2!"
-		!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		if defined !%~1!.Lines[!_L{%%.}_LineCount!] (
+			!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
+			set "_L{%%.}_LastLine=!_L{%%.}_LastLine!!%~2!"
+			!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		) else (
+			set "_L{%%.}_LastLine=!%~2!"
+			!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
+		)
 		set "_G_RET="
 		!_C_Clear!
 	)
