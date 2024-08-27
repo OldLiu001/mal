@@ -1,3 +1,5 @@
+@rem Module Name: Namespace
+
 @rem Export Functions:
 @rem 	:New _TypeName
 @rem 	:Free _Namespace
