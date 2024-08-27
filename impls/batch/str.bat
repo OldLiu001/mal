@@ -92,7 +92,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.4
+	@REM Version 0.5
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -113,7 +113,7 @@ exit /b 0
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
-		set "_G_TRACE_{!_G_LEVEL}="
+		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
 	:CopyVar _VarFrom _VarTo
