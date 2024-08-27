@@ -1,3 +1,5 @@
+@REM v0.3, untested
+
 @rem Module Name: Namespace
 
 @rem Export Functions:
@@ -5,41 +7,40 @@
 @rem 	:Free _Namespace
 
 @echo off
-
-::Start
-	rem If G_NSP is not defined, then set it to 0.
-	set /a G_NSP = G_NSP
-
-	set "_Args=%*"
-	if "!_Args:~,1!" Equ ":" (
-		Set "_Args=!_Args:~1!"
-	)
-	call :!_Args!
-	set _Args=
+rem If _G_NSP is not defined, then set it to 0.
+set /a _G_NSP = _G_NSP
+2>nul call %* || (
+	2>&1 echo [!_G_TRACE!] Call '%~nx0' failed.
+	pause & exit 1
+)
 exit /b 0
 
 :New _Type
-	set "_Type=%~1"
-	set /a G_NSP += 1
-	set "G_NS[!G_NSP!]=_"
-	set "G_NS[!G_NSP!].Type=!_Type!"
+	set /a _G_NSP += 1
+	set "_G_NS[!_G_NSP!]=_"
+	set "_G_NS[!_G_NSP!].=_"
+	set "_G_NS[!_G_NSP!].Type=%~1"
 
-	set "G_RET=G_NS[!G_NSP!]"
+	set "G_RET=_G_NS[!_G_NSP!]"
 exit /b 0
 
 :Free _NS
 	set "_NS=%~1"
-	if not defined !_NS! (
-		>&2 echo [!G_TRACE!] ns !_NS! is not defined.
+	if "!%~1!" == "" (
+		>&2 echo [!G_TRACE!] Value of '%~1' is empty.
 		pause & exit 1
 	)
-	if "!_NS:~,4!" Neq "G_NS" (
-		>&2 echo [!G_TRACE!] !_NS! is not a namespace.
+	if not defined !%~1! (
+		>&2 echo [!G_TRACE!] '!%~1!' is undefined.
+		pause & exit 1
+	)
+	if not defined !%~1!. (
+		>&2 echo [!G_TRACE!] '!%~1!' is not a namespace.
 		pause & exit 1
 	)
 
 	for /f "delims==" %%i in (
-		'set !_NS!'
+		'set !%~1!'
 	) do (
 		set "%%i="
 	)
