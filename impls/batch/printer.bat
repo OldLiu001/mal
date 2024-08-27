@@ -22,32 +22,32 @@ exit /b 0
 		echo !_ObjMalCode!.Type not defined!
 		pause & exit
 	)
-	call :CopyVar !_ObjMalCode!.Type _Type
+	!_C_Copy! !_ObjMalCode!.Type _Type
 	if not "!_Type:~,3!" == "Mal" (
 		rem TODO
 		echo _ObjMalCode is not a MalType!
 		pause & exit
 	)
 	
-	!C_Invoke! Str.bat :New
-	call :CopyVar _G_RET _StrMalCode
+	!_C_Invoke! Str.bat :New
+	!_C_Copy! _G_RET _StrMalCode
 	
 	if "!_Type!" == "MalNum" (
-		!C_Invoke! Str.bat :AppendVar _StrMalCode !_ObjMalCode!.Value
+		!_C_Invoke! Str.bat :AppendVar _StrMalCode !_ObjMalCode!.Value
 	) else if "!_Type!" == "MalSym" (
-		!C_Invoke! Str.bat :AppendVar _StrMalCode !_ObjMalCode!.Value
+		!_C_Invoke! Str.bat :AppendVar _StrMalCode !_ObjMalCode!.Value
 	) else if "!_Type!" == "MalLst" (
-		!C_Invoke! Str.bat :AppendVal _StrMalCode "("
-		call :CopyVar !_ObjMalCode!.Count _Count
+		!_C_Invoke! Str.bat :AppendVal _StrMalCode "("
+		!_C_Copy! !_ObjMalCode!.Count _Count
 		for /l %%i in (1 1 !_Count!) do (
-			!C_Invoke! :PrintMalType !_ObjMalCode!.Item[%%i]
+			!_C_Invoke! :PrintMalType !_ObjMalCode!.Item[%%i]
 			set "_RetStrMalCode=!_G_RET!"
-			!C_Invoke! Str.bat :AppendStr _StrMalCode _RetStrMalCode
+			!_C_Invoke! Str.bat :AppendStr _StrMalCode _RetStrMalCode
 			
 			if "%%i" == "!_Count!" (
-				!C_Invoke! Str.bat :AppendVal _StrMalCode ")"
+				!_C_Invoke! Str.bat :AppendVal _StrMalCode ")"
 			) else (
-				!C_Invoke! Str.bat :AppendVal _StrMalCode " "
+				!_C_Invoke! Str.bat :AppendVal _StrMalCode " "
 			)
 		)
 	) else (

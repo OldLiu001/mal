@@ -50,7 +50,7 @@ exit /b 0
 	for /f "delims=" %%a in ("_L{!_G_LEVEL!}_Str") do (
 		for /f "delims=" %%b in ("!%%a!.LineCount") do (
 			for /l %%i in (1 1 !%%b!) do (
-				call :CopyVar !%%a!.Line[%%i] _L{!_G_LEVEL!}_Line
+				!_C_Copy! !%%a!.Line[%%i] _L{!_G_LEVEL!}_Line
 				call :WriteEscapedLineVar _L{!_G_LEVEL!}_Line
 			)
 		)
