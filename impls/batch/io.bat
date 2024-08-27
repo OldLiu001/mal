@@ -25,7 +25,7 @@ goto :eof
 		for /f "delims=" %%a in (
 			'call Readline.bat'
 		) do set "_Input=%%~a"
-		call Function.bat :RetVar _Input
+		set "G_RET=!_Input!"
 	goto :eof
 
 	:WriteEscapedLineVar _Var

@@ -1,3 +1,79 @@
+@REM @rem Project Name: MAL
+@REM @rem Module Name: Main
+
+@REM @rem Origin name mapping:
+@REM @rem 	READ -> Read
+@REM @rem 	EVAL -> Eval
+@REM @rem 	PRINT -> Print
+@REM @rem 	rep -> REP
+
+@REM @echo off
+@REM pushd "%~dp0"
+@REM setlocal ENABLEDELAYEDEXPANSION
+@REM call Function.bat :SaveCurrentCallInfo "(Mod)Main"
+@REM goto Main
+
+
+@REM :Main
+@REM 	set "_Prompt=user> "
+@REM 	call IO.bat :WriteVar _Prompt
+@REM 	call IO.bat :ReadEscapedLine
+@REM 	call Function.bat :GetRetVar _MalCode
+	
+@REM 	call Function.bat :PrepareCall _MalCode
+@REM 	call :REP
+@REM 	call Function.bat :DropRetVar
+@REM goto :Main
+
+
+@REM %Speed Improve Start% (
+@REM 	:Read
+@REM 		call Function.bat :GetArgs _MalCode
+@REM 		call Function.bat :SaveCurrentCallInfo Read
+
+@REM 		call Function.bat :RestoreCallInfo
+@REM 		call Function.bat :RetVar _MalCode
+@REM 	goto :eof
+
+@REM 	:Eval
+@REM 		call Function.bat :GetArgs _MalCode
+@REM 		call Function.bat :SaveCurrentCallInfo Eval
+
+@REM 		call Function.bat :RestoreCallInfo
+@REM 		call Function.bat :RetVar _MalCode
+@REM 	goto :eof
+
+@REM 	:Print
+@REM 		call Function.bat :GetArgs _MalCode
+@REM 		call Function.bat :SaveCurrentCallInfo Print
+		
+@REM 		call IO.bat :WriteEscapedLineVar _MalCode
+
+@REM 		call Function.bat :RestoreCallInfo
+@REM 		call Function.bat :RetNone
+@REM 	goto :eof
+
+@REM 	:REP
+@REM 		call Function.bat :GetArgs _MalCode
+@REM 		call Function.bat :SaveCurrentCallInfo REP
+
+@REM 		call Function.bat :PrepareCall _MalCode
+@REM 		call :READ
+@REM 		call Function.bat :GetRetVar _MalCode
+		
+@REM 		call Function.bat :PrepareCall _MalCode
+@REM 		call :EVAL
+@REM 		call Function.bat :GetRetVar _MalCode
+
+@REM 		call Function.bat :PrepareCall _MalCode
+@REM 		call :PRINT
+@REM 		call Function.bat :DropRetVar
+
+@REM 		call Function.bat :RestoreCallInfo
+@REM 		call Function.bat :RetNone
+@REM 	goto :eof
+@REM ) %Speed Improve End%
+
 @rem Project Name: MAL
 @rem Module Name: Main
 
@@ -10,7 +86,6 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-call Function.bat :SaveCurrentCallInfo "(Mod)Main"
 goto Main
 
 
@@ -18,59 +93,32 @@ goto Main
 	set "_Prompt=user> "
 	call IO.bat :WriteVar _Prompt
 	call IO.bat :ReadEscapedLine
-	call Function.bat :GetRetVar _MalCode
-	
-	call Function.bat :PrepareCall _MalCode
-	call :REP
-	call Function.bat :DropRetVar
+	call :REP G_RET
 goto :Main
 
 
 %Speed Improve Start% (
-	:Read
-		call Function.bat :GetArgs _MalCode
-		call Function.bat :SaveCurrentCallInfo Read
-
-		call Function.bat :RestoreCallInfo
-		call Function.bat :RetVar _MalCode
+	:Read _MalCode
+		set "G_RET=!%~1!"
 	goto :eof
 
-	:Eval
-		call Function.bat :GetArgs _MalCode
-		call Function.bat :SaveCurrentCallInfo Eval
-
-		call Function.bat :RestoreCallInfo
-		call Function.bat :RetVar _MalCode
+	:Eval _MalCode
+		set "G_RET=!%~1!"
 	goto :eof
 
-	:Print
-		call Function.bat :GetArgs _MalCode
-		call Function.bat :SaveCurrentCallInfo Print
+	:Print _MalCode
+		set "_MalCode=!%~1!"
 		
 		call IO.bat :WriteEscapedLineVar _MalCode
 
-		call Function.bat :RestoreCallInfo
-		call Function.bat :RetNone
+		set "G_RET="
 	goto :eof
 
-	:REP
-		call Function.bat :GetArgs _MalCode
-		call Function.bat :SaveCurrentCallInfo REP
-
-		call Function.bat :PrepareCall _MalCode
-		call :READ
-		call Function.bat :GetRetVar _MalCode
-		
-		call Function.bat :PrepareCall _MalCode
-		call :EVAL
-		call Function.bat :GetRetVar _MalCode
-
-		call Function.bat :PrepareCall _MalCode
-		call :PRINT
-		call Function.bat :DropRetVar
-
-		call Function.bat :RestoreCallInfo
-		call Function.bat :RetNone
+	:REP _MalCode
+		set "_MalCode=!%~1!"
+		call :READ _MalCode
+		call :EVAL G_RET
+		call :PRINT G_RET
 	goto :eof
 ) %Speed Improve End%
 
