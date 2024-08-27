@@ -1,3 +1,5 @@
+@REM v: final
+
 @REM Will read a line from stdin and return escaped string.
 
 @REM Special Symbol Mapping:
