@@ -1,512 +1,4 @@
-@REM @echo off
-@REM ::Start
-@REM 	set "_Args=%*"
-@REM 	if "!_Args:~,1!" Equ ":" (
-@REM 		Set "_Args=!_Args:~1!"
-@REM 	)
-@REM 	call :!_Args!
-@REM 	set _Args=
-@REM exit /b 0
-
-
-
-@REM :ReadString _StrMalCode
-@REM 	set "_StrMalCode=!%~1!"
-	
-@REM 	!_C_Invoke! NS.bat :New Reader
-@REM 	set "_ObjReader=!_G_RET!"
-
-@REM 	set "!_ObjReader!.TokenCount=0"
-@REM 	set "!_ObjReader!.TokenPtr=1"
-
-@REM 	!_C_Copy! !_StrMalCode!.LineCount _LineCount
-@REM 	for /l %%i in (1 1 !_LineCount!) do (
-@REM 		!_C_Invoke! :Tokenize !_StrMalCode!.Lines[%%i] _ObjReader
-@REM 	)
-
-@REM 	rem Check if there is any token.
-@REM 	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
-@REM 	if "!_TotalTokenNum!" == "0" (
-@REM 		rem TODO
-@REM 		echo ERROR: No token found.
-@REM 		pause
-@REM 		exit
-@REM 	)
-	
-@REM 	rem Translate the tokens to AST.
-@REM 	!_C_Invoke! :ReadForm _ObjReader
-@REM 	set "_ObjAST=!_G_RET!"
-	
-
-@REM 	@REM TODO: check if there has more token.
-@REM 	@REM TokenPtr <= _TotalTokenNum
-
-@REM 	set "_G_RET=!_ObjAST!"
-@REM 	!_C_Clear!
-@REM exit /b 0
-
-@REM :ReadForm _ObjReader
-@REM 	set "_ObjReader=!%~1!"
-
-@REM 	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-@REM 	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
-
-@REM 	if !_TokenPtr! Gtr !_TotalTokenNum! (
-@REM 		rem TODO
-@REM 		echo ERROR: No token found.
-@REM 		pause
-@REM 		exit
-@REM 	)
-
-@REM 	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-	
-@REM 	if "!_CurToken!" == "(" (
-@REM 		!_C_Invoke! :ReadList _ObjReader
-@REM 		set "_ObjAST=!_G_RET!"
-@REM 	) else (
-@REM 		!_C_Invoke! :ReadAtom _ObjReader
-@REM 		set "_ObjAST=!_G_RET!"
-@REM 	)
-
-@REM 	set "_G_RET=!_ObjAST!"
-@REM 	!_C_Clear!
-@REM exit /b 0
-
-@REM :ReadAtom
-@REM 	set "_ObjReader=!%~1!"
-
-@REM 	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-@REM 	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
-
-@REM 	if !_TokenPtr! Gtr !_TotalTokenNum! (
-@REM 		rem TODO
-@REM 		echo ERROR: No token found.
-@REM 		pause
-@REM 		exit
-@REM 	)
-
-@REM 	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-@REM 	set /a _TokenPtr += 1
-@REM 	!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
-	
-@REM 	!_C_Invoke! NS.bat :New
-@REM 	!_C_Copy! _G_RET _ObjMalCode
-@REM 	set "!_ObjMalCode!.Value=!_CurToken!"
-
-@REM 	rem check token's MalType.
-@REM 	set /a _TestNum = _CurToken
-@REM 	if "!_TestNum!" == "!_CurToken!" (
-@REM 		set "!_ObjMalCode!.Type=MalNum"
-@REM 	) else (
-@REM 		set "!_ObjMalCode!.Type=MalSym"
-@REM 	)
-@REM 	rem TODO: CheckMore.
-
-@REM 	set "_G_RET=!_ObjMalCode!"
-@REM 	!_C_Clear!
-@REM exit /b 0
-
-@REM :ReadList
-@REM 	set "_ObjReader=!%~1!"
-
-@REM 	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-@REM 	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
-
-@REM 	if !_TokenPtr! Gtr !_TotalTokenNum! (
-@REM 		rem TODO
-@REM 		echo ERROR: No token found.
-@REM 		pause
-@REM 		exit
-@REM 	)
-
-@REM 	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-
-@REM 	if "!_CurToken!" Neq "(" (
-@REM 		rem TODO
-@REM 		echo ERROR: Not a list.
-@REM 		pause
-@REM 		exit
-@REM 	)
-
-@REM 	set /a _TokenPtr += 1
-@REM 	!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
-
-@REM 	if !_TokenPtr! Gtr !_TotalTokenNum! (
-@REM 		rem TODO
-@REM 		echo ERROR: No token found.
-@REM 		pause
-@REM 		exit
-@REM 	)
-	
-@REM 	!_C_Invoke! NS.bat :New MalLst
-@REM 	!_C_Copy! _G_RET _ObjMalCode
-	
-@REM 	set "_Count=0"
-@REM 	:ReadList_Loop
-@REM 		!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-@REM 		!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-
-@REM 		if "!_CurToken!" == ")" (
-@REM 			set /a _TokenPtr += 1
-@REM 			!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
-@REM 			goto :ReadList_Pass
-@REM 		)
-@REM 		set /a _Count += 1
-
-@REM 		!_C_Invoke! :ReadForm _ObjReader
-@REM 		!_C_Copy! _G_RET !_ObjMalCode!.Item[!_Count!]
-
-@REM 		goto :ReadList_Loop
-@REM 	:ReadList_Pass
-@REM 	!_C_Copy! _Count !_ObjMalCode!.Count
-
-
-@REM 	set "_G_RET=!_ObjMalCode!"
-@REM 	!_C_Clear!
-@REM exit /b 0
-
-
-
-@REM :Tokenize _Line _ObjReader
-@REM 	set "_Line=!%~1!"
-@REM 	set "_ObjReader=!%~2!"
-
-@REM 	!_C_Copy! _Line _CurLine
-@REM 	!_C_Copy! !_ObjReader!.TokenCount _CurTokenNum
-
-@REM 	rem Tokenize the _CurLine.
-@REM 	set _ParsingStr=False
-@REM 	set _NormalToken=
-@REM 	:Tokenizing_Loop
-@REM 	if "!_CurLine!" == "" (
-@REM 		if "!_ParsingStr!" == "True" (
-@REM 			rem TODO
-@REM 			echo ERROR: STRING not full.
-@REM 			pause
-@REM 			exit
-@REM 		)
-@REM 		goto :Tokenizing_Pass
-@REM 	)
-@REM 	if "!_ParsingStr!" == "False" (
-@REM 		if "!_CurLine:~,1!" == " " (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "	" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "," (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,2!" == "~@" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=~@"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~2!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "[" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=["
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "]" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=]"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "(" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=("
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == ")" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=)"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "{" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken={"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "}" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=}"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "'" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken='"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "`" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=`"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "~" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=~"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == "@" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=@"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~1!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		rem ^ --- $C
-@REM 		if "!_CurLine:~,2!" == "$C" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			set "_CurToken=$C"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-
-@REM 			set "_CurLine=!_CurLine:~2!"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		rem " --- $D
-@REM 		if "!_CurLine:~,2!" == "$D" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			rem string.
-@REM 			set "_CurLine=!_CurLine:~2!"
-@REM 			set "_ParsingStr=True"
-@REM 			set "_StrToken="
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,1!" == ";" (
-@REM 			if defined _NormalToken (
-@REM 				rem save normal token first.
-@REM 				!_C_Copy! _NormalToken _CurToken
-@REM 				set /a _CurTokenNum += 1
-@REM 				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 				set _NormalToken=
-@REM 			)
-@REM 			rem comment.
-@REM 			!_C_Copy! _CurLine _CurToken
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 			set "_CurLine="
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-
-@REM 		set "_NormalToken=!_NormalToken!!_CurLine:~,1!"
-@REM 		set "_CurLine=!_CurLine:~1!"
-@REM 		goto :Tokenizing_Loop
-@REM 	) else (
-@REM 		rem parsing string now.
-@REM 		if "!_CurLine:~,2!" == "\\" (
-@REM 			rem \\
-@REM 			set "_CurLine=!_CurLine:~2!"
-@REM 			set "_StrToken=!_StrToken!\"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,3!" == "\$D" (
-@REM 			rem \"
-@REM 			set "_CurLine=!_CurLine:~3!"
-@REM 			set "_StrToken=!_StrToken!$D"
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		if "!_CurLine:~,2!" == "$D" (
-@REM 			rem end of string.
-@REM 			set "_CurLine=!_CurLine:~2!"
-@REM 			set "_ParsingStr=False"
-@REM 			set /a _CurTokenNum += 1
-@REM 			!_C_Copy! _StrToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 			goto :Tokenizing_Loop
-@REM 		)
-@REM 		set "_StrToken=!_StrToken!!_CurLine:~,1!"
-@REM 		set "_CurLine=!_CurLine:~1!"
-@REM 		goto :Tokenizing_Loop
-@REM 	)
-@REM 	:Tokenizing_Pass
-@REM 	if defined _NormalToken (
-@REM 		rem save normal token.
-@REM 		!_C_Copy! _NormalToken _CurToken
-@REM 		set /a _CurTokenNum += 1
-@REM 		!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-@REM 		set _NormalToken=
-@REM 	)
-@REM 	!_C_Copy! _CurTokenNum !_ObjReader!.TokenCount
-
-@REM 	set "_G_RET="
-@REM 	!_C_Clear!
-@REM exit /b 0
-
-
-@REM (
-@REM 	:Invoke
-@REM 		if not defined G_TRACE (
-@REM 			set "G_TRACE=MAIN"
-@REM 		)
-@REM 		call SF.Bat :PushVar G_TRACE
-@REM 		set "G_TMP=%~1"
-@REM 		if /i "!G_TMP:~,1!" Equ ":" (
-@REM 			set "G_TRACE=!G_TRACE!>%~1"
-@REM 		) else (
-@REM 			set "G_TRACE=!G_TRACE!>%~1>%~2"
-@REM 		)
-@REM 		set "G_TMP="
-@REM 		call SF.Bat :SaveLocalVars
-@REM 		call %*
-@REM 		call SF.Bat :RestoreLocalVars
-@REM 		call SF.Bat :PopVar G_TRACE
-@REM 	exit /b 0
-
-@REM 	:ClearLocalVars
-@REM 		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-@REM 	exit /b 0
-
-@REM 	:CopyVar _VarFrom _VarTo
-@REM 		if not defined %~1 (
-@REM 			2>&1 echo [!G_TRACE!] %~1 is not defined.
-@REM 		)
-@REM 		set "%~2=!%~1!"
-@REM 	exit /b 0
-@REM )
+@REM v:0.4, test a little
 
 @echo off
 2>nul call %* || (
@@ -533,8 +25,8 @@ exit /b 0
 		)
 
 		rem Check if there is any token.
-		!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
-		if "!_TotalTokenNum!" == "0" (
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
+		if "!_L{%%.}_TotalTokenNum!" == "0" (
 			rem TODO
 			echo ERROR: No token found.
 			pause
@@ -542,447 +34,463 @@ exit /b 0
 		)
 		
 		rem Translate the tokens to AST.
-		!_C_Invoke! :ReadForm _ObjReader
-		set "_ObjAST=!_G_RET!"
+		!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+		set "_L{%%.}_ObjAST=!_G_RET!"
 		
 
 		@REM TODO: check if there has more token.
 		@REM TokenPtr <= _TotalTokenNum
 
-		set "_G_RET=!_ObjAST!"
+		set "_G_RET=!_L{%%.}_ObjAST!"
 		!_C_Clear!
 	)
 exit /b 0
 
 :ReadForm _ObjReader
-	set "_ObjReader=!%~1!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_ObjReader=!%~1!"
 
-	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
 
-	if !_TokenPtr! Gtr !_TotalTokenNum! (
-		rem TODO
-		echo ERROR: No token found.
-		pause
-		exit
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		
+		if "!_L{%%.}_CurToken!" == "(" (
+			!_C_Invoke! :ReadList _L{%%.}_ObjReader
+			set "_L{%%.}_ObjAST=!_G_RET!"
+		) else (
+			!_C_Invoke! :ReadAtom _L{%%.}_ObjReader
+			set "_L{%%.}_ObjAST=!_G_RET!"
+		)
+
+		set "_G_RET=!_L{%%.}_ObjAST!"
+		!_C_Clear!
 	)
-
-	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-	
-	if "!_CurToken!" == "(" (
-		!_C_Invoke! :ReadList _ObjReader
-		set "_ObjAST=!_G_RET!"
-	) else (
-		!_C_Invoke! :ReadAtom _ObjReader
-		set "_ObjAST=!_G_RET!"
-	)
-
-	set "_G_RET=!_ObjAST!"
-	!_C_Clear!
 exit /b 0
 
 :ReadAtom
-	set "_ObjReader=!%~1!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_ObjReader=!%~1!"
 
-	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
 
-	if !_TokenPtr! Gtr !_TotalTokenNum! (
-		rem TODO
-		echo ERROR: No token found.
-		pause
-		exit
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+		set /a _L{%%.}_TokenPtr += 1
+		!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
+		
+		!_C_Invoke! NS.bat :New
+		!_C_Copy! _G_RET _L{%%.}_ObjMalCode
+		set "!_L{%%.}_ObjMalCode!.Value=!_L{%%.}_CurToken!"
+
+		rem check token's MalType.
+		set /a _L{%%.}_TestNum = _L{%%.}_CurToken
+		if "!_L{%%.}_TestNum!" == "!_L{%%.}_CurToken!" (
+			set "!_ObjMalCode!.Type=MalNum"
+		) else (
+			set "!_ObjMalCode!.Type=MalSym"
+		)
+		rem TODO: CheckMore.
+
+		set "_G_RET=!_L{%%.}_ObjMalCode!"
+		!_C_Clear!
 	)
-
-	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-	set /a _TokenPtr += 1
-	!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
-	
-	!_C_Invoke! NS.bat :New
-	!_C_Copy! _G_RET _ObjMalCode
-	set "!_ObjMalCode!.Value=!_CurToken!"
-
-	rem check token's MalType.
-	set /a _TestNum = _CurToken
-	if "!_TestNum!" == "!_CurToken!" (
-		set "!_ObjMalCode!.Type=MalNum"
-	) else (
-		set "!_ObjMalCode!.Type=MalSym"
-	)
-	rem TODO: CheckMore.
-
-	set "_G_RET=!_ObjMalCode!"
-	!_C_Clear!
 exit /b 0
 
 :ReadList
-	set "_ObjReader=!%~1!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_ObjReader=!%~1!"
 
-	!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-	!_C_Copy! !_ObjReader!.TokenCount _TotalTokenNum
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
 
-	if !_TokenPtr! Gtr !_TotalTokenNum! (
-		rem TODO
-		echo ERROR: No token found.
-		pause
-		exit
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+
+		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+
+		if "!_L{%%.}_CurToken!" Neq "(" (
+			rem TODO
+			echo ERROR: Not a list.
+			pause
+			exit
+		)
+
+		set /a _L{%%.}_TokenPtr += 1
+		!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
+
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			rem TODO
+			echo ERROR: No token found.
+			pause
+			exit
+		)
+		
+		!_C_Invoke! NS.bat :New MalLst
+		!_C_Copy! _G_RET _L{%%.}_ObjMalCode
+		
+		set "_L{%%.}_Count=0"
 	)
-
-	!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
-
-	if "!_CurToken!" Neq "(" (
-		rem TODO
-		echo ERROR: Not a list.
-		pause
-		exit
-	)
-
-	set /a _TokenPtr += 1
-	!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
-
-	if !_TokenPtr! Gtr !_TotalTokenNum! (
-		rem TODO
-		echo ERROR: No token found.
-		pause
-		exit
-	)
-	
-	!_C_Invoke! NS.bat :New MalLst
-	!_C_Copy! _G_RET _ObjMalCode
-	
-	set "_Count=0"
 	:ReadList_Loop
-		!_C_Copy! !_ObjReader!.TokenPtr _TokenPtr
-		!_C_Copy! !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
+	for %%. in (!_G_LEVEL!) do (
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		!_C_Copy! !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
-		if "!_CurToken!" == ")" (
-			set /a _TokenPtr += 1
-			!_C_Copy! _TokenPtr !_ObjReader!.TokenPtr
+		if "!_L{%%.}_CurToken!" == ")" (
+			set /a _L{%%.}_TokenPtr += 1
+			!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
 			goto :ReadList_Pass
 		)
-		set /a _Count += 1
+		set /a _L{%%.}_Count += 1
 
-		!_C_Invoke! :ReadForm _ObjReader
-		!_C_Copy! _G_RET !_ObjMalCode!.Item[!_Count!]
+		!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+		!_C_Copy! _G_RET !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Count!]
 
 		goto :ReadList_Loop
+	)
 	:ReadList_Pass
-	!_C_Copy! _Count !_ObjMalCode!.Count
+	for %%. in (!_G_LEVEL!) do (
+		!_C_Copy! _L{%%.}_Count !_L{%%.}_ObjMalCode!.Count
 
 
-	set "_G_RET=!_ObjMalCode!"
-	!_C_Clear!
+		set "_G_RET=!_L{%%.}_ObjMalCode!"
+		!_C_Clear!
+	)
 exit /b 0
 
 
 
 :Tokenize _Line _ObjReader
-	set "_Line=!%~1!"
-	set "_ObjReader=!%~2!"
+	for %%. in (!_G_LEVEL!) do (
+		set "_L{%%.}_Line=!%~1!"
+		set "_L{%%.}_ObjReader=!%~2!"
 
-	!_C_Copy! _Line _CurLine
-	!_C_Copy! !_ObjReader!.TokenCount _CurTokenNum
+		!_C_Copy! _L{%%.}_Line _L{%%.}_CurLine
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_CurTokenNum
 
-	rem Tokenize the _CurLine.
-	set _ParsingStr=False
-	set _NormalToken=
-	:Tokenizing_Loop
-	if "!_CurLine!" == "" (
-		if "!_ParsingStr!" == "True" (
-			rem TODO
-			echo ERROR: STRING not full.
-			pause
-			exit
-		)
-		goto :Tokenizing_Pass
+		rem Tokenize the _CurLine.
+		set _L{%%.}_ParsingStr=False
+		set _L{%%.}_NormalToken=
 	)
-	if "!_ParsingStr!" == "False" (
-		if "!_CurLine:~,1!" == " " (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+	:Tokenizing_Loop
+	for %%. in (!_G_LEVEL!) do (
+		if "!_L{%%.}_CurLine!" == "" (
+			if "!_L{%%.}_ParsingStr!" == "True" (
+				rem TODO
+				echo ERROR: STRING not full.
+				pause
+				exit
 			)
-			set "_CurLine=!_CurLine:~1!"
-			goto Tokenizing_Loop
+			goto :Tokenizing_Pass
 		)
-		if "!_CurLine:~,1!" == "	" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+		if "!_L{%%.}_ParsingStr!" == "False" (
+			if "!_L{%%.}_CurLine:~,1!" == " " (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto Tokenizing_Loop
 			)
-			set "_CurLine=!_CurLine:~1!"
-			goto Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "," (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+			if "!_L{%%.}_CurLine:~,1!" == "	" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto Tokenizing_Loop
 			)
-			set "_CurLine=!_CurLine:~1!"
-			goto Tokenizing_Loop
-		)
-		if "!_CurLine:~,2!" == "~@" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+			if "!_L{%%.}_CurLine:~,1!" == "," (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto Tokenizing_Loop
 			)
-			set "_CurToken=~@"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,2!" == "~@" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=~@"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~2!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "[" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=["
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "[" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=["
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "]" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=]"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "]" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=]"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "(" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=("
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "(" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=("
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == ")" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=)"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == ")" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=)"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "{" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken={"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "{" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken={"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "}" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=}"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "}" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=}"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "'" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken='"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "'" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken='"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "`" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=`"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "`" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=`"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "~" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=~"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "~" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=~"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == "@" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=@"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			if "!_L{%%.}_CurLine:~,1!" == "@" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=@"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~1!"
-			goto :Tokenizing_Loop
-		)
-		rem ^ --- $C
-		if "!_CurLine:~,2!" == "$C" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+				goto :Tokenizing_Loop
 			)
-			set "_CurToken=$C"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
+			rem ^ --- $C
+			if "!_L{%%.}_CurLine:~,2!" == "$C" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				set "_L{%%.}_CurToken=$C"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
 
-			set "_CurLine=!_CurLine:~2!"
-			goto :Tokenizing_Loop
-		)
-		rem " --- $D
-		if "!_CurLine:~,2!" == "$D" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
+				goto :Tokenizing_Loop
 			)
-			rem string.
-			set "_CurLine=!_CurLine:~2!"
-			set "_ParsingStr=True"
-			set "_StrToken="
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,1!" == ";" (
-			if defined _NormalToken (
-				rem save normal token first.
-				!_C_Copy! _NormalToken _CurToken
-				set /a _CurTokenNum += 1
-				!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-				set _NormalToken=
+			rem " --- $D
+			if "!_L{%%.}_CurLine:~,2!" == "$D" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				rem string.
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
+				set "_L{%%.}_ParsingStr=True"
+				set "_L{%%.}_StrToken="
+				goto :Tokenizing_Loop
 			)
-			rem comment.
-			!_C_Copy! _CurLine _CurToken
-			set /a _CurTokenNum += 1
-			!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-			set "_CurLine="
-			goto :Tokenizing_Loop
-		)
+			if "!_L{%%.}_CurLine:~,1!" == ";" (
+				if defined _L{%%.}_NormalToken (
+					rem save normal token first.
+					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+					set /a _L{%%.}_CurTokenNum += 1
+					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+					set _L{%%.}_NormalToken=
+				)
+				rem comment.
+				!_C_Copy! _L{%%.}_CurLine _L{%%.}_CurToken
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				set "_L{%%.}_CurLine="
+				goto :Tokenizing_Loop
+			)
 
-		set "_NormalToken=!_NormalToken!!_CurLine:~,1!"
-		set "_CurLine=!_CurLine:~1!"
-		goto :Tokenizing_Loop
-	) else (
-		rem parsing string now.
-		if "!_CurLine:~,2!" == "\\" (
-			rem \\
-			set "_CurLine=!_CurLine:~2!"
-			set "_StrToken=!_StrToken!\"
+			set "_L{%%.}_NormalToken=!_L{%%.}_NormalToken!!_L{%%.}_CurLine:~,1!"
+			set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
+			goto :Tokenizing_Loop
+		) else (
+			rem parsing string now.
+			if "!_L{%%.}_CurLine:~,2!" == "\\" (
+				rem \\
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
+				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\"
+				goto :Tokenizing_Loop
+			)
+			if "!_L{%%.}_CurLine:~,3!" == "\$D" (
+				rem \"
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~3!"
+				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!$D"
+				goto :Tokenizing_Loop
+			)
+			if "!_L{%%.}_CurLine:~,2!" == "$D" (
+				rem end of string.
+				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
+				set "_L{%%.}_ParsingStr=False"
+				set /a _L{%%.}_CurTokenNum += 1
+				!_C_Copy! _L{%%.}_StrToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+				goto :Tokenizing_Loop
+			)
+			set "_L{%%.}_StrToken=!_L{%%.}_StrToken!!_L{%%.}_CurLine:~,1!"
+			set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 			goto :Tokenizing_Loop
 		)
-		if "!_CurLine:~,3!" == "\$D" (
-			rem \"
-			set "_CurLine=!_CurLine:~3!"
-			set "_StrToken=!_StrToken!$D"
-			goto :Tokenizing_Loop
-		)
-		if "!_CurLine:~,2!" == "$D" (
-			rem end of string.
-			set "_CurLine=!_CurLine:~2!"
-			set "_ParsingStr=False"
-			set /a _CurTokenNum += 1
-			!_C_Copy! _StrToken !_ObjReader!.Tokens[!_CurTokenNum!]
-			goto :Tokenizing_Loop
-		)
-		set "_StrToken=!_StrToken!!_CurLine:~,1!"
-		set "_CurLine=!_CurLine:~1!"
-		goto :Tokenizing_Loop
 	)
 	:Tokenizing_Pass
-	if defined _NormalToken (
-		rem save normal token.
-		!_C_Copy! _NormalToken _CurToken
-		set /a _CurTokenNum += 1
-		!_C_Copy! _CurToken !_ObjReader!.Tokens[!_CurTokenNum!]
-		set _NormalToken=
-	)
-	!_C_Copy! _CurTokenNum !_ObjReader!.TokenCount
+	for %%. in (!_G_LEVEL!) do (
+		if defined _L{%%.}_NormalToken (
+			rem save normal token first.
+			!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
+			set /a _L{%%.}_CurTokenNum += 1
+			!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Tokens[!_L{%%.}_CurTokenNum!]
+			set _L{%%.}_NormalToken=
+		)
+		!_C_Copy! _L{%%.}_CurTokenNum !_L{%%.}_ObjReader!.TokenCount
 
-	set "_G_RET="
-	!_C_Clear!
+		set "_G_RET="
+		!_C_Clear!
+	)
 exit /b 0
 
 
