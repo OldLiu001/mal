@@ -51,14 +51,12 @@ goto :eof
 	call :ClearLocalVars
 goto :eof
 
-(
-	:Invoke
-		call SF.Bat :SaveLocalVars
-		call %*
-		call SF.Bat :RestoreLocalVars
-	goto :eof
+:Invoke
+	call SF.Bat :SaveLocalVars
+	call %*
+	call SF.Bat :RestoreLocalVars
+goto :eof
 
-	:ClearLocalVars
-		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-	goto :eof
-)
+:ClearLocalVars
+	for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
+goto :eof
