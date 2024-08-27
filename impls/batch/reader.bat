@@ -495,7 +495,7 @@ exit /b 0
 
 
 (
-	@REM Version 0.5
+	@REM Version 0.6
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -511,6 +511,7 @@ exit /b 0
 		)
 		set "_G_TMP="
 		
+		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
 		set /a _G_LEVEL -= 1

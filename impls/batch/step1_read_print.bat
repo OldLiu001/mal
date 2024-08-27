@@ -19,9 +19,6 @@ exit /b 0
 	
 	!_C_Invoke! Str.bat :FromVar _L{!_G_LEVEL!}_Input
 	set "_L{!_G_LEVEL!}_Str=!_G_RET!"
-	
-	set _
-	pause
 
 	!_C_Invoke! :REP _L{!_G_LEVEL!}_Str
 	
@@ -38,6 +35,8 @@ goto :Main
 		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
 		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
+		set _
+		pause
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
 		!_C_Clear!
 	)
@@ -76,7 +75,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.5
+	@REM Version 0.6
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -92,6 +91,7 @@ exit /b 0
 		)
 		set "_G_TMP="
 		
+		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
 		set /a _G_LEVEL -= 1
