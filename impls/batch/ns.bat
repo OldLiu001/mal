@@ -16,7 +16,7 @@
 	)
 	call :!_Args!
 	set _Args=
-goto :eof
+exit /b 0
 
 :New _Type
 	set "_Type=%~1"
@@ -25,7 +25,7 @@ goto :eof
 	set "G_NS[!G_NSP!].Type=!_Type!"
 
 	set "G_RET=G_NS[!G_NSP!]"
-goto :eof
+exit /b 0
 
 :Free _NS
 	set "_NS=%~1"
@@ -43,4 +43,4 @@ goto :eof
 	) do (
 		set "%%i="
 	)
-goto :eof
+exit /b 0

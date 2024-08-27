@@ -33,14 +33,14 @@ goto :Main
 
 	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :Eval _ObjMalCode
 	set "_ObjMalCode=!%~1!"
 
 	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :Print _ObjMalCode
 	set "_ObjMalCode=!%~1!"
@@ -51,7 +51,7 @@ goto :eof
 	!C_Invoke! IO.bat :WriteStr _StrMalCode
 
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :REP _StrMalCode
 	set "_StrMalCode=!%~1!"
@@ -66,7 +66,7 @@ goto :eof
 
 	set "G_RET="
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 (
 	:Invoke
@@ -85,9 +85,9 @@ goto :eof
 		call %*
 		call SF.Bat :RestoreLocalVars
 		call SF.Bat :PopVar G_TRACE
-	goto :eof
+	exit /b 0
 
 	:ClearLocalVars
 		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-	goto :eof
+	exit /b 0
 )

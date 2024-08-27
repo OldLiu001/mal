@@ -27,14 +27,14 @@ goto :Main
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 	!_C_Clear!
-goto :eof
+exit /b 0
 
 :Eval _MalCode
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 	!_C_Clear!
-goto :eof
+exit /b 0
 
 :Print _MalCode
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
@@ -43,7 +43,7 @@ goto :eof
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 	!_C_Clear!
-goto :eof
+exit /b 0
 
 :REP _MalCode
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
@@ -55,7 +55,7 @@ goto :eof
 	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
 
 	!_C_Clear!
-goto :eof
+exit /b 0
 
 (
 	@REM Version 0.3

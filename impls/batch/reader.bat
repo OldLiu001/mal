@@ -6,7 +6,7 @@
 	)
 	call :!_Args!
 	set _Args=
-goto :eof
+exit /b 0
 
 
 
@@ -43,7 +43,7 @@ goto :eof
 
 	set "G_RET=!_ObjAST!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :ReadForm _ObjReader
 	set "_ObjReader=!%~1!"
@@ -70,7 +70,7 @@ goto :eof
 
 	set "G_RET=!_ObjAST!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :ReadAtom
 	set "_ObjReader=!%~1!"
@@ -104,7 +104,7 @@ goto :eof
 
 	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :ReadList
 	set "_ObjReader=!%~1!"
@@ -163,7 +163,7 @@ goto :eof
 
 	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 
 
@@ -474,7 +474,7 @@ goto :eof
 
 	set "G_RET="
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 
 (
@@ -494,16 +494,16 @@ goto :eof
 		call %*
 		call SF.Bat :RestoreLocalVars
 		call SF.Bat :PopVar G_TRACE
-	goto :eof
+	exit /b 0
 
 	:ClearLocalVars
 		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-	goto :eof
+	exit /b 0
 
 	:CopyVar _VarFrom _VarTo
 		if not defined %~1 (
 			2>&1 echo [!G_TRACE!] %~1 is not defined.
 		)
 		set "%~2=!%~1!"
-	goto :eof
+	exit /b 0
 )

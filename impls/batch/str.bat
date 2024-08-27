@@ -7,12 +7,12 @@
 	)
 	call :!_Args!
 	set _Args=
-goto :eof
+exit /b 0
 
 :New
 	call NS.bat :New String
 	set "!G_RET!.LineCount=0"
-goto :eof
+exit /b 0
 
 :FromVar _Var
 	set "_Var=!%~1!"
@@ -20,7 +20,7 @@ goto :eof
 	set "!G_RET!.LineCount=1"
 	set "!G_RET!.Lines[1]=!_Var!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :FromVal _Val
 	set "_Val=%~1"
@@ -28,7 +28,7 @@ goto :eof
 	set "!G_RET!.LineCount=1"
 	set "!G_RET!.Lines[1]=!_Val!"
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :AppendStr _Str _NewStr
 	call :CopyVar !%~1!.LineCount _LineCount
@@ -45,7 +45,7 @@ goto :eof
 	call :CopyVar _LineCount !%~1!.LineCount
 	set "G_RET="
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :AppendVal _Str _Val
 	call :CopyVar !%~1!.LineCount _LineCount
@@ -58,7 +58,7 @@ goto :eof
 	call :CopyVar _LastLine !%~1!.Lines[!_LineCount!]
 	set "G_RET="
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :AppendVar _Str _Var
 	call :CopyVar !%~1!.LineCount _LineCount
@@ -71,12 +71,12 @@ goto :eof
 	call :CopyVar _LastLine !%~1!.Lines[!_LineCount!]
 	set "G_RET="
 	call :ClearLocalVars
-goto :eof
+exit /b 0
 
 :CopyVar _VarFrom _VarTo
 	set "%~2=!%~1!"
-goto :eof
+exit /b 0
 
 :ClearLocalVars
 	for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-goto :eof
+exit /b 0
