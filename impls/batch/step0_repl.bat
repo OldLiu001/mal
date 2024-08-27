@@ -1,8 +1,6 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-goto Main
-
 
 :Main
 	set "_Prompt=user> "
