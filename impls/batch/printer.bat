@@ -30,7 +30,7 @@ exit /b 0
 	)
 	
 	!C_Invoke! Str.bat :New
-	call :CopyVar G_RET _StrMalCode
+	call :CopyVar _G_RET _StrMalCode
 	
 	if "!_Type!" == "MalNum" (
 		!C_Invoke! Str.bat :AppendVar _StrMalCode !_ObjMalCode!.Value
@@ -41,7 +41,7 @@ exit /b 0
 		call :CopyVar !_ObjMalCode!.Count _Count
 		for /l %%i in (1 1 !_Count!) do (
 			!C_Invoke! :PrintMalType !_ObjMalCode!.Item[%%i]
-			set "_RetStrMalCode=!G_RET!"
+			set "_RetStrMalCode=!_G_RET!"
 			!C_Invoke! Str.bat :AppendStr _StrMalCode _RetStrMalCode
 			
 			if "%%i" == "!_Count!" (
@@ -56,7 +56,7 @@ exit /b 0
 		pause & exit
 	)
 
-	set "G_RET=!_StrMalCode!"
+	set "_G_RET=!_StrMalCode!"
 	call :ClearLocalVars
 exit /b 0
 

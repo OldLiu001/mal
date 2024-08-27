@@ -18,7 +18,7 @@ exit /b 0
 	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
 	
 	!_C_Invoke! Str.bat :FromVar _L{!_G_LEVEL!}_Input
-	set "_L{!_G_LEVEL!}_Str=!G_RET!"
+	set "_L{!_G_LEVEL!}_Str=!_G_RET!"
 	
 	set _
 	pause
@@ -27,7 +27,7 @@ exit /b 0
 	
 	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
-	set "G_RET="
+	set "_G_RET="
 	!_C_Clear!
 goto :Main
 
@@ -36,9 +36,9 @@ goto :Main
 		set "_L{%%.}_StrMalCode=!%~1!"
 		
 		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
-		set "_L{%%.}_ObjMalCode=!G_RET!"
+		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
-		set "G_RET=!_L{%%.}_ObjMalCode!"
+		set "_G_RET=!_L{%%.}_ObjMalCode!"
 		!_C_Clear!
 	)
 exit /b 0
@@ -55,7 +55,7 @@ exit /b 0
 		set "_L{%%.}_ObjMalCode=!%~1!"
 		
 		!_C_Invoke! Printer.bat :PrintMalType _L{%%.}_ObjMalCode
-		set "_L{%%.}_StrMalCode=!G_RET!"
+		set "_L{%%.}_StrMalCode=!_G_RET!"
 
 		!_C_Invoke! IO.bat :WriteStr _L{%%.}_StrMalCode
 

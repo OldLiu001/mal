@@ -21,7 +21,7 @@ exit /b 0
 	set "_G_NS[!_G_NSP!].=_"
 	set "_G_NS[!_G_NSP!].Type=%~1"
 
-	set "G_RET=_G_NS[!_G_NSP!]"
+	set "_G_RET=_G_NS[!_G_NSP!]"
 exit /b 0
 
 :Free _NS

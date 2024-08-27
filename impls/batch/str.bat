@@ -19,20 +19,20 @@ exit /b 0
 
 :New
 	!_C_Invoke! NS.bat :New String
-	set "!G_RET!.LineCount=0"
+	set "!_G_RET!.LineCount=0"
 exit /b 0
 
 :FromVar _Var
 	!_C_Invoke! NS.bat :New String
-	set "!G_RET!.LineCount=1"
-	set "!G_RET!.Lines[1]=!%~1!"
+	set "!_G_RET!.LineCount=1"
+	set "!_G_RET!.Lines[1]=!%~1!"
 	!_C_Clear!
 exit /b 0
 
 :FromVal _Val
 	!_C_Invoke! NS.bat :New String
-	set "!G_RET!.LineCount=1"
-	set "!G_RET!.Lines[1]=%~1"
+	set "!_G_RET!.LineCount=1"
+	set "!_G_RET!.Lines[1]=%~1"
 	!_C_Clear!
 exit /b 0
 
@@ -57,7 +57,7 @@ exit /b 0
 		)
 	)
 	!_C_Copy! _L{!_G_LEVEL!}_LineCount !%~1!.LineCount
-	set "G_RET="
+	set "_G_RET="
 	!_C_Clear!
 exit /b 0
 
@@ -71,7 +71,7 @@ exit /b 0
 		!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
 		set "_L{%%.}_LastLine=!_L{%%.}_LastLine!%~2"
 		!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
-		set "G_RET="
+		set "_G_RET="
 		!_C_Clear!
 	)
 exit /b 0
@@ -86,7 +86,7 @@ exit /b 0
 		!_C_Copy! !%~1!.Lines[!_L{%%.}_LineCount!] _L{%%.}_LastLine
 		set "_L{%%.}_LastLine=!_L{%%.}_LastLine!!%~2!"
 		!_C_Copy! _L{%%.}_LastLine !%~1!.Lines[!_L{%%.}_LineCount!]
-		set "G_RET="
+		set "_G_RET="
 		!_C_Clear!
 	)
 exit /b 0
