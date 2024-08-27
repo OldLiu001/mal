@@ -1,72 +1,72 @@
-@echo off
-@REM Module Name: Function
+@REM @echo off
+@REM @REM Module Name: Function
 
-@rem Export Functions:
+@REM @rem Export Functions:
+@REM @REM 	:SaveCurrentCallInfo _Name
+@REM @REM 	:RestoreCallInfo
+@REM @REM 	:PrepareCall _ArgName1 _ArgName2 ...
+@REM @REM 	:GetArgs _ParaName1 _ParaName2 ...
+@REM @REM 	:RetVar _RetVar
+@REM @REM 	:RetVal _RetVal
+@REM @REM 	:RetNone
+@REM @REM 	:GetRetVar _VarName
+@REM @REM 	:DropRetVar
+
+@REM @rem Used Namespaces:
+@REM @rem 	G_CallPath
+
+@REM ::Start
+@REM 	set "_Arguments=%*"
+@REM 	if "!_Arguments:~,1!" Equ ":" (
+@REM 		Set "_Arguments=!_Arguments:~1!"
+@REM 	)
+@REM 	call :!_Arguments!
+@REM 	set _Arguments=
+@REM goto :eof
+
+@REM % Module - Function - Start % (
 @REM 	:SaveCurrentCallInfo _Name
+@REM 		if not defined G_CallPath (
+@REM 			set "G_CallPath=>"
+@REM 		)
+@REM 		call Stackframe.bat :SaveVars G_CallPath
+@REM 		set "G_CallPath=!G_CallPath!>%~1"
+@REM 	goto :eof
+
 @REM 	:RestoreCallInfo
+@REM 		call Stackframe.bat :GetVars G_CallPath
+@REM 	goto :eof
+
 @REM 	:PrepareCall _ArgName1 _ArgName2 ...
+@REM 		call Stackframe.bat :SaveVars %*
+@REM 	goto :eof
+
 @REM 	:GetArgs _ParaName1 _ParaName2 ...
+@REM 		call Stackframe.bat :GetVars %*
+@REM 	goto :eof
+
 @REM 	:RetVar _RetVar
+@REM 		set "_ReturnValue=!%~1!"
+@REM 		call Stackframe.bat :SaveVars _ReturnValue
+@REM 	goto :eof
+
 @REM 	:RetVal _RetVal
+@REM 		set "_ReturnValue=%*"
+@REM 		call Stackframe.bat :SaveVars _ReturnValue
+@REM 	goto :eof
+
 @REM 	:RetNone
+@REM 		set "_ReturnValue=_"
+@REM 		call Stackframe.bat :SaveVars _ReturnValue
+@REM 	goto :eof
+
 @REM 	:GetRetVar _VarName
+@REM 		call Stackframe.bat :GetVars _ReturnValue
+@REM 		set "%~1=!_ReturnValue!"
+@REM 	goto :eof
+
 @REM 	:DropRetVar
-
-@rem Used Namespaces:
-@rem 	G_CallPath
-
-::Start
-	set "_Arguments=%*"
-	if "!_Arguments:~,1!" Equ ":" (
-		Set "_Arguments=!_Arguments:~1!"
-	)
-	call :!_Arguments!
-	set _Arguments=
-goto :eof
-
-% Module - Function - Start % (
-	:SaveCurrentCallInfo _Name
-		if not defined G_CallPath (
-			set "G_CallPath=>"
-		)
-		call Stackframe.bat :SaveVars G_CallPath
-		set "G_CallPath=!G_CallPath!>%~1"
-	goto :eof
-
-	:RestoreCallInfo
-		call Stackframe.bat :GetVars G_CallPath
-	goto :eof
-
-	:PrepareCall _ArgName1 _ArgName2 ...
-		call Stackframe.bat :SaveVars %*
-	goto :eof
-
-	:GetArgs _ParaName1 _ParaName2 ...
-		call Stackframe.bat :GetVars %*
-	goto :eof
-
-	:RetVar _RetVar
-		set "_ReturnValue=!%~1!"
-		call Stackframe.bat :SaveVars _ReturnValue
-	goto :eof
-
-	:RetVal _RetVal
-		set "_ReturnValue=%*"
-		call Stackframe.bat :SaveVars _ReturnValue
-	goto :eof
-
-	:RetNone
-		set "_ReturnValue=_"
-		call Stackframe.bat :SaveVars _ReturnValue
-	goto :eof
-
-	:GetRetVar _VarName
-		call Stackframe.bat :GetVars _ReturnValue
-		set "%~1=!_ReturnValue!"
-	goto :eof
-
-	:DropRetVar
-		call Stackframe.bat :GetVars _ReturnValue
-		set _ReturnValue=
-	goto :eof
-) % Module - Function - End %
+@REM 		call Stackframe.bat :GetVars _ReturnValue
+@REM 		set _ReturnValue=
+@REM 	goto :eof
+@REM ) % Module - Function - End %
