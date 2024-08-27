@@ -1,61 +1,76 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-goto Main
+call :Invoke :Main
+exit /b 0
 
 
 :Main
 	set "_Prompt=user> "
-	call IO.bat :WriteVar _Prompt
-	
-	call IO.bat :ReadEscapedLine
-	call Str.bat :FromVar G_RET
+	call :Invoke IO.bat :WriteVar _Prompt
+	call :Invoke IO.bat :ReadEscapedLine
+	set "_Input=!G_RET!"
+	call :Invoke Str.bat :FromVar _Input
 	set "_Str=!G_RET!"
 	
-	call SF.bat :SaveLocalVars
-	call :REP _Str
-	call SF.bat :RestoreLocalVars
+	call :Invoke :REP _Str
 	
-	call NS.bat :Free !_StrMalCode!
+	@REM set _
+	@REM set G_
+	@REM pause
+	call :Invoke NS.bat :Free !_Str!
+
+	set "G_RET="
 	call :ClearLocalVars
 goto :Main
 
 :Read _StrMalCode
 	set "_StrMalCode=!%~1!"
 	
-	call Reader.bat :ReadString _StrMalCode
+	call :Invoke Reader.bat :ReadString _StrMalCode
+	set "_ObjMalCode=!G_RET!"
+
+	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
 goto :eof
 
 :Eval _ObjMalCode
-	set "G_RET=!%~1!"
+	set "_ObjMalCode=!%~1!"
+
+	set "G_RET=!_ObjMalCode!"
 	call :ClearLocalVars
 goto :eof
 
 :Print _ObjMalCode
 	set "_ObjMalCode=!%~1!"
 	
-	call Printer.bat :PrintMalType _ObjMalCode
-	@REM call Function.bat :GetRetVar _StrMalCode
-	
-	@REM call Variable.bat :CopyVar !_StrMalCode!.LineCount _LineCount
-	@REM for /l %%i in (1 1 !_LineCount!) do (
-	@REM 	call Variable.bat :CopyVar !_StrMalCode!.Lines[%%i] _Line
-	@REM 	call IO.bat :WriteEscapedLineVar _Line
-	@REM )
+	call :Invoke Printer.bat :PrintMalType _ObjMalCode
+	set "_StrMalCode=!G_RET!"
 
-	@REM call Function.bat :RestoreCallInfo
-	@REM call Function.bat :RetNone
+	call :Invoke IO.bat :WriteStr _StrMalCode
+
 	call :ClearLocalVars
 goto :eof
 
 :REP _StrMalCode
 	set "_StrMalCode=!%~1!"
 	
-	call :Read _StrMalCode
-	call :EVAL G_RET
-	call :PRINT G_RET
+	call :Invoke :Read _StrMalCode
+	set "_ObjMalCode=!G_RET!"
+
+	call :Invoke :Eval _ObjMalCode
+	set "_ObjMalCode=!G_RET!"
+	
+	call :Invoke :Print _ObjMalCode
+
+	set "G_RET="
 	call :ClearLocalVars
+goto :eof
+
+:Invoke
+	call SF.Bat :SaveLocalVars
+	call %*
+	call SF.Bat :RestoreLocalVars
 goto :eof
 
 :ClearLocalVars

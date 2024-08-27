@@ -40,9 +40,9 @@ goto :eof
 	)
 	for /l %%i in (2 1 !_LineCount2!) do (
 		set /a _LineCount += 1
-		call Variable.bat :CopyVar !%~2!.Lines[%%i] !%~1!.Lines[!_LineCount!]
+		call :CopyVar !%~2!.Lines[%%i] !%~1!.Lines[!_LineCount!]
 	)
-	call Variable.bat :CopyVar _LineCount !%~1!.LineCount
+	call :CopyVar _LineCount !%~1!.LineCount
 	set "G_RET="
 	call :ClearLocalVars
 goto :eof
