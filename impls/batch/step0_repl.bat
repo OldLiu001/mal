@@ -1,77 +1,98 @@
+@REM v0.3
+
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-set "C_Invoke=call :Invoke"
-!C_Invoke! :Main
+set "_G_LEVEL=0"
+set "_C_Invoke=call :Invoke"
+set "_C_Copy=call :CopyVar"
+set "_C_Clear=call :ClearLocalVars"
+
+!_C_Invoke! :Main
 exit /b 0
 
 
 :Main
-	set "_Prompt=user> "
-	!C_Invoke! IO.bat :WriteVar _Prompt
-	!C_Invoke! IO.bat :ReadEscapedLine
-	set "_Input=!G_RET!"
-	!C_Invoke! :REP _Input
-
-	set "G_RET="
-	call :ClearLocalVars
+	set "_L{!_G_LEVEL!}_Prompt=user> "
+	!_C_Invoke! IO.bat :WriteVar _L{!_G_LEVEL!}_Prompt
+	!_C_Invoke! IO.bat :ReadEscapedLine
+	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
+	!_C_Invoke! :REP _L{!_G_LEVEL!}_Input
+	set _
+	set "_G_RET="
+	!_C_Clear!
 goto :Main
 
 :Read _MalCode
-	set "_MalCode=!%~1!"
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
-	set "G_RET=!_MalCode!"
-	call :ClearLocalVars
+	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	!_C_Clear!
 goto :eof
 
 :Eval _MalCode
-	set "_MalCode=!%~1!"
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
-	set "G_RET=!_MalCode!"
-	call :ClearLocalVars
+	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	!_C_Clear!
 goto :eof
 
 :Print _MalCode
-	set "_MalCode=!%~1!"
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
-	!C_Invoke! IO.bat :WriteEscapedLineVar _MalCode
+	!_C_Invoke! IO.bat :WriteEscapedLineVar _L{!_G_LEVEL!}_MalCode
 
-	set "G_RET="
-	call :ClearLocalVars
+	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	!_C_Clear!
 goto :eof
 
 :REP _MalCode
-	set "_MalCode=!%~1!"
+	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 	
-	!C_Invoke! :READ _MalCode
-	set "_MalCode=!G_RET!"
-	!C_Invoke! :EVAL _MalCode
-	set "_MalCode=!G_RET!"
-	!C_Invoke! :PRINT _MalCode
+	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
+	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
+	!_C_Invoke! :Eval _L{!_G_LEVEL!}_MalCode
+	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
+	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
 
-	call :ClearLocalVars
+	!_C_Clear!
 goto :eof
 
 (
+	@REM Version 0.3
 	:Invoke
-		if not defined G_TRACE (
-			set "G_TRACE=MAIN"
+		if not defined _G_TRACE (
+			set "_G_TRACE=>"
 		)
-		call SF.Bat :PushVar G_TRACE
-		set "G_TMP=%~1"
-		if /i "!G_TMP:~,1!" Equ ":" (
-			set "G_TRACE=!G_TRACE!>%~1"
-		) else (
-			set "G_TRACE=!G_TRACE!>%~1>%~2"
-		)
-		set "G_TMP="
-		call SF.Bat :SaveLocalVars
-		call %*
-		call SF.Bat :RestoreLocalVars
-		call SF.Bat :PopVar G_TRACE
-	goto :eof
 
+		call SF.Bat :PushVar _G_TRACE
+		
+		set "_G_TMP=%~1"
+		if /i "!_G_TMP:~,1!" Equ ":" (
+			set "_G_TRACE=!_G_TRACE!>%~1"
+		) else (
+			set "_G_TRACE=!_G_TRACE!>%~1>%~2"
+		)
+		set "_G_TMP="
+		
+		set /a _G_LEVEL += 1
+		call %*
+		set /a _G_LEVEL -= 1
+		
+		call SF.Bat :PopVar _G_TRACE
+	exit /b 0
+
+	:CopyVar _VarFrom _VarTo
+		if not defined %~1 (
+			2>&1 echo [!_G_TRACE!] '%~1' undefined.
+			pause & exit 1
+		)
+		set "%~2=!%~1!"
+	exit /b 0
+	
 	:ClearLocalVars
-		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-	goto :eof
+		for /f "delims==" %%a in (
+			'set _L{!_G_LEVEL!}_ 2^>nul'
+		) do set "%%a="
+	exit /b 0
 )

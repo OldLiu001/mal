@@ -1,3 +1,6 @@
+@REM v:0.3, WriteStr untested
+
+
 @REM Module Name: IO
 
 @rem Export Functions:
@@ -10,52 +13,88 @@
 @REM 	:WriteErrLineVal _Val
 
 @echo off
-
-::Start
-	set "_Args=%*"
-	if "!_Args:~,1!" Equ ":" (
-		Set "_Args=!_Args:~1!"
-	)
-	call :!_Args!
-	set _Args=
-goto :eof
+2>nul call %* || (
+	2>&1 echo [!_G_TRACE!] Call '%~nx0' failed.
+	pause & exit 1
+)
+exit /b 0
 
 :ReadEscapedLine
 	for /f "delims=" %%a in (
 		'call Readline.bat'
-	) do set "_Input=%%~a"
-	set "G_RET=!_Input!"
-goto :eof
+	) do set "_L{!_G_LEVEL!}_Input=%%~a"
+	!_C_Copy! _L{!_G_LEVEL!}_Input _G_RET
+	!_C_Clear!
+exit /b 0
 
 :WriteEscapedLineVar _Var
+	if not defined %~1 (
+		2>&1 echo [!_G_TRACE!] '%~1' undefined.
+	)
 	echo."!%~1!"| call WriteAll.bat
-goto :eof
+exit /b 0
 
 :WriteVal _Val
 	<nul set /p "=%~1"
-goto :eof
+exit /b 0
 
 :WriteVar _Var
+	if not defined %~1 (
+		2>&1 echo [!_G_TRACE!] '%~1' undefined.
+	)
 	<nul set /p "=!%~1!"
-goto :eof
+exit /b 0
 
 :WriteStr _Str
-	set "_Str=!%~1!"
-	call :CopyVar !_Str!.LineCount _LineCount
-
-	for /l %%i in (1 1 !_LineCount!) do (
-		call :CopyVar !_Str!.Lines[%%i] _Line
-		call :WriteEscapedLineVar _Line
+	set "_L{!_G_LEVEL!}_Str=!%~1!"
+	for /f "delims=" %%a in ("_L{!_G_LEVEL!}_Str") do (
+		for /f "delims=" %%b in ("!%%a!.LineCount") do (
+			for /l %%i in (1 1 !%%b!) do (
+				call :CopyVar !%%a!.Line[%%i] _L{!_G_LEVEL!}_Line
+				call :WriteEscapedLineVar _L{!_G_LEVEL!}_Line
+			)
+		)
 	)
 
-	set "G_RET="
-	call :ClearLocalVars
-goto :eof
+	set "_G_RET="
+	!_C_Clear!
+exit /b 0
 
-:ClearLocalVars
-	for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-goto :eof
+(
+	@REM Version 0.3
+	:Invoke
+		if not defined _G_TRACE (
+			set "_G_TRACE=>"
+		)
 
-:CopyVar _VarFrom _VarTo
-	set "%~2=!%~1!"
-goto :eof
+		call SF.Bat :PushVar _G_TRACE
+		
+		set "_G_TMP=%~1"
+		if /i "!_G_TMP:~,1!" Equ ":" (
+			set "_G_TRACE=!_G_TRACE!>%~1"
+		) else (
+			set "_G_TRACE=!_G_TRACE!>%~1>%~2"
+		)
+		set "_G_TMP="
+		
+		set /a _G_LEVEL += 1
+		call %*
+		set /a _G_LEVEL -= 1
+		
+		call SF.Bat :PopVar _G_TRACE
+	exit /b 0
+
+	:CopyVar _VarFrom _VarTo
+		if not defined %~1 (
+			2>&1 echo [!_G_TRACE!] '%~1' undefined.
+			pause & exit 1
+		)
+		set "%~2=!%~1!"
+	exit /b 0
+	
+	:ClearLocalVars
+		for /f "delims==" %%a in (
+			'set _L{!_G_LEVEL!}_ 2^>nul'
+		) do set "%%a="
+	exit /b 0
+)

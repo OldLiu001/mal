@@ -1,3 +1,5 @@
+v:0.3
+
 Special Symbol Mapping:
 	! --- $E
 	^ --- $C
@@ -5,11 +7,20 @@ Special Symbol Mapping:
 	% --- $P
 	$ --- $$
 
-Naming Rule:
-	Function Naming: FunctionName
-	Local Variable Naming: _VarName
-	Global Variable Naming: G_VarName
-	Global Variables: G_RET G_ERR
+Function Naming Rule:
+	FunctionName
+
+Variable Naming Rule:
+	Command Variable: _C_CommandName
+	Global  Variable: _G_VARNAME
+	Local   Variable: _L{!_G_LEVEL!}_VarName
+
+Global Variables
+	_G_RET
+	_G_ERR
+	_G_TRACE
+	_G_LEVEL
+	_G_TMP
 
 Type
 	String
@@ -21,11 +32,11 @@ Type
 
 String
 	LineCount
-	Lines[]
+	Line[]
 
 Reader
 	TokenCount
-	Tokens[]
+	Token[]
 	TokenPtr	
 
 MalType
