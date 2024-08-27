@@ -25,10 +25,15 @@ Global Variables
 Type
 	String
 	Reader
+	MalBool
+	MalNil
 	MalNum
 	MalSym
+	MalKwd
 	MalLst
+	MalVec
 	MalStr
+	MalMap
 
 String
 	LineCount
@@ -37,14 +42,7 @@ String
 Reader
 	TokenCount
 	Token[]
-	TokenPtr	
-
-MalType
-	Number (Atom)
-	Symbol (Atom)
-	List
-	String
-
+	TokenPtr
 
 MalList
 	Count
