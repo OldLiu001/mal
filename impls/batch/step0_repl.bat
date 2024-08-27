@@ -1,4 +1,4 @@
-@REM v0.3
+@REM v0.4
 
 @echo off
 pushd "%~dp0"
@@ -58,13 +58,13 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.3
+	@REM Version 0.4
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
 		)
 
-		call SF.Bat :PushVar _G_TRACE
+		set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
 		
 		set "_G_TMP=%~1"
 		if /i "!_G_TMP:~,1!" Equ ":" (
@@ -78,7 +78,8 @@ exit /b 0
 		call %*
 		set /a _G_LEVEL -= 1
 		
-		call SF.Bat :PopVar _G_TRACE
+		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
+		set "_G_TRACE_{!_G_LEVEL}="
 	exit /b 0
 
 	:CopyVar _VarFrom _VarTo
