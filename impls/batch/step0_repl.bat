@@ -1,16 +1,17 @@
 @echo off
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
-call :Invoke :Main
+set "C_Invoke=call :Invoke"
+!C_Invoke! :Main
 exit /b 0
 
 
 :Main
 	set "_Prompt=user> "
-	call :Invoke IO.bat :WriteVar _Prompt
-	call :Invoke IO.bat :ReadEscapedLine
+	!C_Invoke! IO.bat :WriteVar _Prompt
+	!C_Invoke! IO.bat :ReadEscapedLine
 	set "_Input=!G_RET!"
-	call :Invoke :REP _Input
+	!C_Invoke! :REP _Input
 
 	set "G_RET="
 	call :ClearLocalVars
@@ -33,7 +34,7 @@ goto :eof
 :Print _MalCode
 	set "_MalCode=!%~1!"
 
-	call :Invoke IO.bat :WriteEscapedLineVar _MalCode
+	!C_Invoke! IO.bat :WriteEscapedLineVar _MalCode
 
 	set "G_RET="
 	call :ClearLocalVars
@@ -42,21 +43,35 @@ goto :eof
 :REP _MalCode
 	set "_MalCode=!%~1!"
 	
-	call :Invoke :READ _MalCode
+	!C_Invoke! :READ _MalCode
 	set "_MalCode=!G_RET!"
-	call :Invoke :EVAL _MalCode
+	!C_Invoke! :EVAL _MalCode
 	set "_MalCode=!G_RET!"
-	call :Invoke :PRINT _MalCode
+	!C_Invoke! :PRINT _MalCode
 
 	call :ClearLocalVars
 goto :eof
 
-:Invoke
-	call SF.Bat :SaveLocalVars
-	call %*
-	call SF.Bat :RestoreLocalVars
-goto :eof
+(
+	:Invoke
+		if not defined G_TRACE (
+			set "G_TRACE=MAIN"
+		)
+		call SF.Bat :PushVar G_TRACE
+		set "G_TMP=%~1"
+		if /i "!G_TMP:~,1!" Equ ":" (
+			set "G_TRACE=!G_TRACE!>%~1"
+		) else (
+			set "G_TRACE=!G_TRACE!>%~1>%~2"
+		)
+		set "G_TMP="
+		call SF.Bat :SaveLocalVars
+		call %*
+		call SF.Bat :RestoreLocalVars
+		call SF.Bat :PopVar G_TRACE
+	goto :eof
 
-:ClearLocalVars
-	for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-goto :eof
+	:ClearLocalVars
+		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
+	goto :eof
+)

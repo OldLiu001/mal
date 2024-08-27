@@ -13,7 +13,7 @@ goto :eof
 :ReadString _StrMalCode
 	set "_StrMalCode=!%~1!"
 	
-	call :Invoke NS.bat :New Reader
+	!C_Invoke! NS.bat :New Reader
 	set "_ObjReader=!G_RET!"
 
 	set "!_ObjReader!.TokenCount=0"
@@ -21,7 +21,7 @@ goto :eof
 
 	call :CopyVar !_StrMalCode!.LineCount _LineCount
 	for /l %%i in (1 1 !_LineCount!) do (
-		call :Invoke :Tokenize !_StrMalCode!.Lines[%%i] _ObjReader
+		!C_Invoke! :Tokenize !_StrMalCode!.Lines[%%i] _ObjReader
 	)
 
 	rem Check if there is any token.
@@ -34,7 +34,7 @@ goto :eof
 	)
 	
 	rem Translate the tokens to AST.
-	call :Invoke :ReadForm _ObjReader
+	!C_Invoke! :ReadForm _ObjReader
 	set "_ObjAST=!G_RET!"
 	
 
@@ -61,10 +61,10 @@ goto :eof
 	call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 	
 	if "!_CurToken!" == "(" (
-		call :Invoke :ReadList _ObjReader
+		!C_Invoke! :ReadList _ObjReader
 		set "_ObjAST=!G_RET!"
 	) else (
-		call :Invoke :ReadAtom _ObjReader
+		!C_Invoke! :ReadAtom _ObjReader
 		set "_ObjAST=!G_RET!"
 	)
 
@@ -74,9 +74,6 @@ goto :eof
 
 :ReadAtom
 	set "_ObjReader=!%~1!"
-
-
-	echo readatom
 
 	call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
 	call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
@@ -92,7 +89,7 @@ goto :eof
 	set /a _TokenPtr += 1
 	call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
 	
-	call :Invoke NS.bat :New
+	!C_Invoke! NS.bat :New
 	call :CopyVar G_RET _ObjMalCode
 	set "!_ObjMalCode!.Value=!_CurToken!"
 
@@ -111,8 +108,6 @@ goto :eof
 
 :ReadList
 	set "_ObjReader=!%~1!"
-
-	echo readlist
 
 	call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
 	call :CopyVar !_ObjReader!.TokenCount _TotalTokenNum
@@ -143,7 +138,7 @@ goto :eof
 		exit
 	)
 	
-	call :Invoke NS.bat :New MalLst
+	!C_Invoke! NS.bat :New MalLst
 	call :CopyVar G_RET _ObjMalCode
 	
 	set "_Count=0"
@@ -151,9 +146,6 @@ goto :eof
 		call :CopyVar !_ObjReader!.TokenPtr _TokenPtr
 		call :CopyVar !_ObjReader!.Tokens[!_TokenPtr!] _CurToken
 
-		echo !_CurToken!
-		echo !_TokenPtr!
-		
 		if "!_CurToken!" == ")" (
 			set /a _TokenPtr += 1
 			call :CopyVar _TokenPtr !_ObjReader!.TokenPtr
@@ -161,7 +153,7 @@ goto :eof
 		)
 		set /a _Count += 1
 
-		call :Invoke :ReadForm _ObjReader
+		!C_Invoke! :ReadForm _ObjReader
 		call :CopyVar G_RET !_ObjMalCode!.Item[!_Count!]
 
 		goto :ReadList_Loop
@@ -480,23 +472,38 @@ goto :eof
 	)
 	call :CopyVar _CurTokenNum !_ObjReader!.TokenCount
 
-	set !_ObjReader!
-
 	set "G_RET="
 	call :ClearLocalVars
 goto :eof
 
 
-:Invoke
-	call SF.Bat :SaveLocalVars
-	call %*
-	call SF.Bat :RestoreLocalVars
-goto :eof
+(
+	:Invoke
+		if not defined G_TRACE (
+			set "G_TRACE=MAIN"
+		)
+		call SF.Bat :PushVar G_TRACE
+		set "G_TMP=%~1"
+		if /i "!G_TMP:~,1!" Equ ":" (
+			set "G_TRACE=!G_TRACE!>%~1"
+		) else (
+			set "G_TRACE=!G_TRACE!>%~1>%~2"
+		)
+		set "G_TMP="
+		call SF.Bat :SaveLocalVars
+		call %*
+		call SF.Bat :RestoreLocalVars
+		call SF.Bat :PopVar G_TRACE
+	goto :eof
 
-:ClearLocalVars
-	for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
-goto :eof
+	:ClearLocalVars
+		for /f "delims==" %%a in ('set _ 2^>nul') do set "%%a="
+	goto :eof
 
-:CopyVar _VarFrom _VarTo
-	set "%~2=!%~1!"
-goto :eof
+	:CopyVar _VarFrom _VarTo
+		if not defined %~1 (
+			2>&1 echo [!G_TRACE!] %~1 is not defined.
+		)
+		set "%~2=!%~1!"
+	goto :eof
+)

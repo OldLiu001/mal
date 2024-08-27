@@ -30,11 +30,11 @@ goto :eof
 :Free _NS
 	set "_NS=%~1"
 	if not defined !_NS! (
-		>&2 echo !_NS! is not defined.
+		>&2 echo [!G_TRACE!] ns !_NS! is not defined.
 		pause & exit 1
 	)
 	if "!_NS:~,4!" Neq "G_NS" (
-		>&2 echo !_NS! is not a namespace.
+		>&2 echo [!G_TRACE!] !_NS! is not a namespace.
 		pause & exit 1
 	)
 
