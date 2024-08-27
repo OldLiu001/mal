@@ -24,6 +24,8 @@ exit /b 0
 	
 	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
+	@REM set _ & pause
+
 	set "_G_RET="
 	!_C_Clear!
 goto :Main

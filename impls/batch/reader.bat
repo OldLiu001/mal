@@ -38,8 +38,7 @@ exit /b 0
 		set "_L{%%.}_ObjAST=!_G_RET!"
 		
 
-		@REM TODO: check if there has more token.
-		@REM TokenPtr <= _TotalTokenNum
+		!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
 
 		set "_G_RET=!_L{%%.}_ObjAST!"
 		!_C_Clear!

@@ -42,12 +42,11 @@ exit /b 0
 				!_C_Copy! _G_RET _L{%%.}_RetStrMalCode
 				!_C_Invoke! Str.bat :AppendStr _L{%%.}_StrMalCode _L{%%.}_RetStrMalCode
 				
-				if "%%i" == "!_L{%%.}_Count!" (
-					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode ")"
-				) else (
+				if  "%%i" neq "!_L{%%.}_Count!" (
 					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode " "
 				)
 			)
+			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode ")"
 		) else (
 			rem TOOD
 			echo MalType !_L{%%.}_Type! not support yet!

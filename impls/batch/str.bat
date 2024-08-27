@@ -45,7 +45,6 @@ exit /b 0
 				!_C_Copy! !%~1!.Line[!_L{%%.}_LineCount!] _L{%%.}_Line
 				!_C_Copy! !%~2!.Line[1] _L{%%.}_Line2
 				set "!%~1!.Line[!_L{%%.}_LineCount!]=!_L{%%.}_Line!!_L{%%.}_Line2!"
-				set !%~1!.Line[!_L{%%.}_LineCount!]
 			)
 		)
 		for /l %%i in (2 1 !_L{%%.}_LineCount2!) do (
