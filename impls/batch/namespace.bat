@@ -16,28 +16,29 @@
 	set _Args=
 goto :eof
 
-:New
+:New _Type
+	set "_Type=%~1"
 	set /a G_NSP += 1
 	set "G_NS[!G_NSP!]=_"
+	set "G_NS[!G_NSP!].Type=!_Type!"
 
-	call Function.bat :RetVal G_NS[!G_NSP!]
+	set "G_RET=G_NS[!G_NSP!]"
 goto :eof
 
-:Free _VarName
-	set "_VarName=%~1"
-	if not defined !_VarName! (
-		echo [!G_CallPath!] !_VarName! is not defined.
+:Free _NS
+	set "_NS=%~1"
+	if not defined !_NS! (
+		>&2 echo !_NS! is not defined.
 		pause & exit 1
 	)
-	if "!_VarName:~,11!" Neq "G_NS" (
-		echo [!G_CallPath!] !_VarName! is not a namespace.
+	if "!_NS:~,4!" Neq "G_NS" (
+		>&2 echo !_NS! is not a namespace.
 		pause & exit 1
 	)
 
 	for /f "delims==" %%i in (
-		'set !_VarName!'
+		'set !_NS!'
 	) do (
-		@REM echo clear '%%i'
 		set "%%i="
 	)
 goto :eof

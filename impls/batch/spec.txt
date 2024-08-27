@@ -14,7 +14,10 @@ Naming Rule:
 Type
 	String
 	Reader
-	MalType
+	MalNum
+	MalSym
+	MalLst
+	MalStr
 
 String
 	LineCount
