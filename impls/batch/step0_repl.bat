@@ -96,29 +96,25 @@ goto Main
 	call :REP G_RET
 goto :Main
 
+:Read _MalCode
+	set "G_RET=!%~1!"
+goto :eof
 
-%Speed Improve Start% (
-	:Read _MalCode
-		set "G_RET=!%~1!"
-	goto :eof
+:Eval _MalCode
+	set "G_RET=!%~1!"
+goto :eof
 
-	:Eval _MalCode
-		set "G_RET=!%~1!"
-	goto :eof
+:Print _MalCode
+	set "_MalCode=!%~1!"
+	
+	call IO.bat :WriteEscapedLineVar _MalCode
 
-	:Print _MalCode
-		set "_MalCode=!%~1!"
-		
-		call IO.bat :WriteEscapedLineVar _MalCode
+	set "G_RET="
+goto :eof
 
-		set "G_RET="
-	goto :eof
-
-	:REP _MalCode
-		set "_MalCode=!%~1!"
-		call :READ _MalCode
-		call :EVAL G_RET
-		call :PRINT G_RET
-	goto :eof
-) %Speed Improve End%
-
+:REP _MalCode
+	set "_MalCode=!%~1!"
+	call :READ _MalCode
+	call :EVAL G_RET
+	call :PRINT G_RET
+goto :eof
