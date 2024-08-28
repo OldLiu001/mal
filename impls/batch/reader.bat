@@ -100,6 +100,12 @@ exit /b 0
 		set /a _L{%%.}_TestNum = _L{%%.}_CurToken
 		if "!_L{%%.}_TestNum!" == "!_L{%%.}_CurToken!" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalNum"
+		) else if "!_L{%%.}_CurToken!" == "nil" (
+			set "!_L{%%.}_ObjMalCode!.Type=MalNil"
+		) else if "!_L{%%.}_CurToken!" == "true" (
+			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
+		) else if "!_L{%%.}_CurToken!" == "false" (
+			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
 		) else (
 			set "!_L{%%.}_ObjMalCode!.Type=MalSym"
 		)
