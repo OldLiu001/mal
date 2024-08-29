@@ -38,6 +38,8 @@ exit /b 0
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
 		) else if "!_L{%%.}_Type!" == "MalBool" (
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
+		) else if "!_L{%%.}_Type!" == "MalStr" (
+			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
 		) else if "!_L{%%.}_Type!" == "MalLst" (
 			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "("
 			!_C_Copy! !_L{%%.}_ObjMalCode!.Count _L{%%.}_Count

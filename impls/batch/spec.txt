@@ -1,11 +1,10 @@
-v:0.4
+v:0.5
 
 Special Symbol Mapping:
-	! --- $E
-	^ --- $C
-	" --- $D
-	% --- $P
-	$ --- $$
+	! --- \eE
+	^ --- \eC
+	" --- \eD
+	% --- \eP
 
 Function Naming Rule:
 	FunctionName
@@ -21,6 +20,7 @@ Global Variables
 	_G_TRACE
 	_G_LEVEL
 	_G_TMP
+	_G_ESCKEY
 
 Type
 	String

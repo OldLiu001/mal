@@ -106,6 +106,8 @@ exit /b 0
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
 		) else if "!_L{%%.}_CurToken!" == "false" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
+		) else if "!_L{%%.}_CurToken:~,2!" == "!_G_ESCKEY!D" (
+			set "!_L{%%.}_ObjMalCode!.Type=MalStr"
 		) else (
 			set "!_L{%%.}_ObjMalCode!.Type=MalSym"
 		)
@@ -405,8 +407,8 @@ exit /b 0
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~1!"
 				goto :Tokenizing_Loop
 			)
-			rem ^ --- $C
-			if "!_L{%%.}_CurLine:~,2!" == "$C" (
+			rem ^ --- \eC
+			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!C" (
 				if defined _L{%%.}_NormalToken (
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
@@ -414,15 +416,15 @@ exit /b 0
 					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
-				set "_L{%%.}_CurToken=$C"
+				set "_L{%%.}_CurToken=!_G_ESCKEY!C"
 				set /a _L{%%.}_CurTokenNum += 1
 				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				goto :Tokenizing_Loop
 			)
-			rem " --- $D
-			if "!_L{%%.}_CurLine:~,2!" == "$D" (
+			rem " --- \eD
+			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!D" (
 				if defined _L{%%.}_NormalToken (
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
@@ -460,20 +462,21 @@ exit /b 0
 			if "!_L{%%.}_CurLine:~,2!" == "\\" (
 				rem \\
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
-				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\"
+				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\\"
 				goto :Tokenizing_Loop
 			)
-			if "!_L{%%.}_CurLine:~,3!" == "\$D" (
+			if "!_L{%%.}_CurLine:~,3!" == "\!_G_ESCKEY!D" (
 				rem \"
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~3!"
-				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!$D"
+				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\!_G_ESCKEY!D"
 				goto :Tokenizing_Loop
 			)
-			if "!_L{%%.}_CurLine:~,2!" == "$D" (
+			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!D" (
 				rem end of string.
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				set "_L{%%.}_ParsingStr=False"
 				set /a _L{%%.}_CurTokenNum += 1
+				set "_L{%%.}_StrToken=!_G_ESCKEY!D!_L{%%.}_StrToken!!_G_ESCKEY!D"
 				!_C_Copy! _L{%%.}_StrToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 				goto :Tokenizing_Loop
 			)
