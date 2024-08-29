@@ -35,6 +35,10 @@ exit /b 0
 		
 		rem Translate the tokens to AST.
 		!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+		if defined _G_ERR (
+			!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
+			exit /b 0
+		)
 		set "_L{%%.}_ObjAST=!_G_RET!"
 		
 
@@ -63,6 +67,11 @@ exit /b 0
 		
 		if "!_L{%%.}_CurToken!" == "(" (
 			!_C_Invoke! :ReadList _L{%%.}_ObjReader
+			if defined _G_ERR exit /b 0
+			set "_L{%%.}_ObjAST=!_G_RET!"
+		) else if "!_L{%%.}_CurToken!" == "[" (
+			!_C_Invoke! :ReadList _L{%%.}_ObjReader
+			if defined _G_ERR exit /b 0
 			set "_L{%%.}_ObjAST=!_G_RET!"
 		) else (
 			!_C_Invoke! :ReadAtom _L{%%.}_ObjReader
@@ -134,11 +143,14 @@ exit /b 0
 
 		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
-		if "!_L{%%.}_CurToken!" Neq "(" (
-			rem TODO
-			echo ERROR: Not a list.
-			pause
-			exit
+		if "!_L{%%.}_CurToken!" Equ "(" (
+			rem
+		) else if "!_L{%%.}_CurToken!" Equ "[" (
+			!_C_Invoke! NS.bat :New MalVec
+			!_C_Copy! _G_RET _L{%%.}_ObjMalCode
+		) else (
+			>&2 echo [!_G_TRACE!] unexpected token '!_L{%%.}_CurToken!'.
+			pause & exit 1
 		)
 
 		set /a _L{%%.}_TokenPtr += 1
@@ -153,12 +165,21 @@ exit /b 0
 		
 		!_C_Invoke! NS.bat :New MalLst
 		!_C_Copy! _G_RET _L{%%.}_ObjMalCode
-		
+
 		set "_L{%%.}_Count=0"
 	)
 	:ReadList_Loop
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			set _G_ERR=_
+			set _G_ERR.Type=Exception
+			set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+			!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
+			exit /b 0
+		)
+
 		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
 		if "!_L{%%.}_CurToken!" == ")" (

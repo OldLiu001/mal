@@ -11,6 +11,8 @@
 @REM 	:WriteLineVal _Val
 @REM 	:WriteErrVal _Val
 @REM 	:WriteErrLineVal _Val
+@REM 	:WriteErrLineVar _Var
+
 
 @echo off
 2>nul call %* || (
@@ -58,6 +60,14 @@ exit /b 0
 
 	set "_G_RET="
 	!_C_Clear!
+exit /b 0
+
+:WriteErrLineVal _Val
+	2>&1 echo.%~1
+exit /b 0
+
+:WriteErrLineVar _Var
+	2>&1 echo.!%~1!
 exit /b 0
 
 (

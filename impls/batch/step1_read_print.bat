@@ -25,6 +25,19 @@ exit /b 0
 	set "_L{!_G_LEVEL!}_Str=!_G_RET!"
 
 	!_C_Invoke! :REP _L{!_G_LEVEL!}_Str
+	if defined _G_ERR (
+		if "!_G_ERR.Type!" == "Exception" (
+			!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
+		) else (
+			>&2 echo [!_G_TRACE!] Error type '!_G_ERR.Type!' not support.
+			pause & exit 1
+		)
+
+		rem clear exception.
+		for /f "delims==" %%a in (
+			'set _G_ERR 2^>nul'
+		) do set "%%a="
+	)
 	
 	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
@@ -37,6 +50,7 @@ goto :Main
 		set "_L{%%.}_StrMalCode=!%~1!"
 		
 		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
+		if defined _G_ERR exit /b 0
 		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
@@ -70,6 +84,7 @@ exit /b 0
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 	
 	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
+	if defined _G_ERR exit /b 0
 	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
 	!_C_Invoke! :Eval _L{!_G_LEVEL!}_MalCode
 	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
