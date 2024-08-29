@@ -22,6 +22,10 @@ exit /b 0
 		!_C_Copy! !_L{%%.}_StrMalCode!.LineCount _L{%%.}_LineCount
 		for /l %%i in (1 1 !_L{%%.}_LineCount!) do (
 			!_C_Invoke! :Tokenize !_L{%%.}_StrMalCode!.Line[%%i] _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
+				exit /b 0
+			)
 		)
 
 		rem Check if there is any token.
@@ -222,10 +226,10 @@ exit /b 0
 	for %%. in (!_G_LEVEL!) do (
 		if "!_L{%%.}_CurLine!" == "" (
 			if "!_L{%%.}_ParsingStr!" == "True" (
-				rem TODO
-				echo ERROR: STRING not full.
-				pause
-				exit
+				set _G_ERR=_
+				set _G_ERR.Type=Exception
+				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unexpected EOF, string is incomplete."
+				exit /b 0
 			)
 			goto :Tokenizing_Pass
 		)
