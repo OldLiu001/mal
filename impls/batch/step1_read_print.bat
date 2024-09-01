@@ -1,4 +1,4 @@
-@REM v:0.4, untested
+@REM v:0.5
 
 @echo off
 pushd "%~dp0"
@@ -6,7 +6,6 @@ setlocal ENABLEDELAYEDEXPANSION
 set "_G_LEVEL=0"
 set "_C_Invoke=call :Invoke"
 set "_C_Copy=call :CopyVar"
-set "_C_Clear=call :ClearLocalVars"
 for /f "delims=#" %%. in (
 	'prompt #$E# ^& echo on ^& for %%a in ^(_^) do rem'
 ) do (
@@ -42,7 +41,6 @@ exit /b 0
 	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
 
 	set "_G_RET="
-	!_C_Clear!
 goto :Main
 
 :Read _StrMalCode
@@ -54,7 +52,6 @@ goto :Main
 		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -62,7 +59,6 @@ exit /b 0
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
-	!_C_Clear!
 exit /b 0
 
 :Print _ObjMalCode
@@ -76,7 +72,6 @@ exit /b 0
 
 		!_C_Invoke! NS.bat :Free _L{%%.}_StrMalCode
 
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -90,11 +85,10 @@ exit /b 0
 	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
 	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
 
-	!_C_Clear!
 exit /b 0
 
 (
-	@REM Version 0.6
+	@REM Version 0.7
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -113,6 +107,7 @@ exit /b 0
 		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
+		call :ClearLocalVars
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
@@ -133,4 +128,3 @@ exit /b 0
 		) do set "%%a="
 	exit /b 0
 )
-

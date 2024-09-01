@@ -1,4 +1,4 @@
-@REM v:0.4, test a little
+@REM v:0.5
 
 @echo off
 2>nul call %* || (
@@ -49,7 +49,6 @@ exit /b 0
 		!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
 
 		set "_G_RET=!_L{%%.}_ObjAST!"
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -83,7 +82,6 @@ exit /b 0
 		)
 
 		set "_G_RET=!_L{%%.}_ObjAST!"
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -127,7 +125,6 @@ exit /b 0
 		rem TODO: CheckMore.
 
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -204,7 +201,6 @@ exit /b 0
 
 
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -522,13 +518,11 @@ exit /b 0
 		!_C_Copy! _L{%%.}_CurTokenNum !_L{%%.}_ObjReader!.TokenCount
 
 		set "_G_RET="
-		!_C_Clear!
 	)
 exit /b 0
 
-
 (
-	@REM Version 0.6
+	@REM Version 0.7
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -547,6 +541,7 @@ exit /b 0
 		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
+		call :ClearLocalVars
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE

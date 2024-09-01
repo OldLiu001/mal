@@ -1,4 +1,4 @@
-@REM v:0.4, WriteStr untested
+@REM v:0.5
 
 
 @REM Module Name: IO
@@ -26,7 +26,6 @@ exit /b 0
 		'call Readline.bat'
 	) do set "_L{!_G_LEVEL!}_Input=%%~a"
 	!_C_Copy! _L{!_G_LEVEL!}_Input _G_RET
-	!_C_Clear!
 exit /b 0
 
 :WriteEscapedLineVar _Var
@@ -59,7 +58,6 @@ exit /b 0
 	)
 
 	set "_G_RET="
-	!_C_Clear!
 exit /b 0
 
 :WriteErrLineVal _Val
@@ -71,7 +69,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.6
+	@REM Version 0.7
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -90,6 +88,7 @@ exit /b 0
 		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
+		call :ClearLocalVars
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE

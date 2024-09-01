@@ -1,4 +1,4 @@
-@REM v:0.4, untested
+@REM v:0.5
 
 @REM Module Name: String
 
@@ -26,14 +26,12 @@ exit /b 0
 	!_C_Invoke! NS.bat :New String
 	set "!_G_RET!.LineCount=1"
 	set "!_G_RET!.Line[1]=!%~1!"
-	!_C_Clear!
 exit /b 0
 
 :FromVal _Val
 	!_C_Invoke! NS.bat :New String
 	set "!_G_RET!.LineCount=1"
 	set "!_G_RET!.Line[1]=%~1"
-	!_C_Clear!
 exit /b 0
 
 :AppendStr _Str _NewStr
@@ -53,7 +51,6 @@ exit /b 0
 		)
 		!_C_Copy! _L{%%.}_LineCount !%~1!.LineCount
 		set "_G_RET="
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -73,7 +70,6 @@ exit /b 0
 			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
 		)
 		set "_G_RET="
-		!_C_Clear!
 	)
 exit /b 0
 
@@ -93,12 +89,11 @@ exit /b 0
 			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
 		)
 		set "_G_RET="
-		!_C_Clear!
 	)
 exit /b 0
 
 (
-	@REM Version 0.6
+	@REM Version 0.7
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -117,6 +112,7 @@ exit /b 0
 		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
+		call :ClearLocalVars
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE

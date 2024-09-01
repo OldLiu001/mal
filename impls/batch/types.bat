@@ -1,3 +1,5 @@
+@REM v:0.5
+
 @echo off
 2>nul call %* || (
 	2>&1 echo [!_G_TRACE!] Call '%~nx0' failed.
@@ -13,7 +15,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.6
+	@REM Version 0.7
 	:Invoke
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -32,6 +34,7 @@ exit /b 0
 		set "_G_RET="
 		set /a _G_LEVEL += 1
 		call %*
+		call :ClearLocalVars
 		set /a _G_LEVEL -= 1
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
