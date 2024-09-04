@@ -132,6 +132,18 @@ exit /b 0
 			!_C_Copy! _G_RET _L{%%.}_ObjMal
 			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
 			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == ")" (
+			echo TODO:Exception
+			pause & exit 1
+		) else if "!_L{%%.}_CurToken!" == "]" (
+			echo TODO:Exception
+			pause & exit 1
+		) else if "!_L{%%.}_CurToken!" == "}" (
+			echo TODO:Exception
+			pause & exit 1
+		) else if "!_L{%%.}_CurToken:~,1!" == ";" (
+			echo TODO:Return
+			pause & exit 1
 		) else (
 			!_C_Invoke! :ReadAtom _L{%%.}_ObjReader
 			set "_L{%%.}_ObjAST=!_G_RET!"
