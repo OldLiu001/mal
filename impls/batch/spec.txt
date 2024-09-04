@@ -44,16 +44,25 @@ Type
 
 String
 	LineCount
-	Line[]
+	Line[Num]
 
 Reader
 	TokenCount
-	Token[]
+	Token[Num]
 	TokenPtr
 
-MalList
+MalList/MalVec
 	Count
-	Item[]
+	Item[Num]
+
+Item[Key] 储存不区分大小写Key对应的所有V
+之后为了区分大小写则与Item[Key].Item[Num].Key比较
+MalMap
+	Count
+	Item[Key].Count
+	Item[Key].Item[Num].Key
+	Item[Key].Item[Num].Value
+	
 
 MalAtom
 	Value

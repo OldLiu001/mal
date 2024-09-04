@@ -76,6 +76,10 @@ exit /b 0
 			!_C_Invoke! :ReadList _L{%%.}_ObjReader
 			if defined _G_ERR exit /b 0
 			set "_L{%%.}_ObjAST=!_G_RET!"
+		) else if "!_L{%%.}_CurToken!" == "{" (
+			!_C_Invoke! :ReadMap _L{%%.}_ObjReader
+			if defined _G_ERR exit /b 0
+			set "_L{%%.}_ObjAST=!_G_RET!"
 		) else if "!_L{%%.}_CurToken!" == "'" (
 			!_C_Invoke! TYPES.bat :NewMalAtom MalSym quote
 			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
@@ -276,6 +280,25 @@ exit /b 0
 
 
 		set "_G_RET=!_L{%%.}_ObjMalCode!"
+	)
+exit /b 0
+
+:ReadMap _ObjReader -> _ObjMal
+	for %%. in (!_G_LEVEL!) do (
+		!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
+		
+		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
+			set _G_ERR=_
+			set _G_ERR.Type=Exception
+			set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+			!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
+			exit /b 0
+		)
+
+		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
+
+		>&2 echo TODO
+		pause & exit 1
 	)
 exit /b 0
 
