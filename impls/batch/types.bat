@@ -8,9 +8,33 @@
 exit /b 0
 
 
-:NewMalAtom _ValType _VarValue -> _ObjMalAtom
+:NewMalAtom _ValType _ValValue -> _ObjMalAtom
 	for %%. in (!_G_LEVEL!) do (
-		!_C_Invoke! Mal.bat :New _L{%%.}_
+		set "_L{%%.}_ValType=%~1"
+		set "_L{%%.}_ValValue=%~2"
+		!_C_Invoke! NS.bat :New !_L{%%.}_ValType!
+		!_C_Copy! _G_RET _L{%%.}_ObjMal
+		!_C_Copy! _L{%%.}_ValValue !_L{%%.}_ObjMal!.Value
+		!_C_Copy! _L{%%.}_ObjMal _G_RET
+	)
+exit /b 0
+
+:NewMalList _Var1 _Var2 ... -> _ObjMalList
+	for %%. in (!_G_LEVEL!) do (
+		!_C_Invoke! NS.bat :New MalLst
+		!_C_Copy! _G_RET _L{%%.}_ObjMal
+		set "_L{%%.}_Count=0"
+	)
+	:NewMalList_Loop
+	for %%. in (!_G_LEVEL!) do (
+		if "%~1" neq "" (
+			set /a _L{%%.}_Count += 1
+			!_C_Copy! %~1 !_L{%%.}_ObjMal!.Item[!_L{%%.}_Count!]
+			shift
+			goto :NewMalList_Loop
+		)
+		!_C_Copy! _L{%%.}_Count !_L{%%.}_ObjMal!.Count
+		!_C_Copy! _L{%%.}_ObjMal _G_RET
 	)
 exit /b 0
 

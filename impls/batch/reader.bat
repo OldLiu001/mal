@@ -60,10 +60,10 @@ exit /b 0
 		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
 
 		if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
-			rem TODO
-			echo ERROR: No token found.
-			pause
-			exit
+			set _G_ERR=_
+			set _G_ERR.Type=Exception
+			set "_G_ERR.Msg=[!_G_TRACE!] Exception: unexpected EOF, need more token."
+			exit /b 0
 		)
 
 		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
@@ -76,6 +76,58 @@ exit /b 0
 			!_C_Invoke! :ReadList _L{%%.}_ObjReader
 			if defined _G_ERR exit /b 0
 			set "_L{%%.}_ObjAST=!_G_RET!"
+		) else if "!_L{%%.}_CurToken!" == "'" (
+			!_C_Invoke! TYPES.bat :NewMalAtom MalSym quote
+			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
+			set /a !_L{%%.}_ObjReader!.TokenPtr += 1
+
+			!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalSymQuote
+				exit /b 0
+			)
+			!_C_Copy! _G_RET _L{%%.}_ObjMal
+			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
+			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == "`" (
+			!_C_Invoke! TYPES.bat :NewMalAtom MalSym quasiquote
+			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
+			set /a !_L{%%.}_ObjReader!.TokenPtr += 1
+
+			!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalSymQuote
+				exit /b 0
+			)
+			!_C_Copy! _G_RET _L{%%.}_ObjMal
+			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
+			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == "~" (
+			!_C_Invoke! TYPES.bat :NewMalAtom MalSym unquote
+			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
+			set /a !_L{%%.}_ObjReader!.TokenPtr += 1
+
+			!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalSymQuote
+				exit /b 0
+			)
+			!_C_Copy! _G_RET _L{%%.}_ObjMal
+			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
+			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == "~@" (
+			!_C_Invoke! TYPES.bat :NewMalAtom MalSym splice-unquote
+			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
+			set /a !_L{%%.}_ObjReader!.TokenPtr += 1
+
+			!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalSymQuote
+				exit /b 0
+			)
+			!_C_Copy! _G_RET _L{%%.}_ObjMal
+			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
+			!_C_Copy! _G_RET _L{%%.}_ObjAST
 		) else (
 			!_C_Invoke! :ReadAtom _L{%%.}_ObjReader
 			set "_L{%%.}_ObjAST=!_G_RET!"
@@ -119,6 +171,8 @@ exit /b 0
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
 		) else if "!_L{%%.}_CurToken:~,2!" == "!_G_ESCKEY!D" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalStr"
+		) else if "!_L{%%.}_CurToken:~,1!" == ":" (
+			set "!_L{%%.}_ObjMalCode!.Type=MalKwd"
 		) else (
 			set "!_L{%%.}_ObjMalCode!.Type=MalSym"
 		)
@@ -145,7 +199,8 @@ exit /b 0
 		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
 		if "!_L{%%.}_CurToken!" Equ "(" (
-			rem
+			!_C_Invoke! NS.bat :New MalLst
+			!_C_Copy! _G_RET _L{%%.}_ObjMalCode
 		) else if "!_L{%%.}_CurToken!" Equ "[" (
 			!_C_Invoke! NS.bat :New MalVec
 			!_C_Copy! _G_RET _L{%%.}_ObjMalCode
@@ -164,8 +219,6 @@ exit /b 0
 			exit
 		)
 		
-		!_C_Invoke! NS.bat :New MalLst
-		!_C_Copy! _G_RET _L{%%.}_ObjMalCode
 
 		set "_L{%%.}_Count=0"
 	)
@@ -184,6 +237,28 @@ exit /b 0
 		!_C_Copy! !_L{%%.}_ObjReader!.Token[!_L{%%.}_TokenPtr!] _L{%%.}_CurToken
 
 		if "!_L{%%.}_CurToken!" == ")" (
+			!_C_Copy! !_L{%%.}_ObjMalCode!.Type _L{%%.}_Type
+			if "!_L{%%.}_Type!" Neq "MalLst" (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
+				set _G_ERR=_
+				set _G_ERR.Type=Exception
+				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+				exit /b 0
+			)
+			set /a _L{%%.}_TokenPtr += 1
+			!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
+			goto :ReadList_Pass
+		)
+		if "!_L{%%.}_CurToken!" == "]" (
+			!_C_Copy! !_L{%%.}_ObjMalCode!.Type _L{%%.}_Type
+			if "!_L{%%.}_Type!" Neq "MalVec" (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
+				set _G_ERR=_
+				set _G_ERR.Type=Exception
+				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+				exit /b 0
+			)
+			!_C_Copy! !_L{%%.}_ObjMalCode!.Type _L{%%.}_Type
 			set /a _L{%%.}_TokenPtr += 1
 			!_C_Copy! _L{%%.}_TokenPtr !_L{%%.}_ObjReader!.TokenPtr
 			goto :ReadList_Pass

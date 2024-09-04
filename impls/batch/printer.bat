@@ -39,6 +39,8 @@ exit /b 0
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
 		) else if "!_L{%%.}_Type!" == "MalBool" (
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
+		) else if "!_L{%%.}_Type!" == "MalKwd" (
+			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
 		) else if "!_L{%%.}_Type!" == "MalStr" (
 			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
 		) else if "!_L{%%.}_Type!" == "MalLst" (
@@ -55,6 +57,20 @@ exit /b 0
 				)
 			)
 			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode ")"
+		) else if "!_L{%%.}_Type!" == "MalVec" (
+			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "["
+			!_C_Copy! !_L{%%.}_ObjMalCode!.Count _L{%%.}_Count
+			for /l %%i in (1 1 !_L{%%.}_Count!) do (
+				!_C_Invoke! :PrintMalType !_L{%%.}_ObjMalCode!.Item[%%i]
+				!_C_Copy! _G_RET _L{%%.}_RetStrMalCode
+				!_C_Invoke! Str.bat :AppendStr _L{%%.}_StrMalCode _L{%%.}_RetStrMalCode
+				!_C_Invoke! NS.bat :Free _L{%%.}_RetStrMalCode
+				
+				if  "%%i" neq "!_L{%%.}_Count!" (
+					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode " "
+				)
+			)
+			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "]"
 		) else (
 			rem TOOD
 			echo MalType !_L{%%.}_Type! not support yet!
