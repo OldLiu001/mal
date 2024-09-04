@@ -1,4 +1,4 @@
-@REM v: 0.5
+@REM v: 0.6
 
 @REM Read escaped string from stdin and output unescaped string.
 

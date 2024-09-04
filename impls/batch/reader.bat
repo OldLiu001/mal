@@ -1,4 +1,4 @@
-@REM v:0.5
+@REM v:0.6
 
 @echo off
 2>nul call %* || (
@@ -9,7 +9,7 @@ exit /b 0
 
 
 
-:ReadString _StrMalCode
+:ReadString _StrMalCode -> _ObjAST
 	for %%. in (!_G_LEVEL!) do (
 		set "_L{%%.}_StrMalCode=!%~1!"
 		
@@ -52,7 +52,7 @@ exit /b 0
 	)
 exit /b 0
 
-:ReadForm _ObjReader
+:ReadForm  _ObjReader -> _ObjMal
 	for %%. in (!_G_LEVEL!) do (
 		set "_L{%%.}_ObjReader=!%~1!"
 
@@ -85,7 +85,7 @@ exit /b 0
 	)
 exit /b 0
 
-:ReadAtom
+:ReadAtom _ObjReader -> _ObjMal
 	for %%. in (!_G_LEVEL!) do (
 		set "_L{%%.}_ObjReader=!%~1!"
 
@@ -128,7 +128,7 @@ exit /b 0
 	)
 exit /b 0
 
-:ReadList
+:ReadList _ObjReader -> _ObjMal
 	for %%. in (!_G_LEVEL!) do (
 		set "_L{%%.}_ObjReader=!%~1!"
 
@@ -206,7 +206,7 @@ exit /b 0
 
 
 
-:Tokenize _Line _ObjReader
+:Tokenize _Line _ObjReader -> _
 	for %%. in (!_G_LEVEL!) do (
 		set "_L{%%.}_Line=!%~1!"
 		set "_L{%%.}_ObjReader=!%~2!"
@@ -522,8 +522,8 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.8
-	:Invoke
+	@REM Version 0.9
+	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -554,7 +554,7 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
-	:CopyVar _VarFrom _VarTo
+	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
 			2>&1 echo [!_G_TRACE!] '%~1' undefined.
 			pause & exit 1

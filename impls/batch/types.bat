@@ -1,4 +1,4 @@
-@REM v:0.5
+@REM v:0.6
 
 @echo off
 2>nul call %* || (
@@ -8,15 +8,15 @@
 exit /b 0
 
 
-:NewMalAtom _ValType _VarValue
+:NewMalAtom _ValType _VarValue -> _ObjMalAtom
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Invoke! Mal.bat :New _L{%%.}_
 	)
 exit /b 0
 
 (
-	@REM Version 0.8
-	:Invoke
+	@REM Version 0.9
+	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -47,7 +47,7 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
-	:CopyVar _VarFrom _VarTo
+	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
 			2>&1 echo [!_G_TRACE!] '%~1' undefined.
 			pause & exit 1

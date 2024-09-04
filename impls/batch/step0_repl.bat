@@ -1,4 +1,4 @@
-@REM v0.5
+@REM v0.6
 
 @echo off
 pushd "%~dp0"
@@ -19,27 +19,25 @@ exit /b 0
 	set "_G_RET="
 goto :Main
 
-:Read _MalCode
+:Read _MalCode -> _MalCode
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 exit /b 0
 
-:Eval _MalCode
+:Eval _MalCode -> _MalCode
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
 	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 exit /b 0
 
-:Print _MalCode
+:Print _MalCode -> _
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 
 	!_C_Invoke! IO.bat :WriteEscapedLineVar _L{!_G_LEVEL!}_MalCode
-
-	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
 exit /b 0
 
-:REP _MalCode
+:REP _MalCode -> _
 	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
 	
 	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
@@ -51,8 +49,8 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.8
-	:Invoke
+	@REM Version 0.9
+	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -83,7 +81,7 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
-	:CopyVar _VarFrom _VarTo
+	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
 			2>&1 echo [!_G_TRACE!] '%~1' undefined.
 			pause & exit 1

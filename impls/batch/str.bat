@@ -1,4 +1,4 @@
-@REM v:0.5
+@REM v:0.6
 
 @REM Module Name: String
 
@@ -17,24 +17,24 @@
 )
 exit /b 0
 
-:New
+:New -> _ObjStr
 	!_C_Invoke! NS.bat :New String
 	set "!_G_RET!.LineCount=0"
 exit /b 0
 
-:FromVar _Var
+:FromVar _Var -> _ObjStr
 	!_C_Invoke! NS.bat :New String
 	set "!_G_RET!.LineCount=1"
 	set "!_G_RET!.Line[1]=!%~1!"
 exit /b 0
 
-:FromVal _Val
+:FromVal _Val -> _ObjStr
 	!_C_Invoke! NS.bat :New String
 	set "!_G_RET!.LineCount=1"
 	set "!_G_RET!.Line[1]=%~1"
 exit /b 0
 
-:AppendStr _Str _NewStr
+:AppendStr _Str _NewStr -> _
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
 		!_C_Copy! !%~2!.LineCount _L{%%.}_LineCount2
@@ -54,7 +54,7 @@ exit /b 0
 	)
 exit /b 0
 
-:AppendVal _Str _Val
+:AppendVal _Str _Val -> _
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
 		if "!_L{%%.}_LineCount!" == "0" (
@@ -73,7 +73,7 @@ exit /b 0
 	)
 exit /b 0
 
-:AppendVar _Str _Var
+:AppendVar _Str _Var -> _
 	for %%. in (!_G_LEVEL!) do (
 		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
 		if "!_L{%%.}_LineCount!" == "0" (
@@ -93,8 +93,8 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.8
-	:Invoke
+	@REM Version 0.9
+	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -125,7 +125,7 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
-	:CopyVar _VarFrom _VarTo
+	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
 			2>&1 echo [!_G_TRACE!] '%~1' undefined.
 			pause & exit 1

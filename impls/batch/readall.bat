@@ -1,4 +1,4 @@
-@REM v: 0.5
+@REM v: 0.6
 
 @REM Will read to eof and return escaped string.
 @REM #$D$# is added to the beginning and end of each line.

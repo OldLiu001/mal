@@ -1,4 +1,4 @@
-@REM v:0.5
+@REM v:0.6
 
 
 @REM Module Name: IO
@@ -21,32 +21,32 @@
 )
 exit /b 0
 
-:ReadEscapedLine
+:ReadEscapedLine -> _EscapedLine
 	for /f "delims=" %%a in (
 		'call Readline.bat'
 	) do set "_L{!_G_LEVEL!}_Input=%%~a"
 	!_C_Copy! _L{!_G_LEVEL!}_Input _G_RET
 exit /b 0
 
-:WriteEscapedLineVar _Var
+:WriteEscapedLineVar _Var -> _
 	if not defined %~1 (
 		2>&1 echo [!_G_TRACE!] '%~1' undefined.
 	)
 	echo."!%~1!"| call WriteAll.bat
 exit /b 0
 
-:WriteVal _Val
+:WriteVal _Val -> _
 	<nul set /p "=%~1"
 exit /b 0
 
-:WriteVar _Var
+:WriteVar _Var -> _
 	if not defined %~1 (
 		2>&1 echo [!_G_TRACE!] '%~1' undefined.
 	)
 	<nul set /p "=!%~1!"
 exit /b 0
 
-:WriteStr _Str
+:WriteStr _Str -> _
 	set "_L{!_G_LEVEL!}_Str=!%~1!"
 	for /f "delims=" %%a in ("_L{!_G_LEVEL!}_Str") do (
 		for /f "delims=" %%b in ("!%%a!.LineCount") do (
@@ -60,17 +60,17 @@ exit /b 0
 	set "_G_RET="
 exit /b 0
 
-:WriteErrLineVal _Val
+:WriteErrLineVal _Val -> _
 	2>&1 echo.%~1
 exit /b 0
 
-:WriteErrLineVar _Var
+:WriteErrLineVar _Var -> _
 	2>&1 echo.!%~1!
 exit /b 0
 
 (
-	@REM Version 0.8
-	:Invoke
+	@REM Version 0.9
+	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
 			set "_G_TRACE=>"
@@ -101,7 +101,7 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
-	:CopyVar _VarFrom _VarTo
+	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
 			2>&1 echo [!_G_TRACE!] '%~1' undefined.
 			pause & exit 1

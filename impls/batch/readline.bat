@@ -1,4 +1,4 @@
-@REM v: 0.5
+@REM v: 0.6
 
 @REM Will read a line from stdin and return escaped string.
 
