@@ -6,11 +6,6 @@ setlocal ENABLEDELAYEDEXPANSION
 set "_G_LEVEL=0"
 set "_C_Invoke=call :Invoke"
 set "_C_Copy=call :CopyVar"
-for /f "delims=#" %%. in (
-	'prompt #$E# ^& echo on ^& for %%a in ^(_^) do rem'
-) do (
-	set "_G_ESCKEY=%%."
-)
 !_C_Invoke! :Main
 exit /b 0
 

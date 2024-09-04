@@ -169,7 +169,7 @@ exit /b 0
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
 		) else if "!_L{%%.}_CurToken!" == "false" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
-		) else if "!_L{%%.}_CurToken:~,2!" == "!_G_ESCKEY!D" (
+		) else if "!_L{%%.}_CurToken:~,2!" == "$D" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalStr"
 		) else if "!_L{%%.}_CurToken:~,1!" == ":" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalKwd"
@@ -504,7 +504,7 @@ exit /b 0
 				goto :Tokenizing_Loop
 			)
 			rem ^ --- \eC
-			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!C" (
+			if "!_L{%%.}_CurLine:~,2!" == "$C" (
 				if defined _L{%%.}_NormalToken (
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
@@ -512,15 +512,14 @@ exit /b 0
 					!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 					set _L{%%.}_NormalToken=
 				)
-				set "_L{%%.}_CurToken=!_G_ESCKEY!C"
+				set "_L{%%.}_CurToken=$C"
 				set /a _L{%%.}_CurTokenNum += 1
 				!_C_Copy! _L{%%.}_CurToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				goto :Tokenizing_Loop
 			)
-			rem " --- \eD
-			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!D" (
+			if "!_L{%%.}_CurLine:~,2!" == "$D" (
 				if defined _L{%%.}_NormalToken (
 					rem save normal token first.
 					!_C_Copy! _L{%%.}_NormalToken _L{%%.}_CurToken
@@ -561,18 +560,18 @@ exit /b 0
 				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\\"
 				goto :Tokenizing_Loop
 			)
-			if "!_L{%%.}_CurLine:~,3!" == "\!_G_ESCKEY!D" (
+			if "!_L{%%.}_CurLine:~,3!" == "\$D" (
 				rem \"
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~3!"
-				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\!_G_ESCKEY!D"
+				set "_L{%%.}_StrToken=!_L{%%.}_StrToken!\$D"
 				goto :Tokenizing_Loop
 			)
-			if "!_L{%%.}_CurLine:~,2!" == "!_G_ESCKEY!D" (
+			if "!_L{%%.}_CurLine:~,2!" == "$D" (
 				rem end of string.
 				set "_L{%%.}_CurLine=!_L{%%.}_CurLine:~2!"
 				set "_L{%%.}_ParsingStr=False"
 				set /a _L{%%.}_CurTokenNum += 1
-				set "_L{%%.}_StrToken=!_G_ESCKEY!D!_L{%%.}_StrToken!!_G_ESCKEY!D"
+				set "_L{%%.}_StrToken=$D!_L{%%.}_StrToken!$D"
 				!_C_Copy! _L{%%.}_StrToken !_L{%%.}_ObjReader!.Token[!_L{%%.}_CurTokenNum!]
 				goto :Tokenizing_Loop
 			)

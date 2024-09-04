@@ -3,10 +3,11 @@
 @REM Will read a line from stdin and return escaped string.
 
 @REM Special Symbol Mapping:
-@REM 	! --- \eE
-@REM 	^ --- \eC
-@REM 	" --- \eD
-@REM 	% --- \eP
+@REM 	! --- $E
+@REM 	^ --- $C
+@REM 	" --- $D
+@REM 	% --- $P
+@REM 	$ --- $$
 
 @echo off
 setlocal disabledelayedexpansion
@@ -35,14 +36,27 @@ for /f "delims=" %%. in ("%EscK%") do (
 			:LOCALTAG_Main_ReplacementLoop
 			if defined Input (
 				if "!Input:~,1!" == "%%" (
-					set "FormatedInput=!FormatedInput!%%.P"
+					set "FormatedInput=!FormatedInput!%EscK%P"
 				) else (
 					set "FormatedInput=!FormatedInput!!Input:~,1!"
 				)
 				set "Input=!Input:~1!"
 				goto LOCALTAG_Main_ReplacementLoop
 			)
-			echo.!FormatedInput!
+			@REM echo.!FormatedInput!
+			:LOCALTAG_Main_ReplacementLoop2
+			if defined FormatedInput (
+				if "!FormatedInput:~,1!" == "%EscK%" (
+					set "FormatedInput2=!FormatedInput2!$"
+				) else if "!FormatedInput:~,1!" == "$" (
+					set "FormatedInput2=!FormatedInput2!$$"
+				) else (
+					set "FormatedInput2=!FormatedInput2!!FormatedInput:~,1!"
+				)
+				set "FormatedInput=!FormatedInput:~1!"
+				goto LOCALTAG_Main_ReplacementLoop2
+			)
+			echo.!FormatedInput2!
 			endlocal
 		) %Speed Improve End%
 	)

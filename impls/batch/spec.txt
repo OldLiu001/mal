@@ -1,10 +1,11 @@
 v:0.5
 
 Special Symbol Mapping:
-	! --- \eE
-	^ --- \eC
-	" --- \eD
-	% --- \eP
+	! --- $E
+	^ --- $C
+	" --- $D
+	% --- $P
+	$ --- $$
 
 Function Naming Rule:
 	FunctionName
