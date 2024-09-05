@@ -59,9 +59,10 @@ Item[Key] 储存不区分大小写Key对应的所有V
 之后为了区分大小写则与Item[Key].Item[Num].Key比较
 MalMap
 	Count
+	Item[Key]=_
 	Item[Key].Count
-	Item[Key].Item[Num].Key
-	Item[Key].Item[Num].Value
+	Item[Key].Item[Num].Key=objMalKey
+	Item[Key].Item[Num].Value=objMalVal
 	
 
 MalAtom
