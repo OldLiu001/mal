@@ -1,55 +1,65 @@
 @REM v0.6
 
-@echo off
-pushd "%~dp0"
-setlocal ENABLEDELAYEDEXPANSION
-set "_G_LEVEL=0"
-set "_C_Invoke=call :Invoke"
-set "_C_Copy=call :CopyVar"
+@echo off & pushd "%~dp0" & setlocal ENABLEDELAYEDEXPANSION
+call :Init
 !_C_Invoke! :Main
 exit /b 0
 
 
 :Main
-	set "_L{!_G_LEVEL!}_Prompt=user> "
-	!_C_Invoke! IO.bat :WriteVar _L{!_G_LEVEL!}_Prompt
-	!_C_Invoke! IO.bat :ReadEscapedLine
-	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
-	!_C_Invoke! :REP _L{!_G_LEVEL!}_Input
-	set "_G_RET="
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
+		!_C_Invoke! IO.bat :ReadEscapedLine & !_C_GetRet! %%._Input
+		!_C_Invoke! :REP _L{!_G_LEVEL!}_Input
+	)
 goto :Main
 
 :Read _MalCode -> _MalCode
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-
-	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._MalCode=!%~1!"
+		!_C_Return! %%._MalCode
+	)
 exit /b 0
 
 :Eval _MalCode -> _MalCode
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-
-	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._MalCode=!%~1!"
+		!_C_Return! %%._MalCode
+	)
 exit /b 0
 
 :Print _MalCode -> _
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-
-	!_C_Invoke! IO.bat :WriteEscapedLineVar _L{!_G_LEVEL!}_MalCode
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._MalCode=!%~1!"
+		!_C_Invoke! IO.bat :WriteEscapedLineVar %%._MalCode
+		!_C_Return!
+	)
 exit /b 0
 
 :REP _MalCode -> _
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-	
-	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
-	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
-	!_C_Invoke! :Eval _L{!_G_LEVEL!}_MalCode
-	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
-	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
-
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._MalCode=!%~1!"
+		
+		!_C_Invoke! :Read %%._MalCode & !_C_GetRet! %%._MalCode
+		!_C_Invoke! :Eval %%._MalCode & !_C_GetRet! %%._MalCode
+		!_C_Invoke! :Print %%._MalCode
+	)
 exit /b 0
 
 (
-	@REM Version 0.9
+	@REM Version 1.0
+
+	:Init
+		set "_G_LEVEL=0"
+		set "_G_TRACE=>%~nx0"
+		set "_G_RET="
+		set "_G_ERR="
+		set "_C_Invoke=call :Invoke"
+		set "_C_Copy=call :CopyVar"
+		set "_C_GetRet=call :GetRet"
+		set "_C_Return=call :Return"
+	exit /b 0
+
 	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
@@ -79,6 +89,20 @@ exit /b 0
 		
 		!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
 		set "_G_TRACE_{!_G_LEVEL!}="
+	exit /b 0
+
+	:GetRet _Var -> _
+		if not defined _G_ERR (
+			!_C_Copy! _G_RET %~1
+		)
+		set _G_RET=
+	exit /b 0
+
+	:Return _Var -> _
+		set _G_RET=
+		if defined %~1 (
+			!_C_Copy! %~1 _G_RET
+		)
 	exit /b 0
 
 	:CopyVar _VarFrom _VarTo -> _
