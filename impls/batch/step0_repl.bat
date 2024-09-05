@@ -10,7 +10,7 @@ exit /b 0
 	for %%. in (_L{!_G_LEVEL!}) do (
 		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
 		!_C_Invoke! IO.bat :ReadEscapedLine & !_C_GetRet! %%._Input
-		!_C_Invoke! :REP _L{!_G_LEVEL!}_Input
+		!_C_Invoke! :REP %%._Input
 	)
 goto :Main
 
@@ -32,7 +32,7 @@ exit /b 0
 	for %%. in (_L{!_G_LEVEL!}) do (
 		set "%%._MalCode=!%~1!"
 		!_C_Invoke! IO.bat :WriteEscapedLineVar %%._MalCode
-		!_C_Return!
+		!_C_Return! _
 	)
 exit /b 0
 
@@ -43,6 +43,7 @@ exit /b 0
 		!_C_Invoke! :Read %%._MalCode & !_C_GetRet! %%._MalCode
 		!_C_Invoke! :Eval %%._MalCode & !_C_GetRet! %%._MalCode
 		!_C_Invoke! :Print %%._MalCode
+		!_C_Return! _
 	)
 exit /b 0
 
@@ -100,7 +101,7 @@ exit /b 0
 
 	:Return _Var -> _
 		set _G_RET=
-		if defined %~1 (
+		if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
 			!_C_Copy! %~1 _G_RET
 		)
 	exit /b 0
