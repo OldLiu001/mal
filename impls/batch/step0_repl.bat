@@ -1,4 +1,4 @@
-@REM v0.6
+@REM v1.1
 
 @echo off & pushd "%~dp0" & setlocal ENABLEDELAYEDEXPANSION
 call :Init
@@ -48,7 +48,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 1.0
+	@REM Version 1.1
 
 	:Init
 		set "_G_LEVEL=0"
@@ -59,6 +59,7 @@ exit /b 0
 		set "_C_Copy=call :CopyVar"
 		set "_C_GetRet=call :GetRet"
 		set "_C_Return=call :Return"
+		set "_C_Fatal=call :Fatal"
 	exit /b 0
 
 	:Invoke * -> *
@@ -106,10 +107,14 @@ exit /b 0
 		)
 	exit /b 0
 
+	:Fatal _Msg
+		2>&1 echo [!_G_TRACE!] %~1
+		pause & exit 1
+	exit /b 0
+
 	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
-			2>&1 echo [!_G_TRACE!] '%~1' undefined.
-			pause & exit 1
+			!_C_Fatal! "'%~1' undefined."
 		)
 		set "%~2=!%~1!"
 	exit /b 0

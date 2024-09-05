@@ -16,6 +16,7 @@ Variable Naming Rule:
 	Local   Variable: _L{!_G_LEVEL!}_VarName
 
 Global Variables
+	_
 	_G_RET
 	_G_ERR
 	_G_TRACE
