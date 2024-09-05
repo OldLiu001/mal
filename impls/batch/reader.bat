@@ -10,45 +10,41 @@ exit /b 0
 
 
 :ReadString _StrMalCode -> _ObjAST
-	for %%. in (!_G_LEVEL!) do (
-		set "_L{%%.}_StrMalCode=!%~1!"
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._StrMalCode=!%~1!"
 		
-		!_C_Invoke! NS.bat :New Reader
-		set "_L{%%.}_ObjReader=!_G_RET!"
+		!_C_Invoke! NS.bat :New Reader & !_C_GetRet! %%._ObjReader
+		
 
-		set "!_L{%%.}_ObjReader!.TokenCount=0"
-		set "!_L{%%.}_ObjReader!.TokenPtr=1"
+		set "!%%._ObjReader!.TokenCount=0"
+		set "!%%._ObjReader!.TokenPtr=1"
 
-		!_C_Copy! !_L{%%.}_StrMalCode!.LineCount _L{%%.}_LineCount
-		for /l %%i in (1 1 !_L{%%.}_LineCount!) do (
-			!_C_Invoke! :Tokenize !_L{%%.}_StrMalCode!.Line[%%i] _L{%%.}_ObjReader
+		!_C_Copy! !%%._StrMalCode!.LineCount %%._LineCount
+		for /l %%i in (1 1 !%%._LineCount!) do (
+			!_C_Invoke! :Tokenize !%%._StrMalCode!.Line[%%i] %%._ObjReader
 			if defined _G_ERR (
-				!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
+				!_C_Invoke! NS.bat :Free %%._ObjReader
 				exit /b 0
 			)
 		)
 
 		rem Check if there is any token.
-		!_C_Copy! !_L{%%.}_ObjReader!.TokenCount _L{%%.}_TotalTokenNum
-		if "!_L{%%.}_TotalTokenNum!" == "0" (
-			rem TODO
-			echo ERROR: No token found.
-			pause
-			exit
+		!_C_Copy! !%%._ObjReader!.TokenCount %%._TotalTokenNum
+		if "!%%._TotalTokenNum!" == "0" (
+			!_C_Fatal! TODO
 		)
 		
 		rem Translate the tokens to AST.
-		!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+		!_C_Invoke! :ReadForm %%._ObjReader & !_C_GetRet! %%._ObjAST
 		if defined _G_ERR (
-			!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
+			!_C_Invoke! NS.bat :Free %%._ObjReader
 			exit /b 0
 		)
-		set "_L{%%.}_ObjAST=!_G_RET!"
 		
 
-		!_C_Invoke! NS.bat :Free _L{%%.}_ObjReader
+		!_C_Invoke! NS.bat :Free %%._ObjReader
 
-		set "_G_RET=!_L{%%.}_ObjAST!"
+		!_C_Return! %%._ObjAST
 	)
 exit /b 0
 
@@ -739,7 +735,20 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 0.9
+	@REM Version 1.1
+
+	:Init
+		set "_G_LEVEL=0"
+		set "_G_TRACE=>%~nx0"
+		set "_G_RET="
+		set "_G_ERR="
+		set "_C_Invoke=call :Invoke"
+		set "_C_Copy=call :CopyVar"
+		set "_C_GetRet=call :GetRet"
+		set "_C_Return=call :Return"
+		set "_C_Fatal=call :Fatal"
+	exit /b 0
+
 	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
@@ -771,10 +780,28 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
+	:GetRet _Var -> _
+		if not defined _G_ERR (
+			!_C_Copy! _G_RET %~1
+		)
+		set _G_RET=
+	exit /b 0
+
+	:Return _Var -> _
+		set _G_RET=
+		if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
+			!_C_Copy! %~1 _G_RET
+		)
+	exit /b 0
+
+	:Fatal _Msg
+		2>&1 echo [!_G_TRACE!] %~1
+		pause & exit 1
+	exit /b 0
+
 	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
-			2>&1 echo [!_G_TRACE!] '%~1' undefined.
-			pause & exit 1
+			!_C_Fatal! "'%~1' undefined."
 		)
 		set "%~2=!%~1!"
 	exit /b 0
