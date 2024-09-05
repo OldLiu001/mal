@@ -1,89 +1,93 @@
-@REM v:0.6
+@REM v:1.1
 
-@echo off
-pushd "%~dp0"
-setlocal ENABLEDELAYEDEXPANSION
-set "_G_LEVEL=0"
-set "_C_Invoke=call :Invoke"
-set "_C_Copy=call :CopyVar"
+@echo off & pushd "%~dp0" & setlocal ENABLEDELAYEDEXPANSION
+call :Init
 !_C_Invoke! :Main
 exit /b 0
 
 :Main
-	set "_L{!_G_LEVEL!}_Prompt=user> "
-	!_C_Invoke! IO.bat :WriteVar _L{!_G_LEVEL!}_Prompt
-	!_C_Invoke! IO.bat :ReadEscapedLine
-	set "_L{!_G_LEVEL!}_Input=!_G_RET!"
-	
-	!_C_Invoke! Str.bat :FromVar _L{!_G_LEVEL!}_Input
-	set "_L{!_G_LEVEL!}_Str=!_G_RET!"
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
+		!_C_Invoke! IO.bat :ReadEscapedLine & !_C_GetRet! %%._Input
+		
+		!_C_Invoke! Str.bat :FromVar %%._Input & !_C_GetRet! %%._Str
 
-	!_C_Invoke! :REP _L{!_G_LEVEL!}_Str
-	if defined _G_ERR (
-		if "!_G_ERR.Type!" == "Exception" (
-			!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
-		) else (
-			>&2 echo [!_G_TRACE!] Error type '!_G_ERR.Type!' not support.
-			pause & exit 1
+		!_C_Invoke! :REP %%._Str
+		if defined _G_ERR (
+			if "!_G_ERR.Type!" == "Exception" (
+				!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
+			) else (
+				!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
+			)
+
+			for /f "delims==" %%a in (
+				'set _G_ERR 2^>nul'
+			) do set "%%a="
 		)
-
-		rem clear exception.
-		for /f "delims==" %%a in (
-			'set _G_ERR 2^>nul'
-		) do set "%%a="
+		
+		!_C_Invoke! NS.bat :Free %%._Str
 	)
-	
-	!_C_Invoke! NS.bat :Free _L{!_G_LEVEL!}_Str
-
-	set "_G_RET="
 goto :Main
 
 :Read _StrMalCode -> _ObjMalCode
-	for %%. in (!_G_LEVEL!) do (
-		set "_L{%%.}_StrMalCode=!%~1!"
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._StrMalCode=!%~1!"
 		
-		!_C_Invoke! Reader.bat :ReadString _L{%%.}_StrMalCode
+		!_C_Invoke! Reader.bat :ReadString %%._StrMalCode & !_C_GetRet! %%._ObjMalCode
 		if defined _G_ERR exit /b 0
-		set "_L{%%.}_ObjMalCode=!_G_RET!"
 
-		set "_G_RET=!_L{%%.}_ObjMalCode!"
+		!_C_Return! %%._ObjMalCode
 	)
 exit /b 0
 
 :Eval _ObjMalCode -> _ObjMalCode
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-
-	!_C_Copy! _L{!_G_LEVEL!}_MalCode _G_RET
-exit /b 0
-
-:Print _ObjMalCode -> _
-	for %%. in (!_G_LEVEL!) do (
-		set "_L{%%.}_ObjMalCode=!%~1!"
-		
-		!_C_Invoke! Printer.bat :PrintMalType _L{%%.}_ObjMalCode
-		set "_L{%%.}_StrMalCode=!_G_RET!"
-
-		!_C_Invoke! IO.bat :WriteStr _L{%%.}_StrMalCode
-
-		!_C_Invoke! NS.bat :Free _L{%%.}_StrMalCode
-
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._ObjMalCode=!%~1!"
+		!_C_Return! %%._ObjMalCode
 	)
 exit /b 0
 
-:REP _StrMalCode -> _
-	set "_L{!_G_LEVEL!}_MalCode=!%~1!"
-	
-	!_C_Invoke! :Read _L{!_G_LEVEL!}_MalCode
-	if defined _G_ERR exit /b 0
-	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
-	!_C_Invoke! :Eval _L{!_G_LEVEL!}_MalCode
-	!_C_Copy! _G_RET _L{!_G_LEVEL!}_MalCode
-	!_C_Invoke! :Print _L{!_G_LEVEL!}_MalCode
+:Print _ObjMalCode -> _
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._ObjMalCode=!%~1!"
+		
+		!_C_Invoke! Printer.bat :PrintMalType %%._ObjMalCode & !_C_GetRet! %%._StrMalCode
+		
+		!_C_Invoke! IO.bat :WriteStr %%._StrMalCode
 
+		!_C_Invoke! NS.bat :Free %%._StrMalCode
+
+		!_C_Return! _
+	)
+exit /b 0
+
+:REP _MalCode -> _
+	for %%. in (_L{!_G_LEVEL!}) do (
+		set "%%._MalCode=!%~1!"
+		
+		!_C_Invoke! :Read %%._MalCode & !_C_GetRet! %%._MalCode
+		if defined _G_ERR exit /b 0
+		!_C_Invoke! :Eval %%._MalCode & !_C_GetRet! %%._MalCode
+		!_C_Invoke! :Print %%._MalCode
+		!_C_Return! _
+	)
 exit /b 0
 
 (
-	@REM Version 0.9
+	@REM Version 1.1
+
+	:Init
+		set "_G_LEVEL=0"
+		set "_G_TRACE=>%~nx0"
+		set "_G_RET="
+		set "_G_ERR="
+		set "_C_Invoke=call :Invoke"
+		set "_C_Copy=call :CopyVar"
+		set "_C_GetRet=call :GetRet"
+		set "_C_Return=call :Return"
+		set "_C_Fatal=call :Fatal"
+	exit /b 0
+
 	:Invoke * -> *
 		set /a _G_LEVEL = _G_LEVEL
 		if not defined _G_TRACE (
@@ -115,10 +119,28 @@ exit /b 0
 		set "_G_TRACE_{!_G_LEVEL!}="
 	exit /b 0
 
+	:GetRet _Var -> _
+		if not defined _G_ERR (
+			!_C_Copy! _G_RET %~1
+		)
+		set _G_RET=
+	exit /b 0
+
+	:Return _Var -> _
+		set _G_RET=
+		if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
+			!_C_Copy! %~1 _G_RET
+		)
+	exit /b 0
+
+	:Fatal _Msg
+		2>&1 echo [!_G_TRACE!] %~1
+		pause & exit 1
+	exit /b 0
+
 	:CopyVar _VarFrom _VarTo -> _
 		if not defined %~1 (
-			2>&1 echo [!_G_TRACE!] '%~1' undefined.
-			pause & exit 1
+			!_C_Fatal! "'%~1' undefined."
 		)
 		set "%~2=!%~1!"
 	exit /b 0

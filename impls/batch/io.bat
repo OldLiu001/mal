@@ -14,7 +14,6 @@ exit /b 0
 		) do (
 			set "%%._EscapedLine=%%~a"
 		)
-		set %%._EscapedLine
 		!_C_Return! %%._EscapedLine
 	)
 exit /b 0
