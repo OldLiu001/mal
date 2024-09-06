@@ -74,7 +74,7 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 1.1
+	@REM Version 1.3
 
 	:Init
 		set "_G_LEVEL=0"
@@ -86,6 +86,7 @@ exit /b 0
 		set "_C_GetRet=call :GetRet"
 		set "_C_Return=call :Return"
 		set "_C_Fatal=call :Fatal"
+		set "_C_Throw=call :Throw"
 	exit /b 0
 
 	:Invoke * -> *
@@ -134,8 +135,15 @@ exit /b 0
 	exit /b 0
 
 	:Fatal _Msg
-		2>&1 echo [!_G_TRACE!] %~1
+		>&2 echo [!_G_TRACE!] %~1
 		pause & exit 1
+	exit /b 0
+
+	:Throw _Type _Data _Msg
+		set _G_ERR=_
+		set "_G_ERR.Type=%~1"
+		if "%~2" neq "_" set "_G_ERR.Data=!%~2!"
+		set "_G_ERR.Msg=[!_G_TRACE!] !_G_ERR.Type!: %~3"
 	exit /b 0
 
 	:CopyVar _VarFrom _VarTo -> _
