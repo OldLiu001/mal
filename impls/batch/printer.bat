@@ -68,6 +68,9 @@ exit /b 0
 				)
 			)
 			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "]"
+		) else if "!_L{%%.}_Type!" == "MalMap" (
+			!_C_Invoke! NS.bat :Free _L{%%.}_StrMalCode
+			!_C_Invoke! :PrintMalMap _L{%%.}_ObjMalCode & !_C_GetRet! _L{%%.}_StrMalCode
 		) else (
 			rem TOOD
 			echo MalType !_L{%%.}_Type! not support yet!
@@ -78,6 +81,39 @@ exit /b 0
 		set "_G_RET=!_L{%%.}_StrMalCode!"
 	)
 exit /b 0
+
+:PrintMalMap _MalMap -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.MalMap=!%~1!"
+
+		!_C_Invoke! Str.bat :New & !_C_GetRet! %%.Str
+		!_C_Invoke! Str.bat :AppendVal %%.Str "{"
+
+		!_C_Copy! !%%.MalMap!.RawKeyCount %%.KeyCount
+		!_C_Copy! !%%.MalMap!.RawKeys %%.Keys
+
+		for /l %%i in (1 1 !%%.KeyCount!) do (
+			!_C_Copy! !%%.Keys!.Key[%%i] %%.RawKey
+			
+			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+			
+			for /l %%j in (1 1 !%%.SameKeyCount!) do (
+				!_C_Invoke! :PrintMalType !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Key & !_C_GetRet! %%.StrKey
+				!_C_Invoke! :PrintMalType !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value & !_C_GetRet! %%.StrVal
+
+				!_C_Invoke! Str.bat :AppendStr %%.Str %%.StrKey
+				!_C_Invoke! Str.bat :AppendVal %%.Str " "
+				!_C_Invoke! Str.bat :AppendStr %%.Str %%.StrVal
+				if %%j neq !%%.SameKeyCount! !_C_Invoke! Str.bat :AppendVal %%.Str " "
+			)
+			if %%i neq !%%.KeyCount! !_C_Invoke! Str.bat :AppendVal %%.Str " "
+		)
+
+		!_C_Invoke! Str.bat :AppendVal %%.Str "}"
+		!_C_Return! %%.Str
+	)
+exit /b 0
+
 
 (
 	@REM Version 1.4

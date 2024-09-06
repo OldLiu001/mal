@@ -306,7 +306,8 @@ exit /b 0
 		!_C_Invoke! NS.bat :New MalMap & !_C_GetRet! %%.MalMap
 
 		set "%%.MapKeyCount=0"
-
+		set /a %%.RawKeyCount=0
+		!_C_Invoke! NS.bat :New RawKeyArr & !_C_GetRet! %%.RawKeys
 	)
 	:ReadMap_Loop
 	for %%. in (_L{!_G_LEVEL!}_) do (
@@ -357,7 +358,6 @@ exit /b 0
 				!_C_Copy! !%%.ExistKey!.Value %%.ExistRawKey
 				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
 					set %%.Exist=True
-					echo 1
 					!_C_Fatal! TODO
 				)
 			)
@@ -369,7 +369,6 @@ exit /b 0
 				!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
 				!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
 			) else (
-				echo 2
 				!_C_Fatal! TODO
 			)
 		) else (
@@ -379,15 +378,19 @@ exit /b 0
 			!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
 			!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
 			!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
+
+			set /a %%.RawKeyCount += 1
+			set "!%%.RawKeys!.Key[!%%.RawKeyCount!]=!%%.RawKey!"
 		)
 
 		set /a %%.MapKeyCount += 1
-		echo loop
 		goto :ReadMap_Loop
 	)
 	:ReadMap_Pass
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		!_C_Copy! %%.MapKeyCount !%%.MalMap!.Count
+		!_C_Copy! %%.RawKeyCount !%%.MalMap!.RawKeyCount
+		!_C_Copy! %%.RawKeys !%%.MalMap!.RawKeys
 		!_C_Copy! %%.MalMap _G_RET
 	)
 exit /b 0
