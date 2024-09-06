@@ -138,6 +138,10 @@ exit /b 0
 			!_C_Copy! _G_RET _L{%%.}_ObjMal
 			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
 			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == "$C" (
+			!_C_Invoke! :ReadMeta _L{%%.}_ObjReader
+			if defined _G_ERR exit /b 0
+			set "_L{%%.}_ObjAST=!_G_RET!"
 		) else if "!_L{%%.}_CurToken!" == ")" (
 			echo TODO:Exception
 			pause & exit 1
@@ -407,6 +411,27 @@ exit /b 0
 		!_C_Copy! %%.MalMap _G_RET
 	)
 exit /b 0
+
+:ReadMeta _Reader -> _ObjMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Reader=!%~1!"
+
+		set /a !%%.Reader!.TokenPtr += 1
+		
+		if !%%.TokenPtr! Gtr !%%.TokenCount! (
+			!_C_Invoke! :Throw Exception _ "Unexpected EOF, need more token."
+			exit /b 0
+		)
+
+		!_C_Invoke! TYPES.bat :NewMalAtom MalSym "with-meta" & !_C_GetRet! %%.MalSym
+		!_C_Invoke! :ReadForm %%.Reader & !_C_GetRet! %%.MalMeta
+		!_C_Invoke! :ReadForm %%.Reader & !_C_GetRet! %%.MalType
+		!_C_Invoke! TYPES.bat :NewMalList %%.MalSym %%.MalType %%.MalMeta & !_C_GetRet! %%.MalRes
+		!_C_Return! %%.MalRes
+	)
+exit /b 0
+
+
 
 
 
