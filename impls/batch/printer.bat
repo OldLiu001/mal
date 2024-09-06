@@ -1,9 +1,6 @@
 @REM v0.6
 @echo off
-2>nul call %* || (
-	2>&1 echo [!_G_TRACE!] Call '%~nx0' failed.
-	pause & exit 1
-)
+call %* || !_C_Fatal! "Call '%~nx0' failed."
 exit /b 0
 
 
@@ -83,13 +80,14 @@ exit /b 0
 exit /b 0
 
 (
-	@REM Version 1.3
+	@REM Version 1.4
 
 	:Init
 		set "_G_LEVEL=0"
 		set "_G_TRACE=>%~nx0"
 		set "_G_RET="
 		set "_G_ERR="
+
 		set "_C_Invoke=call :Invoke"
 		set "_C_Copy=call :CopyVar"
 		set "_C_GetRet=call :GetRet"
@@ -144,7 +142,7 @@ exit /b 0
 	exit /b 0
 
 	:Fatal _Msg
-		>&2 echo [!_G_TRACE!] %~1
+		>&2 echo [!_G_TRACE!] Fatal: %~1
 		pause & exit 1
 	exit /b 0
 

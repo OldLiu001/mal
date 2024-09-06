@@ -22,7 +22,6 @@ Global Variables
 	_G_TRACE
 	_G_LEVEL
 	_G_TMP
-	_G_ESCKEY
 
 _G_ERR
 	Type

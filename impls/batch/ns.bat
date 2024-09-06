@@ -1,10 +1,7 @@
 @REM v0.6
 
 @echo off
-2>nul call %* || (
-	2>&1 echo [!_G_TRACE!] Call '%~nx0' failed.
-	pause & exit 1
-)
+call %* || !_C_Fatal! "Call '%~nx0' failed."
 exit /b 0
 
 :New _Type -> _Namespace
