@@ -8,7 +8,12 @@ exit /b 0
 :Main
 	for %%. in (_L{!_G_LEVEL!}) do (
 		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
-		!_C_Invoke! IO.bat :ReadEscapedLine & !_C_GetRet! %%._Input
+		!_C_Invoke! IO.bat :ReadEscapedLine
+		if defined _G_RET (
+			!_C_GetRet! %%._Input
+		) else (
+			goto :Main
+		)
 		
 		!_C_Invoke! Str.bat :FromVar %%._Input & !_C_GetRet! %%._Str
 
@@ -16,6 +21,8 @@ exit /b 0
 		if defined _G_ERR (
 			if "!_G_ERR.Type!" == "Exception" (
 				!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
+			) else if "!_G_ERR.Type!" == "Empty" (
+				rem do nothing.
 			) else (
 				!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
 			)

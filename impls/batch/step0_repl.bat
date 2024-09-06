@@ -9,7 +9,12 @@ exit /b 0
 :Main
 	for %%. in (_L{!_G_LEVEL!}) do (
 		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
-		!_C_Invoke! IO.bat :ReadEscapedLine & !_C_GetRet! %%._Input
+		!_C_Invoke! IO.bat :ReadEscapedLine
+		if defined _G_RET (
+			!_C_GetRet! %%._Input
+		) else (
+			goto :Main
+		)
 		!_C_Invoke! :REP %%._Input
 	)
 goto :Main

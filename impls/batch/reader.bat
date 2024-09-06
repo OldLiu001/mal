@@ -152,8 +152,7 @@ exit /b 0
 			echo TODO:Exception
 			pause & exit 1
 		) else if "!_L{%%.}_CurToken:~,1!" == ";" (
-			echo TODO:Return
-			pause & exit 1
+			!_C_Throw! Empty _ _
 		) else (
 			!_C_Invoke! :ReadAtom _L{%%.}_ObjReader
 			set "_L{%%.}_ObjAST=!_G_RET!"
