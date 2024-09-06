@@ -99,6 +99,19 @@ exit /b 0
 			!_C_Copy! _G_RET _L{%%.}_ObjMal
 			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
 			!_C_Copy! _G_RET _L{%%.}_ObjAST
+		) else if "!_L{%%.}_CurToken!" == "@" (
+			!_C_Invoke! TYPES.bat :NewMalAtom MalSym deref
+			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
+			set /a !_L{%%.}_ObjReader!.TokenPtr += 1
+
+			!_C_Invoke! :ReadForm _L{%%.}_ObjReader
+			if defined _G_ERR (
+				!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalSymQuote
+				exit /b 0
+			)
+			!_C_Copy! _G_RET _L{%%.}_ObjMal
+			!_C_Invoke! TYPES.bat :NewMalList _L{%%.}_ObjMalSymQuote _L{%%.}_ObjMal
+			!_C_Copy! _G_RET _L{%%.}_ObjAST
 		) else if "!_L{%%.}_CurToken!" == "~" (
 			!_C_Invoke! TYPES.bat :NewMalAtom MalSym unquote
 			!_C_Copy! _G_RET _L{%%.}_ObjMalSymQuote
