@@ -8,6 +8,7 @@
 @REM 	" --- $D
 @REM 	% --- $P
 @REM 	$ --- $$
+@REM	: --- $A
 
 @echo off
 setlocal disabledelayedexpansion
@@ -50,6 +51,8 @@ for /f "delims=" %%. in ("%EscK%") do (
 					set "FormatedInput2=!FormatedInput2!$"
 				) else if "!FormatedInput:~,1!" == "$" (
 					set "FormatedInput2=!FormatedInput2!$$"
+				) else if "!FormatedInput:~,1!" == ":" (
+					set "FormatedInput2=!FormatedInput2!$A"
 				) else (
 					set "FormatedInput2=!FormatedInput2!!FormatedInput:~,1!"
 				)

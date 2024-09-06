@@ -6,6 +6,7 @@ Special Symbol Mapping:
 	" --- $D
 	% --- $P
 	$ --- $$
+	: --- $A
 
 Function Naming Rule:
 	FunctionName

@@ -180,7 +180,7 @@ exit /b 0
 			set "!_L{%%.}_ObjMalCode!.Type=MalBool"
 		) else if "!_L{%%.}_CurToken:~,2!" == "$D" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalStr"
-		) else if "!_L{%%.}_CurToken:~,1!" == ":" (
+		) else if "!_L{%%.}_CurToken:~,2!" == "$A" (
 			set "!_L{%%.}_ObjMalCode!.Type=MalKwd"
 		) else (
 			set "!_L{%%.}_ObjMalCode!.Type=MalSym"
@@ -316,6 +316,7 @@ exit /b 0
 			!_C_Invoke! NS.bat :Free %%.MalMap
 			exit /b 0
 		)
+		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
 		if "!%%.Token!" == "}" (
 			set /a %%.TokenPtr += 1
@@ -327,81 +328,67 @@ exit /b 0
 		!_C_Invoke! :ReadForm %%.ObjReader & !_C_GetRet! %%.MalKey
 
 
-	@REM 	@REM Check if the key is MalStr or MalKwd.
-	@REM 	!_C_Copy! !_L{%%.}_ObjMalKey!.Type _L{%%.}_Type
-	@REM 	if "!_L{%%.}_Type!" Neq "MalStr" if "!_L{%%.}_Type!" Neq "MalKwd" (
-	@REM 		set _G_ERR=_
-	@REM 		set _G_ERR.Type=Exception
-	@REM 		set "_G_ERR.Msg=[!_G_TRACE!] Exception: map key must be MalStr or MalKwd."
-	@REM 		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalKey
-	@REM 		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
-	@REM 		exit /b 0
-	@REM 	)
+		@REM Check if the key is MalStr or MalKwd.
+		!_C_Copy! !%%.MalKey!.Type %%.Type
+		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
+			!_C_Invoke! :Throw Exception _ "Map key must be 'MalStr' or 'MalKwd'."
+			!_C_Invoke! NS.bat :Free %%.MalKey
+			!_C_Invoke! NS.bat :Free %%.MalMap
+			exit /b 0
+		)
 		
-	@REM 	@REM Save key to _Key
-	@REM 	!_C_Copy! !_L{%%.}_ObjMalKey!.Value _L{%%.}_Key
+		!_C_Copy! !%%.MalKey!.Value %%.RawKey
 
-	@REM 	@REM Read the value.
-	@REM 	@REM Sync token pointer.
-	@REM 	!_C_Copy! !_L{%%.}_ObjReader!.TokenPtr _L{%%.}_TokenPtr
-	@REM 	@REM Check if the token is '}', if so, throw exception.
-	@REM 	if !_L{%%.}_TokenPtr! Gtr !_L{%%.}_TotalTokenNum! (
-	@REM 		set _G_ERR=_
-	@REM 		set _G_ERR.Type=Exception
-	@REM 		set "_G_ERR.Msg=[!_G_TRACE!] Exception: unmatched map key-value pair."
-	@REM 		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalKey
-	@REM 		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
-	@REM 		exit /b 0
-	@REM 	)
-	@REM 	@REM Read the value.
-	@REM 	!_C_Invoke! :ReadForm _L{%%.}_ObjReader
-	@REM 	!_C_Copy! _G_RET _L{%%.}_ObjMalValue
-	@REM 	if defined !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!] (
-	@REM 		@REM get count
-	@REM 		!_C_Copy! !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Count _L{%%.}_Count
-	@REM 		@REM check if any exist Item[Key].Item[Num].Key match objMalKey
-	@REM 		set _L{%%.}_Exist=False
-	@REM 		for /l %%i in (1 1 !_L{%%.}_Count!) do (
-	@REM 			@REM get Item[Key].Item[Num].Key
-	@REM 			!_C_Copy! !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Item[%%i].Key 
-	@REM 			@REM get curkey's value
-	@REM 			!_C_Copy! !_L{%%.}_CurKey!.Value _L{%%.}_CurKeyV
-	@REM 			if "!_L{%%.}_CurKeyV!" == "!_L{%%.}_Key!" (
-	@REM 				set _L{%%.}_Exist=True
-	@REM 				>&2 echo TODO
-	@REM 				echo todo
-	@REM 				pause & exit 1
-	@REM 			)
-	@REM 		)
-	@REM 		@REM if not exist, add new Item[Key].Item[Num]
-	@REM 		if "!_L{%%.}_Exist!" == "False" (
-	@REM 			@REM Item[Key].Count +1
-	@REM 			set /a !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Count += 1
+
+		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
+
+		if !%%.TokenPtr! Gtr !%%.TokenCount! (
+			!_C_Invoke! :Throw Exception _ "Unmatched map key-value pair."
+			!_C_Invoke! NS.bat :Free %%.MalMap
+			exit /b 0
+		)
+
+		!_C_Invoke! :ReadForm %%.ObjReader & !_C_GetRet! %%.MalVal
+		if defined !%%.MalMap!.Item[!%%.RawKey!] (
+			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+			set %%.Exist=False
+			for /l %%i in (1 1 !%%.SameKeyCount!) do (
+				!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Item[%%i].Key %%.ExistKey
+				!_C_Copy! !%%.ExistKey!.Value %%.ExistRawKey
+				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
+					set %%.Exist=True
+					echo 1
+					!_C_Fatal! TODO
+				)
+			)
+			
+			if "!%%.Exist!" == "False" (
+				set /a !%%.MalMap!.Item[!%%.RawKey!].Count += 1
 				
-	@REM 			@REM Item[Key].Item[Num].Key=objMalKey
-	@REM 			@REM Item[Key].Item[Num].Value=objMalVal
+				!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
+				!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
+				!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
+			) else (
+				echo 2
+				!_C_Fatal! TODO
+			)
+		) else (
+			set "!%%.MalMap!.Item[!%%.RawKey!]=_"
+			set "!%%.MalMap!.Item[!%%.RawKey!].Count=1"
 
-	@REM 			!_C_Copy! !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Count _L{%%.}_InnerCount
-	@REM 			!_C_Copy! _L{%%.}_ObjMalKey !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Item[!_L{%%.}_InnerCount!].Key
-	@REM 			!_C_Copy! _L{%%.}_ObjMalValue !_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Item[!_L{%%.}_InnerCount!].Value
-	@REM 		)
-	@REM 	) else (
-	@REM 		@REM set _ObjMalCode.Item[Key]
-	@REM 		set "!_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!]=_"
-	@REM 		@REM set Item[Key].Count=1
-	@REM 		set "!_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Count=1"
-	@REM 		@REM set Item[Key].Item[Num].Key=objMalKey
-	@REM 		set "!_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Item[1].Key=!_L{%%.}_ObjMalKey!"
-	@REM 		@REM set Item[Key].Item[Num].Value=objMalValue
-	@REM 		set "!_L{%%.}_ObjMalCode!.Item[!_L{%%.}_Key!].Item[1].Value=!_L{%%.}_ObjMalValue!"
-	@REM 	)
+			!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
+			!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
+			!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
+		)
 
-	@REM 	set /a "_L{%%.}_Count+=1"
-	@REM )
-	@REM :ReadMap_Pass
-	@REM for %%. in (!_G_LEVEL!) do (
-	@REM 	!_C_Copy! _L{%%.}_Count !_L{%%.}_ObjMalCode!.Count
-	@REM 	!_C_Copy! _L{%%.}_ObjMalCode _G_RET
+		set /a %%.MapKeyCount += 1
+		echo loop
+		goto :ReadMap_Loop
+	)
+	:ReadMap_Pass
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! %%.MapKeyCount !%%.MalMap!.Count
+		!_C_Copy! %%.MalMap _G_RET
 	)
 exit /b 0
 

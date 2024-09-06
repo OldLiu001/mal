@@ -8,6 +8,7 @@
 @REM 	" --- $D
 @REM 	% --- $P
 @REM 	$ --- $$
+@REM	: --- $A
 
 @echo off & setlocal ENABLEDELAYEDEXPANSION
 
@@ -42,6 +43,10 @@ for /f "delims=" %%i in ('more') do (
 		goto LOCALTAG_Print_OutputLoop
 	) else if "!Output:~,2!" == "$P" (
 		set "OutputBuffer=!OutputBuffer!%%"
+		set "Output=!Output:~2!"
+		goto LOCALTAG_Print_OutputLoop
+	) else if "!Output:~,2!" == "$A" (
+		set "OutputBuffer=!OutputBuffer!:"
 		set "Output=!Output:~2!"
 		goto LOCALTAG_Print_OutputLoop
 	) else if defined Output (
