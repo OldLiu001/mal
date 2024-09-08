@@ -1,66 +1,48 @@
-@REM v: 0.6
-
-@REM Will read a line from stdin and return escaped string.
-
-@REM Special Symbol Mapping:
-@REM 	! --- $E
-@REM 	^ --- $C
-@REM 	" --- $D
-@REM 	% --- $P
-@REM 	$ --- $$
-@REM	: --- $A
+@REM v: 1.4
 
 @echo off
 setlocal disabledelayedexpansion
 for /f "delims=#" %%. in (
-	'prompt #$E#^&echo on^&for %%a in ^(1^) do rem'
+	'prompt #$E# ^& echo on ^& for %%_ in ^( . ^) do rem'
 ) do (
-	@REM echo a.
-	set "EscK=%%."
+	set "_Esc=%%."
 )
-@REM pause
 
-set Input=
-set /p "Input="
-for /f "delims=" %%. in ("%EscK%") do (
-	if defined Input (
-		rem Replace double quotation mark to avoid error.
-		call set "Input=%%Input:"=%%.D%%"
-		rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-		call set "Input=%%Input:!=%%.E%%"
+set _In= & set /p "_In="
+for /f "delims=" %%. in ("%_Esc%") do (
+	if defined _In (
+		call set "_In=%%_In:"=%%.D%%"
+		call set "_In=%%_In:!=%%.E%%"
 		setlocal ENABLEDELAYEDEXPANSION
-		%Speed Improve Start% (
-			rem Batch has some problem in "^" processing, so replace it.
-			set "Input=!Input:^=%%.C!"
-			rem Replace %.
-			set FormatedInput=
-			:LOCALTAG_Main_ReplacementLoop
-			if defined Input (
-				if "!Input:~,1!" == "%%" (
-					set "FormatedInput=!FormatedInput!%EscK%P"
+		(
+			set "_In=!_In:^=%%.C!"
+			set "_In2="
+			:_Replace
+			if defined _In (
+				if "!_In:~,1!" == "%%" (
+					set "_In2=!_In2!%_Esc%P"
 				) else (
-					set "FormatedInput=!FormatedInput!!Input:~,1!"
+					set "_In2=!_In2!!_In:~,1!"
 				)
-				set "Input=!Input:~1!"
-				goto LOCALTAG_Main_ReplacementLoop
+				set "_In=!_In:~1!"
+				goto _Replace
 			)
-			@REM echo.!FormatedInput!
-			:LOCALTAG_Main_ReplacementLoop2
-			if defined FormatedInput (
-				if "!FormatedInput:~,1!" == "%EscK%" (
-					set "FormatedInput2=!FormatedInput2!$"
-				) else if "!FormatedInput:~,1!" == "$" (
-					set "FormatedInput2=!FormatedInput2!$$"
-				) else if "!FormatedInput:~,1!" == ":" (
-					set "FormatedInput2=!FormatedInput2!$A"
+			:_Replace2
+			if defined _In2 (
+				if "!_In2:~,1!" == "%_Esc%" (
+					set "_In3=!_In3!$"
+				) else if "!_In2:~,1!" == "$" (
+					set "_In3=!_In3!$$"
+				) else if "!_In2:~,1!" == ":" (
+					set "_In3=!_In3!$A"
 				) else (
-					set "FormatedInput2=!FormatedInput2!!FormatedInput:~,1!"
+					set "_In3=!_In3!!_In2:~,1!"
 				)
-				set "FormatedInput=!FormatedInput:~1!"
-				goto LOCALTAG_Main_ReplacementLoop2
+				set "_In2=!_In2:~1!"
+				goto _Replace2
 			)
-			echo.!FormatedInput2!
-			endlocal
-		) %Speed Improve End%
+			echo.!_In3!
+		)
+		endlocal
 	)
 )
