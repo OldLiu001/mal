@@ -1,84 +1,70 @@
-@REM v0.6
+@REM v1.4
 @echo off
 call %* || !_C_Fatal! "Call '%~nx0' failed."
 exit /b 0
 
 
-:PrintMalType _ObjMalCode -> _StrMalCode
-	for %%. in (!_G_LEVEL!) do (
-		set "_L{%%.}_ObjMalCode=!%~1!"
-
-		if not defined !_L{%%.}_ObjMalCode! (
-			rem TODO
-			echo !_L{%%.}_ObjMalCode! not defined!
-			pause & exit
+:PrintMalType _ObjMal -> _StrMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
+		if not defined !%%.ObjMal!.Type (
+			!_C_Fatal! "!%%.ObjMal!.Type not defined!"
 		)
-		if not defined !_L{%%.}_ObjMalCode!.Type (
-			rem TODO
-			echo !_L{%%.}_ObjMalCode!.Type not defined!
-			pause & exit
-		)
-		!_C_Copy! !_L{%%.}_ObjMalCode!.Type _L{%%.}_Type
-		if not "!_L{%%.}_Type:~,3!" == "Mal" (
-			rem TODO
-			echo _L{%%.}_ObjMalCode is not a MalType!
-			pause & exit
+		!_C_Copy! !%%.ObjMal!.Type %%.Type
+		if not "!%%.Type:~,3!" == "Mal" (
+			!_C_Fatal! "!%%.ObjMal! is not a MalType!"
 		)
 		
-		!_C_Invoke! Str.bat :New
-		!_C_Copy! _G_RET _L{%%.}_StrMalCode
+		!_C_Invoke! Str.bat :New & !_C_GetRet! %%.StrMal
 		
-		if "!_L{%%.}_Type!" == "MalNum" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalSym" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalNil" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalBool" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalKwd" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalStr" (
-			!_C_Invoke! Str.bat :AppendVar _L{%%.}_StrMalCode !_L{%%.}_ObjMalCode!.Value
-		) else if "!_L{%%.}_Type!" == "MalLst" (
-			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "("
-			!_C_Copy! !_L{%%.}_ObjMalCode!.Count _L{%%.}_Count
-			for /l %%i in (1 1 !_L{%%.}_Count!) do (
-				!_C_Invoke! :PrintMalType !_L{%%.}_ObjMalCode!.Item[%%i]
-				!_C_Copy! _G_RET _L{%%.}_RetStrMalCode
-				!_C_Invoke! Str.bat :AppendStr _L{%%.}_StrMalCode _L{%%.}_RetStrMalCode
-				!_C_Invoke! NS.bat :Free _L{%%.}_RetStrMalCode
+		
+		if "!%%.Type!" == "MalNum" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalSym" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalNil" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalBool" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalKwd" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalStr" (
+			!_C_Invoke! Str.bat :AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalLst" (
+			!_C_Invoke! Str.bat :AppendVal %%.StrMal "("
+			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			for /l %%i in (1 1 !%%.Count!) do (
+				!_C_Invoke! :PrintMalType !%%.ObjMal!.Item[%%i] & !_C_GetRet! %%.RetStrMal
+				!_C_Invoke! Str.bat :AppendStr %%.StrMal %%.RetStrMal
+				!_C_Invoke! NS.bat :Free %%.RetStrMal
 				
-				if  "%%i" neq "!_L{%%.}_Count!" (
-					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode " "
+				if  "%%i" neq "!%%.Count!" (
+					!_C_Invoke! Str.bat :AppendVal %%.StrMal " "
 				)
 			)
-			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode ")"
-		) else if "!_L{%%.}_Type!" == "MalVec" (
-			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "["
-			!_C_Copy! !_L{%%.}_ObjMalCode!.Count _L{%%.}_Count
-			for /l %%i in (1 1 !_L{%%.}_Count!) do (
-				!_C_Invoke! :PrintMalType !_L{%%.}_ObjMalCode!.Item[%%i]
-				!_C_Copy! _G_RET _L{%%.}_RetStrMalCode
-				!_C_Invoke! Str.bat :AppendStr _L{%%.}_StrMalCode _L{%%.}_RetStrMalCode
-				!_C_Invoke! NS.bat :Free _L{%%.}_RetStrMalCode
+			!_C_Invoke! Str.bat :AppendVal %%.StrMal ")"
+		) else if "!%%.Type!" == "MalVec" (
+			!_C_Invoke! Str.bat :AppendVal %%.StrMal "["
+			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			for /l %%i in (1 1 !%%.Count!) do (
+				!_C_Invoke! :PrintMalType !%%.ObjMal!.Item[%%i] & !_C_GetRet! %%.RetStrMal
+				!_C_Invoke! Str.bat :AppendStr %%.StrMal %%.RetStrMal
+				!_C_Invoke! NS.bat :Free %%.RetStrMal
 				
-				if  "%%i" neq "!_L{%%.}_Count!" (
-					!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode " "
+				if  "%%i" neq "!%%.Count!" (
+					!_C_Invoke! Str.bat :AppendVal %%.StrMal " "
 				)
 			)
-			!_C_Invoke! Str.bat :AppendVal _L{%%.}_StrMalCode "]"
-		) else if "!_L{%%.}_Type!" == "MalMap" (
-			!_C_Invoke! NS.bat :Free _L{%%.}_StrMalCode
-			!_C_Invoke! :PrintMalMap _L{%%.}_ObjMalCode & !_C_GetRet! _L{%%.}_StrMalCode
+			!_C_Invoke! Str.bat :AppendVal %%.StrMal "]"
+		) else if "!%%.Type!" == "MalMap" (
+			!_C_Invoke! NS.bat :Free %%.StrMal
+			!_C_Invoke! :PrintMalMap %%.ObjMal & !_C_GetRet! %%.StrMal
 		) else (
-			rem TOOD
-			echo MalType !_L{%%.}_Type! not support yet!
-			pause & exit
+			!_C_Fatal! "MalType '!%%.Type!' not support yet."
 		)
-		!_C_Invoke! NS.bat :Free _L{%%.}_ObjMalCode
+		!_C_Invoke! NS.bat :Free %%.ObjMal
 
-		set "_G_RET=!_L{%%.}_StrMalCode!"
+		!_C_Return! %%.StrMal
 	)
 exit /b 0
 
