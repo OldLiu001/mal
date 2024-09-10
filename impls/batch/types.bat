@@ -1,4 +1,4 @@
-@REM v:0.6
+@REM v:1.4
 
 @echo off
 call %* || !_C_Fatal! "Call '%~nx0' failed."
@@ -6,32 +6,30 @@ exit /b 0
 
 
 :NewMalAtom _ValType _ValValue -> _ObjMalAtom
-	for %%. in (!_G_LEVEL!) do (
-		set "_L{%%.}_ValType=%~1"
-		set "_L{%%.}_ValValue=%~2"
-		!_C_Invoke! NS.bat :New !_L{%%.}_ValType!
-		!_C_Copy! _G_RET _L{%%.}_ObjMal
-		!_C_Copy! _L{%%.}_ValValue !_L{%%.}_ObjMal!.Value
-		!_C_Copy! _L{%%.}_ObjMal _G_RET
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ValType=%~1"
+		set "%%.ValValue=%~2"
+		!_C_Invoke! NS.bat :New !%%.ValType! & !_C_GetRet! %%.ObjMal
+		!_C_Copy! %%.ValValue !%%.ObjMal!.Value
+		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
 :NewMalList _Var1 _Var2 ... -> _ObjMalList
-	for %%. in (!_G_LEVEL!) do (
-		!_C_Invoke! NS.bat :New MalLst
-		!_C_Copy! _G_RET _L{%%.}_ObjMal
-		set "_L{%%.}_Count=0"
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS.bat :New MalLst & !_C_GetRet! %%.ObjMal
+		set "%%.Count=0"
 	)
 	:NewMalList_Loop
-	for %%. in (!_G_LEVEL!) do (
+	for %%. in (_L{!_G_LEVEL!}_) do (
 		if "%~1" neq "" (
-			set /a _L{%%.}_Count += 1
-			!_C_Copy! %~1 !_L{%%.}_ObjMal!.Item[!_L{%%.}_Count!]
+			set /a %%.Count += 1
+			!_C_Copy! %~1 !%%.ObjMal!.Item[!%%.Count!]
 			shift
 			goto :NewMalList_Loop
 		)
-		!_C_Copy! _L{%%.}_Count !_L{%%.}_ObjMal!.Count
-		!_C_Copy! _L{%%.}_ObjMal _G_RET
+		!_C_Copy! %%.Count !%%.ObjMal!.Count
+		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
