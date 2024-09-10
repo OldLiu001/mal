@@ -1,4 +1,4 @@
-@REM v:1.1
+@REM v:1.4
 
 @echo off & pushd "%~dp0" & setlocal ENABLEDELAYEDEXPANSION
 call :Init
@@ -6,18 +6,18 @@ call :Init
 exit /b 0
 
 :Main
-	for %%. in (_L{!_G_LEVEL!}) do (
-		set "%%._Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%._Prompt
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%.Prompt
 		!_C_Invoke! IO.bat :ReadEscapedLine
 		if defined _G_RET (
-			!_C_GetRet! %%._Input
+			!_C_GetRet! %%.Input
 		) else (
 			goto :Main
 		)
 		
-		!_C_Invoke! Str.bat :FromVar %%._Input & !_C_GetRet! %%._Str
+		!_C_Invoke! Str.bat :FromVar %%.Input & !_C_GetRet! %%.Str
 
-		!_C_Invoke! :REP %%._Str
+		!_C_Invoke! :REP %%.Str
 		if defined _G_ERR (
 			if "!_G_ERR.Type!" == "Exception" (
 				!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
@@ -32,50 +32,50 @@ exit /b 0
 			) do set "%%a="
 		)
 		
-		!_C_Invoke! NS.bat :Free %%._Str
+		!_C_Invoke! NS.bat :Free %%.Str
 	)
 goto :Main
 
-:Read _StrMalCode -> _ObjMalCode
-	for %%. in (_L{!_G_LEVEL!}) do (
-		set "%%._StrMalCode=!%~1!"
+:Read _StrMal -> _ObjMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.StrMal=!%~1!"
 		
-		!_C_Invoke! Reader.bat :ReadString %%._StrMalCode & !_C_GetRet! %%._ObjMalCode
+		!_C_Invoke! Reader.bat :ReadString %%.StrMal & !_C_GetRet! %%.ObjMal
 		if defined _G_ERR exit /b 0
 
-		!_C_Return! %%._ObjMalCode
+		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
-:Eval _ObjMalCode -> _ObjMalCode
-	for %%. in (_L{!_G_LEVEL!}) do (
-		set "%%._ObjMalCode=!%~1!"
-		!_C_Return! %%._ObjMalCode
+:Eval _ObjMal -> _ObjMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
+		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
-:Print _ObjMalCode -> _
-	for %%. in (_L{!_G_LEVEL!}) do (
-		set "%%._ObjMalCode=!%~1!"
+:Print _ObjMal -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
 		
-		!_C_Invoke! Printer.bat :PrintMalType %%._ObjMalCode & !_C_GetRet! %%._StrMalCode
+		!_C_Invoke! Printer.bat :PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
 		
-		!_C_Invoke! IO.bat :WriteStr %%._StrMalCode
+		!_C_Invoke! IO.bat :WriteStr %%.StrMal
 
-		!_C_Invoke! NS.bat :Free %%._StrMalCode
+		!_C_Invoke! NS.bat :Free %%.StrMal
 
 		!_C_Return! _
 	)
 exit /b 0
 
-:REP _MalCode -> _
-	for %%. in (_L{!_G_LEVEL!}) do (
-		set "%%._MalCode=!%~1!"
+:REP _Mal -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
 		
-		!_C_Invoke! :Read %%._MalCode & !_C_GetRet! %%._MalCode
+		!_C_Invoke! :Read %%.Mal & !_C_GetRet! %%.Mal
 		if defined _G_ERR exit /b 0
-		!_C_Invoke! :Eval %%._MalCode & !_C_GetRet! %%._MalCode
-		!_C_Invoke! :Print %%._MalCode
+		!_C_Invoke! :Eval %%.Mal & !_C_GetRet! %%.Mal
+		!_C_Invoke! :Print %%.Mal
 		!_C_Return! _
 	)
 exit /b 0
