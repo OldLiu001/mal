@@ -1,91 +1,90 @@
-@REM v:0.6
-
-@REM Module Name: String
-
-@rem Export Functions:
-@rem 	:New
-@rem 	:FromVar _Var
-@rem 	:FromVal _Val
-@rem 	:AppendStr _Str _NewStr
-@rem 	:AppendVal _Str _Val
-@rem 	:AppendVar _Str _Var
+@REM v:1.4
 
 @echo off
 call %* || !_C_Fatal! "Call '%~nx0' failed."
 exit /b 0
 
-:New -> _ObjStr
-	!_C_Invoke! NS.bat :New String
-	set "!_G_RET!.LineCount=0"
+:New -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=0"
+		!_C_Return! %%.Str
+	)
 exit /b 0
 
-:FromVar _Var -> _ObjStr
-	!_C_Invoke! NS.bat :New String
-	set "!_G_RET!.LineCount=1"
-	set "!_G_RET!.Line[1]=!%~1!"
+:FromVar _Var -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=1"
+		set "!%%.Str!.Line[1]=!%~1!"
+		!_C_Return! %%.Str
+	)
 exit /b 0
 
-:FromVal _Val -> _ObjStr
-	!_C_Invoke! NS.bat :New String
-	set "!_G_RET!.LineCount=1"
-	set "!_G_RET!.Line[1]=%~1"
+:FromVal _Val -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=1"
+		set "!%%.Str!.Line[1]=%~1"
+		!_C_Return! %%.Str
+	)
 exit /b 0
 
 :AppendStr _Str _NewStr -> _
-	for %%. in (!_G_LEVEL!) do (
-		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
-		!_C_Copy! !%~2!.LineCount _L{%%.}_LineCount2
-		if !_L{%%.}_LineCount! geq 1 (
-			if !_L{%%.}_LineCount2! geq 1 (
-				!_C_Copy! !%~1!.Line[!_L{%%.}_LineCount!] _L{%%.}_Line
-				!_C_Copy! !%~2!.Line[1] _L{%%.}_Line2
-				set "!%~1!.Line[!_L{%%.}_LineCount!]=!_L{%%.}_Line!!_L{%%.}_Line2!"
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		!_C_Copy! !%~2!.LineCount %%.LineCount2
+		if !%%.LineCount! geq 1 (
+			if !%%.LineCount2! geq 1 (
+				!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.Line
+				!_C_Copy! !%~2!.Line[1] %%.Line2
+				set "!%~1!.Line[!%%.LineCount!]=!%%.Line!!%%.Line2!"
 			)
 		)
-		for /l %%i in (2 1 !_L{%%.}_LineCount2!) do (
-			set /a _L{%%.}_LineCount += 1
-			!_C_Copy! !%~2!.Line[%%i] !%~1!.Line[!_L{%%.}_LineCount!]
+		for /l %%i in (2 1 !%%.LineCount2!) do (
+			set /a %%.LineCount += 1
+			!_C_Copy! !%~2!.Line[%%i] !%~1!.Line[!%%.LineCount!]
 		)
-		!_C_Copy! _L{%%.}_LineCount !%~1!.LineCount
-		set "_G_RET="
+		!_C_Copy! %%.LineCount !%~1!.LineCount
+		!_C_Return! _
 	)
 exit /b 0
 
 :AppendVal _Str _Val -> _
-	for %%. in (!_G_LEVEL!) do (
-		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
-		if "!_L{%%.}_LineCount!" == "0" (
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		if "!%%.LineCount!" == "0" (
 			set "!%~1!.LineCount=1"
-			set _L{%%.}_LineCount=1
+			set %%.LineCount=1
 		)
-		if defined !%~1!.Line[!_L{%%.}_LineCount!] (
-			!_C_Copy! !%~1!.Line[!_L{%%.}_LineCount!] _L{%%.}_LastLine
-			set "_L{%%.}_LastLine=!_L{%%.}_LastLine!%~2"
-			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
+		if defined !%~1!.Line[!%%.LineCount!] (
+			!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.LastLine
+			set "%%.LastLine=!%%.LastLine!%~2"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
 		) else (
-			set "_L{%%.}_LastLine=%~2"
-			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
+			set "%%.LastLine=%~2"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
 		)
-		set "_G_RET="
+		!_C_Return! _
 	)
 exit /b 0
 
 :AppendVar _Str _Var -> _
-	for %%. in (!_G_LEVEL!) do (
-		!_C_Copy! !%~1!.LineCount _L{%%.}_LineCount
-		if "!_L{%%.}_LineCount!" == "0" (
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		if "!%%.LineCount!" == "0" (
 			set "!%~1!.LineCount=1"
-			set _L{%%.}_LineCount=1
+			set %%.LineCount=1
 		)
-		if defined !%~1!.Line[!_L{%%.}_LineCount!] (
-			!_C_Copy! !%~1!.Line[!_L{%%.}_LineCount!] _L{%%.}_LastLine
-			set "_L{%%.}_LastLine=!_L{%%.}_LastLine!!%~2!"
-			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
+		if defined !%~1!.Line[!%%.LineCount!] (
+			!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.LastLine
+			set "%%.LastLine=!%%.LastLine!!%~2!"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
 		) else (
-			set "_L{%%.}_LastLine=!%~2!"
-			!_C_Copy! _L{%%.}_LastLine !%~1!.Line[!_L{%%.}_LineCount!]
+			set "%%.LastLine=!%~2!"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
 		)
-		set "_G_RET="
+		!_C_Return! _
 	)
 exit /b 0
 
