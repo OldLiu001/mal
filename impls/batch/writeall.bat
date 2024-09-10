@@ -1,58 +1,46 @@
-@REM v: 0.6
-
-@REM Read escaped string from stdin and output unescaped string.
-
-@REM Special Symbol Mapping:
-@REM 	! --- $E
-@REM 	^ --- $C
-@REM 	" --- $D
-@REM 	% --- $P
-@REM 	$ --- $$
-@REM	: --- $A
-
+@REM v: 1.4
 @echo off & setlocal ENABLEDELAYEDEXPANSION
 
 for /f "delims=" %%i in ('more') do (
-	set "Output=%%~i"
-	rem replace all speical symbol back.
-	set OutputBuffer=
-	:LOCALTAG_Print_OutputLoop
-	if "!Output:~,2!" == "$$" (
-		set "OutputBuffer=!OutputBuffer!$"
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,2!" == "$E" (
-		set "OutputBuffer=!OutputBuffer!^!"
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,2!" == "$C" (
-		set "OutputBuffer=!OutputBuffer!^^"
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,2!" == "$D" (
-		set "OutputBuffer=!OutputBuffer!^""
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,1!" == "=" (
-		set "OutputBuffer=!OutputBuffer!="
-		set "Output=!Output:~1!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,1!" == " " (
-		set "OutputBuffer=!OutputBuffer! "
-		set "Output=!Output:~1!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,2!" == "$P" (
-		set "OutputBuffer=!OutputBuffer!%%"
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if "!Output:~,2!" == "$A" (
-		set "OutputBuffer=!OutputBuffer!:"
-		set "Output=!Output:~2!"
-		goto LOCALTAG_Print_OutputLoop
-	) else if defined Output (
-		set "OutputBuffer=!OutputBuffer!!Output:~,1!"
-		set "Output=!Output:~1!"
-		goto LOCALTAG_Print_OutputLoop
+	set "_Out=%%~i"
+	set _OutBuf=
+	:WRITEALL_Loop
+	if "!_Out:~,2!" == "$$" (
+		set "_OutBuf=!_OutBuf!$"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$E" (
+		set "_OutBuf=!_OutBuf!^!"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$C" (
+		set "_OutBuf=!_OutBuf!^^"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$D" (
+		set "_OutBuf=!_OutBuf!^""
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,1!" == "=" (
+		set "_OutBuf=!_OutBuf!="
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,1!" == " " (
+		set "_OutBuf=!_OutBuf! "
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$P" (
+		set "_OutBuf=!_OutBuf!%%"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$A" (
+		set "_OutBuf=!_OutBuf!:"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if defined _Out (
+		set "_OutBuf=!_OutBuf!!_Out:~,1!"
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
 	)
-	echo.!OutputBuffer!
+	echo.!_OutBuf!
 )
