@@ -1,7 +1,7 @@
 @REM v:1.4
 
 @echo off
-if not "%*" == "" (
+if "%~1" neq "" (
 	call %* || !_C_Fatal! "Call '%~nx0' failed."
 	exit /b 0
 )
