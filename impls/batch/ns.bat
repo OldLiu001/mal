@@ -1,7 +1,10 @@
 @REM v1.4
 
 @echo off
-call %* || !_C_Fatal! "Call '%~nx0' failed."
+if not "%*" == "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
 exit /b 0
 
 :New _Type -> _Namespace
