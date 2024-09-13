@@ -9,10 +9,18 @@ exit /b 0
 
 :IO_ReadEscapedLine _ -> _Line
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		for /f "delims=" %%a in (
-			'call Readline.bat'
-		) do (
-			set "%%.Line=%%~a"
+		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+			for /f "delims=" %%a in (
+				'call READLINE'
+			) do (
+				set "%%.Line=%%~a"
+			)
+		) else (
+			for /f "delims=" %%a in (
+				'call "%~s0" CALL_READLINE'
+			) do (
+				set "%%.Line=%%~a"
+			)
 		)
 		!_C_Return! %%.Line
 	)
@@ -28,7 +36,11 @@ exit /b 0
 			!_C_Fatal! "'!%%.Var!' undefined."
 		)
 		!_C_Copy! !%%.Var! %%.Var
-		echo."!%%.Var!"| call WriteAll.bat
+		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+			echo."!%%.Var!"| call WRITEALL
+		) else (
+			echo."!%%.Var!"| call "%~s0" CALL_WRITEALL
+		)
 		!_C_Return! _
 	)
 exit /b 0

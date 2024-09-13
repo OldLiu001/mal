@@ -1,7 +1,7 @@
 @REM v1.4
 
 @echo off
-if "%~1" equ "SELF_CALL" (
+if "%~1" equ "CALL_SELF" (
 	for /f "tokens=1,*" %%a in ("%*") do (
 		call %%b || !_C_Fatal! "Call '%~nx0' failed."
 	)

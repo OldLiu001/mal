@@ -40,11 +40,7 @@ exit /b 0
 	)
 
 	set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
-	
-	set "_G_TMP=%~1"
 	set "_G_TRACE=!_G_TRACE!>(%~1)%~2"
-	set "_G_TMP="
-	
 	set "_G_RET="
 	set /a _G_LEVEL += 1
 
@@ -57,7 +53,7 @@ exit /b 0
 			)
 		) else (
 			if "%%a" == "MAIN" (
-				call !_G_MAIN! SELF_CALL :MAIN_%%b %%c
+				call !_G_MAIN! CALL_SELF :MAIN_%%b %%c
 			) else (
 				call %%a :%%a_%%b %%c
 			)

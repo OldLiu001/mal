@@ -1,0 +1,8 @@
+!_C_Invoke! (\w+)\.bat :(\w+)
+!_C_Invoke! $1 $2
+
+!_C_Invoke! :(\w+)
+!_C_Invoke! IO $1
+
+^(\s*):(\w+)\b
+$1:IO_$2
