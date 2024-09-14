@@ -29,18 +29,14 @@ if not exist "%entry%" (
 	echo if "%%~1" equ "CALL_READALL" goto :READALL
 	echo if "%%~1" equ "CALL_READLINE" goto :READLINE
 	echo if "%%~1" equ "CALL_WRITEALL" goto :WRITEALL
-	echo.
 	echo :MAIN
-	echo.
 ) >"%output%"
 type %entry% >>"%output%"
 
 for /f "delims=" %%i in ('dir /b *.bat *.cmd ^| findstr /v /r "^step"') do (
 	if "%%i" neq "%entry%" (
 		(
-			echo.
-			echo exit /b 0
-			echo.
+			echo. & echo exit /b 0
 			echo :%%~ni
 		) >>"%output%"
 		type "%%i"  >>"%output%"
