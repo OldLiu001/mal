@@ -22,6 +22,9 @@ exit /b 0
 				set "%%.Line=%%~a"
 			)
 		)
+		if defined MAL_BATCH_IMPL_ECHO_STDIN (
+			!_C_Invoke! IO WriteEscapedLineVar %%.Line
+		)
 		!_C_Return! %%.Line
 	)
 exit /b 0
@@ -84,14 +87,22 @@ exit /b 0
 
 :IO_WriteErrLineVal _Val -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		2>&1 echo.%~1
+		if defined MAL_BATCH_IMPL_NO_STDERR (
+			echo.%~1
+		) else (
+			2>&1 echo.%~1
+		)
 		!_C_Return! _
 	)
 exit /b 0
 
 :IO_WriteErrLineVar _Var -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		2>&1 echo.!%~1!
+		if defined MAL_BATCH_IMPL_NO_STDERR (
+			echo.!%~1!
+		) else (
+			2>&1 echo.!%~1!
+		)
 		!_C_Return! _
 	)
 exit /b 0
