@@ -7,7 +7,7 @@ if "%~1" neq "" (
 )
 exit /b 0
 
-:New _Type -> _Namespace
+:NS_New _Type -> _Namespace
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set /a _G_NSP = _G_NSP
 		set /a _G_NSP += 1
@@ -20,7 +20,7 @@ exit /b 0
 	)
 exit /b 0
 
-:Free _Namespace -> _
+:NS_Free _Namespace -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if "!%~1!" == "" (
 			!_C_Fatal! "Arg _Namespace is empty."

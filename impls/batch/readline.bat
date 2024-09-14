@@ -17,7 +17,7 @@ for /f "delims=" %%. in ("%_Esc%") do (
 		(
 			set "_In=!_In:^=%%.C!"
 			set "_In2="
-			:_Replace
+			:READLINE_Replace
 			if defined _In (
 				if "!_In:~,1!" == "%%" (
 					set "_In2=!_In2!%_Esc%P"
@@ -25,9 +25,9 @@ for /f "delims=" %%. in ("%_Esc%") do (
 					set "_In2=!_In2!!_In:~,1!"
 				)
 				set "_In=!_In:~1!"
-				goto _Replace
+				goto READLINE_Replace
 			)
-			:_Replace2
+			:READLINE_Replace2
 			if defined _In2 (
 				if "!_In2:~,1!" == "%_Esc%" (
 					set "_In3=!_In3!$"
@@ -39,7 +39,7 @@ for /f "delims=" %%. in ("%_Esc%") do (
 					set "_In3=!_In3!!_In2:~,1!"
 				)
 				set "_In2=!_In2:~1!"
-				goto _Replace2
+				goto READLINE_Replace2
 			)
 			echo.!_In3!
 		)

@@ -44,7 +44,7 @@ exit /b 0
 	set "_G_RET="
 	set /a _G_LEVEL += 1
 
-	for /f "tokens=1,2,*" %%a in ("%*") do (
+	for /f "tokens=1,2,*" %%a in ('echo.%*') do (
 		if defined MAL_BATCH_IMPL_SINGLE_FILE (
 			if "%%a" == "MAIN" (
 				call :MAIN_%%b %%c

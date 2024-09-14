@@ -7,33 +7,33 @@ if "%~1" neq "" (
 )
 exit /b 0
 
-:New -> _Str
+:STR_New -> _Str
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
 		set "!%%.Str!.LineCount=0"
 		!_C_Return! %%.Str
 	)
 exit /b 0
 
-:FromVar _Var -> _Str
+:STR_FromVar _Var -> _Str
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
 		set "!%%.Str!.LineCount=1"
 		set "!%%.Str!.Line[1]=!%~1!"
 		!_C_Return! %%.Str
 	)
 exit /b 0
 
-:FromVal _Val -> _Str
+:STR_FromVal _Val -> _Str
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Invoke! NS.bat :New String & !_C_GetRet! %%.Str
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
 		set "!%%.Str!.LineCount=1"
 		set "!%%.Str!.Line[1]=%~1"
 		!_C_Return! %%.Str
 	)
 exit /b 0
 
-:AppendStr _Str _NewStr -> _
+:STR_AppendStr _Str _NewStr -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		!_C_Copy! !%~1!.LineCount %%.LineCount
 		!_C_Copy! !%~2!.LineCount %%.LineCount2
@@ -53,7 +53,7 @@ exit /b 0
 	)
 exit /b 0
 
-:AppendVal _Str _Val -> _
+:STR_AppendVal _Str _Val -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		!_C_Copy! !%~1!.LineCount %%.LineCount
 		if "!%%.LineCount!" == "0" (
@@ -72,7 +72,7 @@ exit /b 0
 	)
 exit /b 0
 
-:AppendVar _Str _Var -> _
+:STR_AppendVar _Str _Var -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		!_C_Copy! !%~1!.LineCount %%.LineCount
 		if "!%%.LineCount!" == "0" (

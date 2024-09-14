@@ -1,26 +1,38 @@
 @REM v:1.4
 
-@echo off & pushd "%~dp0" & setlocal ENABLEDELAYEDEXPANSION
-call :Init
-!_C_Invoke! :Main
+@echo off
+if "%~1" equ "CALL_SELF" (
+	for /f "tokens=1,*" %%a in ('echo.%*') do (
+		call %%b || !_C_Fatal! "Call '%~nx0' failed."
+	)
+	exit /b 0
+)
+pushd "%~dp0"
+setlocal ENABLEDELAYEDEXPANSION
+if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+	call UTILITIES :UTILITIES_Init %~n0
+) else (
+	call :UTILITIES_Init %~n0
+)
+!_C_Invoke! MAIN Main
 exit /b 0
 
-:Main
+:MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		set "%%.Prompt=user> " & !_C_Invoke! IO.bat :WriteVar %%.Prompt
-		!_C_Invoke! IO.bat :ReadEscapedLine
+		set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
+		!_C_Invoke! IO ReadEscapedLine
 		if defined _G_RET (
 			!_C_GetRet! %%.Input
 		) else (
-			goto :Main
+			goto MAIN_Main
 		)
 		
-		!_C_Invoke! Str.bat :FromVar %%.Input & !_C_GetRet! %%.Str
+		!_C_Invoke! Str FromVar %%.Input & !_C_GetRet! %%.Str
 
-		!_C_Invoke! :REP %%.Str
+		!_C_Invoke! MAIN REP %%.Str
 		if defined _G_ERR (
 			if "!_G_ERR.Type!" == "Exception" (
-				!_C_Invoke! IO.bat :WriteErrLineVar _G_ERR.Msg
+				!_C_Invoke! IO WriteErrLineVar _G_ERR.Msg
 			) else if "!_G_ERR.Type!" == "Empty" (
 				rem do nothing.
 			) else (
@@ -32,50 +44,50 @@ exit /b 0
 			) do set "%%a="
 		)
 		
-		!_C_Invoke! NS.bat :Free %%.Str
+		!_C_Invoke! NS Free %%.Str
 	)
-goto :Main
+goto MAIN_Main
 
-:Read _StrMal -> _ObjMal
+:MAIN_Read _StrMal -> _ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.StrMal=!%~1!"
 		
-		!_C_Invoke! Reader.bat :ReadString %%.StrMal & !_C_GetRet! %%.ObjMal
+		!_C_Invoke! Reader ReadString %%.StrMal & !_C_GetRet! %%.ObjMal
 		if defined _G_ERR exit /b 0
 
 		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
-:Eval _ObjMal -> _ObjMal
+:MAIN_Eval _ObjMal -> _ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		!_C_Return! %%.ObjMal
 	)
 exit /b 0
 
-:Print _ObjMal -> _
+:MAIN_Print _ObjMal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		
-		!_C_Invoke! Printer.bat :PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
+		!_C_Invoke! Printer PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
 		
-		!_C_Invoke! IO.bat :WriteStr %%.StrMal
+		!_C_Invoke! IO WriteStr %%.StrMal
 
-		!_C_Invoke! NS.bat :Free %%.StrMal
+		!_C_Invoke! NS Free %%.StrMal
 
 		!_C_Return! _
 	)
 exit /b 0
 
-:REP _Mal -> _
+:MAIN_REP _Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		
-		!_C_Invoke! :Read %%.Mal & !_C_GetRet! %%.Mal
+		!_C_Invoke! MAIN Read %%.Mal & !_C_GetRet! %%.Mal
 		if defined _G_ERR exit /b 0
-		!_C_Invoke! :Eval %%.Mal & !_C_GetRet! %%.Mal
-		!_C_Invoke! :Print %%.Mal
+		!_C_Invoke! MAIN Eval %%.Mal & !_C_GetRet! %%.Mal
+		!_C_Invoke! MAIN Print %%.Mal
 		!_C_Return! _
 	)
 exit /b 0

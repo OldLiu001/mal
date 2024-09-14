@@ -6,3 +6,6 @@
 
 ^(\s*):(\w+)\b
 $1:IO_$2
+
+goto :?(\w+)\b
+goto READLINE_$1

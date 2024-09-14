@@ -1,3 +1,424 @@
+@echo off
+set MAL_BATCH_IMPL_SINGLE_FILE=1
+if "%~1" equ "CALL_READALL" goto :READALL
+if "%~1" equ "CALL_READLINE" goto :READLINE
+if "%~1" equ "CALL_WRITEALL" goto :WRITEALL
+
+:MAIN
+
+@REM v:1.4
+
+@echo off
+if "%~1" equ "CALL_SELF" (
+	for /f "tokens=1,*" %%a in ('echo.%*') do (
+		call %%b || !_C_Fatal! "Call '%~nx0' failed."
+	)
+	exit /b 0
+)
+pushd "%~dp0"
+setlocal ENABLEDELAYEDEXPANSION
+if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+	call UTILITIES :UTILITIES_Init %~n0
+) else (
+	call :UTILITIES_Init %~n0
+)
+!_C_Invoke! MAIN Main
+exit /b 0
+
+:MAIN_Main
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
+		!_C_Invoke! IO ReadEscapedLine
+		if defined _G_RET (
+			!_C_GetRet! %%.Input
+		) else (
+			goto MAIN_Main
+		)
+		
+		!_C_Invoke! Str FromVar %%.Input & !_C_GetRet! %%.Str
+
+		!_C_Invoke! MAIN REP %%.Str
+		if defined _G_ERR (
+			if "!_G_ERR.Type!" == "Exception" (
+				!_C_Invoke! IO WriteErrLineVar _G_ERR.Msg
+			) else if "!_G_ERR.Type!" == "Empty" (
+				rem do nothing.
+			) else (
+				!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
+			)
+
+			for /f "delims==" %%a in (
+				'set _G_ERR 2^>nul'
+			) do set "%%a="
+		)
+		
+		!_C_Invoke! NS Free %%.Str
+	)
+goto MAIN_Main
+
+:MAIN_Read _StrMal -> _ObjMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.StrMal=!%~1!"
+		
+		!_C_Invoke! Reader ReadString %%.StrMal & !_C_GetRet! %%.ObjMal
+		if defined _G_ERR exit /b 0
+
+		!_C_Return! %%.ObjMal
+	)
+exit /b 0
+
+:MAIN_Eval _ObjMal -> _ObjMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
+		!_C_Return! %%.ObjMal
+	)
+exit /b 0
+
+:MAIN_Print _ObjMal -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
+		
+		!_C_Invoke! Printer PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
+		
+		!_C_Invoke! IO WriteStr %%.StrMal
+
+		!_C_Invoke! NS Free %%.StrMal
+
+		!_C_Return! _
+	)
+exit /b 0
+
+:MAIN_REP _Mal -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		
+		!_C_Invoke! MAIN Read %%.Mal & !_C_GetRet! %%.Mal
+		if defined _G_ERR exit /b 0
+		!_C_Invoke! MAIN Eval %%.Mal & !_C_GetRet! %%.Mal
+		!_C_Invoke! MAIN Print %%.Mal
+		!_C_Return! _
+	)
+exit /b 0
+exit /b 0
+
+:io
+@REM v:1.4
+
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+:IO_ReadEscapedLine _ -> _Line
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+			for /f "delims=" %%a in (
+				'call READLINE'
+			) do (
+				set "%%.Line=%%~a"
+			)
+		) else (
+			for /f "delims=" %%a in (
+				'call "%~s0" CALL_READLINE'
+			) do (
+				set "%%.Line=%%~a"
+			)
+		)
+		!_C_Return! %%.Line
+	)
+exit /b 0
+
+:IO_WriteEscapedLineVar _Var -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Var=%~1"
+		if "!%%.Var!" == "" (
+			!_C_Fatal! "Arg _Var is empty."
+		)
+		if not defined !%%.Var! (
+			!_C_Fatal! "'!%%.Var!' undefined."
+		)
+		!_C_Copy! !%%.Var! %%.Var
+		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+			echo."!%%.Var!"| call WRITEALL
+		) else (
+			echo."!%%.Var!"| call "%~s0" CALL_WRITEALL
+		)
+		!_C_Return! _
+	)
+exit /b 0
+
+:IO_WriteVal _Val -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Val=%~1"
+		<nul set /p "=!%%.Val!"
+		!_C_Return! _
+	)
+exit /b 0
+
+:IO_WriteVar _Var -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Var=%~1"
+		if "!%%.Var!" == "" (
+			!_C_Fatal! "Arg _Var is empty."
+		)
+		if not defined !%%.Var! (
+			!_C_Fatal! "'!%%.Var!' undefined."
+		)
+		!_C_Copy! !%%.Var! %%.Var
+		<nul set /p "=!%%.Var!"
+		!_C_Return! _
+	)
+exit /b 0
+
+:IO_WriteStr _Str -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Str=!%~1!"
+		for /f "delims=" %%b in ("!%%.Str!.LineCount") do (
+			for /l %%i in (1 1 !%%b!) do (
+				!_C_Copy! !%%.Str!.Line[%%i] %%.Line
+				!_C_Invoke! IO WriteEscapedLineVar %%.Line
+			)
+		)
+
+		!_C_Return! _
+	)
+exit /b 0
+
+:IO_WriteErrLineVal _Val -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		2>&1 echo.%~1
+		!_C_Return! _
+	)
+exit /b 0
+
+:IO_WriteErrLineVar _Var -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		2>&1 echo.!%~1!
+		!_C_Return! _
+	)
+exit /b 0
+exit /b 0
+
+:ns
+@REM v1.4
+
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+:NS_New _Type -> _Namespace
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set /a _G_NSP = _G_NSP
+		set /a _G_NSP += 1
+		set "_G_NS[!_G_NSP!]=_"
+		set "_G_NS[!_G_NSP!].=_"
+		set "_G_NS[!_G_NSP!].Type=%~1"
+
+		set "%%.RetV=_G_NS[!_G_NSP!]"
+		!_C_Return! %%.RetV
+	)
+exit /b 0
+
+:NS_Free _Namespace -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		if "!%~1!" == "" (
+			!_C_Fatal! "Arg _Namespace is empty."
+		)
+		if not defined !%~1! (
+			!_C_Fatal! "'!%~1!' undefined."
+		)
+		if not defined !%~1!. (
+			!_C_Fatal! "'!%~1!' is not a namespace."
+		)
+
+		for /f "delims==" %%i in (
+			'set !%~1!'
+		) do (
+			set "%%i="
+		)
+
+		!_C_Return! _
+	)
+exit /b 0
+exit /b 0
+
+:pack
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+if "%~1" == "" (
+	echo Single file packer for MAL-BATCH
+	echo.
+	echo Usage: %~n0 ^<entry^> ^<output^> 
+	echo 	^<entry^> - Entry point of the program, like "stepX_XXX.bat"
+	echo 	^<output^> - Output file, e.g. "mal_packed.bat"
+	pause
+	exit /b 1
+)
+
+pushd "%~dp0"
+set "entry=%~1"
+set "output=%~2"
+
+if exist "%output%" (
+	echo Output file already exist.
+	exit /b 1
+)
+if not exist "%entry%" (
+	echo Entry not exist.
+	exit /b 1
+)
+
+(
+	echo @echo off
+	echo set MAL_BATCH_IMPL_SINGLE_FILE=1
+	echo if "%%~1" equ "CALL_READALL" goto :READALL
+	echo if "%%~1" equ "CALL_READLINE" goto :READLINE
+	echo if "%%~1" equ "CALL_WRITEALL" goto :WRITEALL
+	echo.
+	echo :MAIN
+	echo.
+) >"%output%"
+type %entry% >>"%output%"
+
+for /f "delims=" %%i in ('dir /b *.bat *.cmd ^| findstr /v /r "^step"') do (
+	if "%%i" neq "%entry%" (
+		(
+			echo.
+			echo exit /b 0
+			echo.
+			echo :%%~ni
+		) >>"%output%"
+		type "%%i"  >>"%output%"
+	)
+)
+
+exit /b 0
+
+:printer
+@REM v1.4
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+
+:PRINTER_PrintMalType _ObjMal -> _StrMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ObjMal=!%~1!"
+		if not defined !%%.ObjMal!.Type (
+			!_C_Fatal! "!%%.ObjMal!.Type not defined!"
+		)
+		!_C_Copy! !%%.ObjMal!.Type %%.Type
+		if not "!%%.Type:~,3!" == "Mal" (
+			!_C_Fatal! "!%%.ObjMal! is not a MalType!"
+		)
+		
+		!_C_Invoke! Str New & !_C_GetRet! %%.StrMal
+		
+		if "!%%.Type!" == "MalNum" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalSym" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalNil" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalBool" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalKwd" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalStr" (
+			!_C_Invoke! Str AppendVar %%.StrMal !%%.ObjMal!.Value
+		) else if "!%%.Type!" == "MalLst" (
+			!_C_Invoke! Str AppendVal %%.StrMal "("
+			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			for /l %%i in (1 1 !%%.Count!) do (
+				!_C_Invoke! PRINTER PrintMalType !%%.ObjMal!.Item[%%i] & !_C_GetRet! %%.RetStrMal
+				!_C_Invoke! Str AppendStr %%.StrMal %%.RetStrMal
+				!_C_Invoke! NS Free %%.RetStrMal
+				
+				if  "%%i" neq "!%%.Count!" (
+					!_C_Invoke! Str AppendVal %%.StrMal " "
+				)
+			)
+			!_C_Invoke! Str AppendVal %%.StrMal ")"
+		) else if "!%%.Type!" == "MalVec" (
+			!_C_Invoke! Str AppendVal %%.StrMal "["
+			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			for /l %%i in (1 1 !%%.Count!) do (
+				!_C_Invoke! PRINTER PrintMalType !%%.ObjMal!.Item[%%i] & !_C_GetRet! %%.RetStrMal
+				!_C_Invoke! Str AppendStr %%.StrMal %%.RetStrMal
+				!_C_Invoke! NS Free %%.RetStrMal
+				
+				if  "%%i" neq "!%%.Count!" (
+					!_C_Invoke! Str AppendVal %%.StrMal " "
+				)
+			)
+			!_C_Invoke! Str AppendVal %%.StrMal "]"
+		) else if "!%%.Type!" == "MalMap" (
+			!_C_Invoke! NS Free %%.StrMal
+			!_C_Invoke! PRINTER PrintMalMap %%.ObjMal & !_C_GetRet! %%.StrMal
+		) else (
+			!_C_Fatal! "MalType '!%%.Type!' not support yet."
+		)
+		!_C_Invoke! NS Free %%.ObjMal
+
+		!_C_Return! %%.StrMal
+	)
+exit /b 0
+
+:PRINTER_PrintMalMap _MalMap -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.MalMap=!%~1!"
+
+		!_C_Invoke! Str New & !_C_GetRet! %%.Str
+		!_C_Invoke! Str AppendVal %%.Str "{"
+
+		!_C_Copy! !%%.MalMap!.RawKeyCount %%.KeyCount
+		!_C_Copy! !%%.MalMap!.RawKeys %%.Keys
+
+		for /l %%i in (1 1 !%%.KeyCount!) do (
+			!_C_Copy! !%%.Keys!.Key[%%i] %%.RawKey
+			
+			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+			
+			for /l %%j in (1 1 !%%.SameKeyCount!) do (
+				!_C_Invoke! PRINTER PrintMalType !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Key & !_C_GetRet! %%.StrKey
+				!_C_Invoke! PRINTER PrintMalType !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value & !_C_GetRet! %%.StrVal
+
+				!_C_Invoke! Str AppendStr %%.Str %%.StrKey
+				!_C_Invoke! Str AppendVal %%.Str " "
+				!_C_Invoke! Str AppendStr %%.Str %%.StrVal
+				if %%j neq !%%.SameKeyCount! !_C_Invoke! Str AppendVal %%.Str " "
+			)
+			if %%i neq !%%.KeyCount! !_C_Invoke! Str AppendVal %%.Str " "
+		)
+
+		!_C_Invoke! Str AppendVal %%.Str "}"
+		!_C_Return! %%.Str
+	)
+exit /b 0
+exit /b 0
+
+:readall
+@echo off & setlocal disabledelayedexpansion
+
+for /f "tokens=* eol=" %%a in ('more') do (
+	if not defined MAL_BATCH_IMPL_SINGLE_FILE (
+		echo "%%a"|call readline
+	) else (
+		echo "%%a"|call "%~0" CALL_READLINE
+	)
+)
+exit /b 0
+exit /b 0
+
+:reader
 @REM v:1.4
 
 @echo off
@@ -724,3 +1145,346 @@ exit /b 0
 		!_C_Return! _
 	)
 exit /b 0
+exit /b 0
+
+:readline
+@REM v: 1.4
+
+@echo off
+setlocal disabledelayedexpansion
+for /f "delims=#" %%. in (
+	'prompt #$E# ^& echo on ^& for %%_ in ^( . ^) do rem'
+) do (
+	set "_Esc=%%."
+)
+
+set _In= & set /p "_In="
+for /f "delims=" %%. in ("%_Esc%") do (
+	if defined _In (
+		call set "_In=%%_In:"=%%.D%%"
+		call set "_In=%%_In:!=%%.E%%"
+		setlocal ENABLEDELAYEDEXPANSION
+		(
+			set "_In=!_In:^=%%.C!"
+			set "_In2="
+			:READLINE_Replace
+			if defined _In (
+				if "!_In:~,1!" == "%%" (
+					set "_In2=!_In2!%_Esc%P"
+				) else (
+					set "_In2=!_In2!!_In:~,1!"
+				)
+				set "_In=!_In:~1!"
+				goto READLINE_Replace
+			)
+			:READLINE_Replace2
+			if defined _In2 (
+				if "!_In2:~,1!" == "%_Esc%" (
+					set "_In3=!_In3!$"
+				) else if "!_In2:~,1!" == "$" (
+					set "_In3=!_In3!$$"
+				) else if "!_In2:~,1!" == ":" (
+					set "_In3=!_In3!$A"
+				) else (
+					set "_In3=!_In3!!_In2:~,1!"
+				)
+				set "_In2=!_In2:~1!"
+				goto READLINE_Replace2
+			)
+			echo.!_In3!
+		)
+		endlocal
+	)
+)
+
+exit /b 0
+
+:str
+@REM v:1.4
+
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+:STR_New -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=0"
+		!_C_Return! %%.Str
+	)
+exit /b 0
+
+:STR_FromVar _Var -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=1"
+		set "!%%.Str!.Line[1]=!%~1!"
+		!_C_Return! %%.Str
+	)
+exit /b 0
+
+:STR_FromVal _Val -> _Str
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS New String & !_C_GetRet! %%.Str
+		set "!%%.Str!.LineCount=1"
+		set "!%%.Str!.Line[1]=%~1"
+		!_C_Return! %%.Str
+	)
+exit /b 0
+
+:STR_AppendStr _Str _NewStr -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		!_C_Copy! !%~2!.LineCount %%.LineCount2
+		if !%%.LineCount! geq 1 (
+			if !%%.LineCount2! geq 1 (
+				!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.Line
+				!_C_Copy! !%~2!.Line[1] %%.Line2
+				set "!%~1!.Line[!%%.LineCount!]=!%%.Line!!%%.Line2!"
+			)
+		)
+		for /l %%i in (2 1 !%%.LineCount2!) do (
+			set /a %%.LineCount += 1
+			!_C_Copy! !%~2!.Line[%%i] !%~1!.Line[!%%.LineCount!]
+		)
+		!_C_Copy! %%.LineCount !%~1!.LineCount
+		!_C_Return! _
+	)
+exit /b 0
+
+:STR_AppendVal _Str _Val -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		if "!%%.LineCount!" == "0" (
+			set "!%~1!.LineCount=1"
+			set %%.LineCount=1
+		)
+		if defined !%~1!.Line[!%%.LineCount!] (
+			!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.LastLine
+			set "%%.LastLine=!%%.LastLine!%~2"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
+		) else (
+			set "%%.LastLine=%~2"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
+		)
+		!_C_Return! _
+	)
+exit /b 0
+
+:STR_AppendVar _Str _Var -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Copy! !%~1!.LineCount %%.LineCount
+		if "!%%.LineCount!" == "0" (
+			set "!%~1!.LineCount=1"
+			set %%.LineCount=1
+		)
+		if defined !%~1!.Line[!%%.LineCount!] (
+			!_C_Copy! !%~1!.Line[!%%.LineCount!] %%.LastLine
+			set "%%.LastLine=!%%.LastLine!!%~2!"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
+		) else (
+			set "%%.LastLine=!%~2!"
+			!_C_Copy! %%.LastLine !%~1!.Line[!%%.LineCount!]
+		)
+		!_C_Return! _
+	)
+exit /b 0
+exit /b 0
+
+:types
+@REM v:1.4
+
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+
+:TYPES_NewMalAtom _ValType _ValValue -> _ObjMalAtom
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.ValType=%~1"
+		set "%%.ValValue=%~2"
+		!_C_Invoke! NS New !%%.ValType! & !_C_GetRet! %%.ObjMal
+		!_C_Copy! %%.ValValue !%%.ObjMal!.Value
+		!_C_Return! %%.ObjMal
+	)
+exit /b 0
+
+:TYPES_NewMalList _Var1 _Var2 ... -> _ObjMalList
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		!_C_Invoke! NS New MalLst & !_C_GetRet! %%.ObjMal
+		set "%%.Count=0"
+	)
+	:TYPES_NewMalList_Loop
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		if "%~1" neq "" (
+			set /a %%.Count += 1
+			!_C_Copy! %~1 !%%.ObjMal!.Item[!%%.Count!]
+			shift
+			goto TYPES_NewMalList_Loop
+		)
+		!_C_Copy! %%.Count !%%.ObjMal!.Count
+		!_C_Return! %%.ObjMal
+	)
+exit /b 0
+exit /b 0
+
+:utilities
+
+	@REM Version 1.5
+
+@echo off
+if "%~1" neq "" (
+	call %* || !_C_Fatal! "Call '%~nx0' failed."
+	exit /b 0
+)
+exit /b 0
+
+
+:UTILITIES_Init _MainModName
+	set "_G_LEVEL=0"
+	set "_G_TRACE=>%~1"
+	set "_G_RET="
+	set "_G_ERR="
+	set "_G_MAIN=%~1"
+
+	if defined MAL_BATCH_IMPL_SINGLE_FILE (
+		set "_C_Invoke=call :UTILITIES_Invoke"
+		set "_C_Copy=call :UTILITIES_CopyVar"
+		set "_C_GetRet=call :UTILITIES_GetRet"
+		set "_C_Return=call :UTILITIES_Return"
+		set "_C_Fatal=call :UTILITIES_Fatal"
+		set "_C_Throw=call :UTILITIES_Throw"
+	) else (
+		set "_C_Invoke=call UTILITIES :UTILITIES_Invoke"
+		set "_C_Copy=call UTILITIES :UTILITIES_CopyVar"
+		set "_C_GetRet=call UTILITIES :UTILITIES_GetRet"
+		set "_C_Return=call UTILITIES :UTILITIES_Return"
+		set "_C_Fatal=call UTILITIES :UTILITIES_Fatal"
+		set "_C_Throw=call UTILITIES :UTILITIES_Throw"
+	)
+exit /b 0
+
+:UTILITIES_Invoke _Mod _Fn * -> *
+	set /a _G_LEVEL = _G_LEVEL
+	if not defined _G_TRACE (
+		set "_G_TRACE=>"
+	)
+
+	set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
+	set "_G_TRACE=!_G_TRACE!>(%~1)%~2"
+	set "_G_RET="
+	set /a _G_LEVEL += 1
+
+	for /f "tokens=1,2,*" %%a in ('echo.%*') do (
+		if defined MAL_BATCH_IMPL_SINGLE_FILE (
+			if "%%a" == "MAIN" (
+				call :MAIN_%%b %%c
+			) else (
+				call :%%a_%%b %%c
+			)
+		) else (
+			if "%%a" == "MAIN" (
+				call !_G_MAIN! CALL_SELF :MAIN_%%b %%c
+			) else (
+				call %%a :%%a_%%b %%c
+			)
+		)
+	)
+	
+	for /f "delims==" %%a in (
+		'set _L{!_G_LEVEL!}_ 2^>nul'
+	) do set "%%a="
+
+	set /a _G_LEVEL -= 1
+	
+	!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
+	set "_G_TRACE_{!_G_LEVEL!}="
+exit /b 0
+
+:UTILITIES_GetRet _Var -> _
+	if not defined _G_ERR (
+		!_C_Copy! _G_RET %~1
+	)
+	set _G_RET=
+exit /b 0
+
+:UTILITIES_Return _Var -> _
+	set _G_RET=
+	if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
+		!_C_Copy! %~1 _G_RET
+	)
+exit /b 0
+
+:UTILITIES_Fatal _Msg
+	>&2 echo [!_G_TRACE!] Fatal: %~1
+	pause & exit 1
+exit /b 0
+
+:UTILITIES_Throw _Type _Data _Msg
+	set _G_ERR=_
+	set "_G_ERR.Type=%~1"
+	if "%~2" neq "_" set "_G_ERR.Data=!%~2!"
+	set "_G_ERR.Msg=[!_G_TRACE!] !_G_ERR.Type!: %~3"
+exit /b 0
+
+:UTILITIES_CopyVar _VarFrom _VarTo -> _
+	if not defined %~1 (
+		!_C_Fatal! "'%~1' undefined."
+	)
+	set "%~2=!%~1!"
+exit /b 0
+exit /b 0
+
+:writeall
+@REM v: 1.4
+@echo off & setlocal ENABLEDELAYEDEXPANSION
+
+for /f "delims=" %%i in ('more') do (
+	set "_Out=%%~i"
+	set _OutBuf=
+	:WRITEALL_Loop
+	if "!_Out:~,2!" == "$$" (
+		set "_OutBuf=!_OutBuf!$"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$E" (
+		set "_OutBuf=!_OutBuf!^!"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$C" (
+		set "_OutBuf=!_OutBuf!^^"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$D" (
+		set "_OutBuf=!_OutBuf!^""
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,1!" == "=" (
+		set "_OutBuf=!_OutBuf!="
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,1!" == " " (
+		set "_OutBuf=!_OutBuf! "
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$P" (
+		set "_OutBuf=!_OutBuf!%%"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if "!_Out:~,2!" == "$A" (
+		set "_OutBuf=!_OutBuf!:"
+		set "_Out=!_Out:~2!"
+		goto WRITEALL_Loop
+	) else if defined _Out (
+		set "_OutBuf=!_OutBuf!!_Out:~,1!"
+		set "_Out=!_Out:~1!"
+		goto WRITEALL_Loop
+	)
+	echo.!_OutBuf!
+)
