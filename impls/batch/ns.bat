@@ -35,6 +35,9 @@ exit /b 0
 		for /f "delims==" %%i in (
 			'set !%~1!'
 		) do (
+			if "!%%i:~,5!" == "_G_NS" if defined !%%i! (
+				!_C_Invoke! NS Free %%i
+			)
 			set "%%i="
 		)
 

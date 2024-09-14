@@ -231,9 +231,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			set _G_ERR=_
-			set _G_ERR.Type=Exception
-			set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+			!_C_Throw! Exception _ "unbalanced parenthesis."
 			!_C_Invoke! NS Free %%.ObjMalCode
 			exit /b 0
 		)
@@ -289,7 +287,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TokenCount
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Invoke! READER Throw Exception _ "unbalanced parenthesis."
+			!_C_Throw! Exception _ "unbalanced parenthesis."
 			exit /b 0
 		)
 
@@ -305,12 +303,13 @@ exit /b 0
 	:READER_ReadMap_Loop
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		
+		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Invoke! READER Throw Exception _ "unbalanced parenthesis."
+			!_C_Throw! Exception _ "unbalanced parenthesis."
 			!_C_Invoke! NS Free %%.MalMap
+			!_C_Invoke! NS Free %%.RawKeys
 			exit /b 0
 		)
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
 		if "!%%.Token!" == "}" (
 			set /a %%.TokenPtr += 1
@@ -325,9 +324,10 @@ exit /b 0
 		@REM Check if the key is MalStr or MalKwd.
 		!_C_Copy! !%%.MalKey!.Type %%.Type
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
-			!_C_Invoke! READER Throw Exception _ "Map key must be 'MalStr' or 'MalKwd'."
+			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
 			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.MalMap
+			!_C_Invoke! NS Free %%.RawKeys
 			exit /b 0
 		)
 		
@@ -337,8 +337,10 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Invoke! READER Throw Exception _ "Unmatched map key-value pair."
+			!_C_Throw! Exception _ "Unmatched map key-value pair."
+			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.MalMap
+			!_C_Invoke! NS Free %%.RawKeys
 			exit /b 0
 		)
 
@@ -395,7 +397,7 @@ exit /b 0
 		set /a !%%.Reader!.TokenPtr += 1
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Invoke! READER Throw Exception _ "Unexpected EOF, need more token."
+			!_C_Throw! Exception _ "Unexpected EOF, need more token."
 			exit /b 0
 		)
 

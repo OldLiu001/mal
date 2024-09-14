@@ -19,34 +19,35 @@ exit /b 0
 
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
-		!_C_Invoke! IO ReadEscapedLine
-		if defined _G_RET (
-			!_C_GetRet! %%.Input
-		) else (
-			goto MAIN_Main
-		)
-		
-		!_C_Invoke! Str FromVar %%.Input & !_C_GetRet! %%.Str
+		for /l %%_ in () do (
+			set _ | find /N /V "" >> varlog.txt
+			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
+			!_C_Invoke! IO ReadEscapedLine
+			if defined _G_RET (
+				!_C_GetRet! %%.Input
+				
+				!_C_Invoke! Str FromVar %%.Input & !_C_GetRet! %%.Str
+				
+				!_C_Invoke! MAIN REP %%.Str
+				if defined _G_ERR (
+					if "!_G_ERR.Type!" == "Exception" (
+						!_C_Invoke! IO WriteErrLineVar _G_ERR.Msg
+					) else if "!_G_ERR.Type!" == "Empty" (
+						rem do nothing.
+					) else (
+						!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
+					)
 
-		!_C_Invoke! MAIN REP %%.Str
-		if defined _G_ERR (
-			if "!_G_ERR.Type!" == "Exception" (
-				!_C_Invoke! IO WriteErrLineVar _G_ERR.Msg
-			) else if "!_G_ERR.Type!" == "Empty" (
-				rem do nothing.
-			) else (
-				!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
+					for /f "delims==" %%a in (
+						'set _G_ERR 2^>nul'
+					) do set "%%a="
+				)
+				
+				!_C_Invoke! NS Free %%.Str
 			)
-
-			for /f "delims==" %%a in (
-				'set _G_ERR 2^>nul'
-			) do set "%%a="
 		)
-		
-		!_C_Invoke! NS Free %%.Str
 	)
-goto MAIN_Main
+exit /b 0
 
 :MAIN_Read _StrMal -> _ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
