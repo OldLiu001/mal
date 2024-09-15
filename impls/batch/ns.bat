@@ -35,6 +35,7 @@ exit /b 0
 		for /f "delims==" %%i in (
 			'set !%~1!'
 		) do (
+			echo set "%%i="
 			set "%%i="
 		)
 

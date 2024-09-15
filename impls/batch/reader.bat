@@ -326,10 +326,10 @@ exit /b 0
 		@REM Check if the key is MalStr or MalKwd.
 		!_C_Copy! !%%.MalKey!.Type %%.Type
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
-			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
 			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.RawKeys
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
 			exit /b 0
 		)
 		
@@ -355,13 +355,15 @@ exit /b 0
 		)
 		if defined !%%.MalMap!.Item[!%%.RawKey!] (
 			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
-			set %%.Exist=False
 			for /l %%i in (1 1 !%%.SameKeyCount!) do (
 				!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Item[%%i].Key %%.ExistKey
 				!_C_Copy! !%%.ExistKey!.Value %%.ExistRawKey
 				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
-					set %%.Exist=True
-					!_C_Fatal! TODO
+					!_C_Invoke! NS Free %%.MalKey
+					!_C_Invoke! NS Free %%.MalVal
+					!_C_Invoke! NS Free %%.RawKeys
+					!_C_Invoke! TYPES FreeMalMap %%.MalMap
+					!_C_Throw! Exception _ "Key '!%%.RawKey!' already exist."
 				)
 			)
 			
@@ -371,8 +373,6 @@ exit /b 0
 				!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
 				!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
 				!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
-			) else (
-				!_C_Fatal! TODO
 			)
 		) else (
 			set "!%%.MalMap!.Item[!%%.RawKey!]=_"
