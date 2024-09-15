@@ -31,7 +31,9 @@ exit /b 0
 		rem Check if there is any token.
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 		if "!%%.TotalTokenNum!" == "0" (
-			!_C_Fatal! TODO
+			!_C_Invoke! NS Free %%.ObjReader
+			!_C_Throw! Empty _ _
+			exit /b 0
 		)
 		
 		rem Translate the tokens to AST.
@@ -126,14 +128,14 @@ exit /b 0
 			!_C_Invoke! READER ReadMeta %%.ObjReader & !_C_GetRet! %%.ObjAST
 			if defined _G_ERR exit /b 0
 		) else if "!%%.CurToken!" == ")" (
-			echo TODO:Exception
-			pause & exit 1
+			!_C_Throw! Exception _ "unexpected token ')'."
+			exit /b 0
 		) else if "!%%.CurToken!" == "]" (
-			echo TODO:Exception
-			pause & exit 1
+			!_C_Throw! Exception _ "unexpected token ']'."
+			exit /b 0
 		) else if "!%%.CurToken!" == "}" (
-			echo TODO:Exception
-			pause & exit 1
+			!_C_Throw! Exception _ "unexpected token '}'."
+			exit /b 0
 		) else if "!%%.CurToken:~,1!" == ";" (
 			!_C_Throw! Empty _ _
 		) else (
@@ -152,10 +154,8 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			rem TODO
-			echo ERROR: No token found.
-			pause
-			exit
+			!_C_Throw! Exception _ "unexpected EOF, need more token."
+			exit /b 0
 		)
 
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
@@ -196,10 +196,8 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			rem TODO
-			echo ERROR: No token found.
-			pause
-			exit
+			!_C_Throw! Exception _ "unbalanced parenthesis."
+			exit /b 0
 		)
 
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
@@ -217,10 +215,9 @@ exit /b 0
 		!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			rem TODO
-			echo ERROR: No token found.
-			pause
-			exit
+			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+			!_C_Throw! Exception _ "unbalanced parenthesis."
+			exit /b 0
 		)
 		
 
@@ -252,10 +249,8 @@ exit /b 0
 		if "!%%.CurToken!" == "]" (
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalVec" (
-				!_C_Invoke! NS Free %%.ObjMalCode
-				set _G_ERR=_
-				set _G_ERR.Type=Exception
-				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+				!_C_Throw! Exception _ "unbalanced parenthesis."
 				exit /b 0
 			)
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
@@ -266,6 +261,10 @@ exit /b 0
 		set /a %%.Count += 1
 
 		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! !%%.ObjMalCode!.Item[!%%.Count!]
+		if defined _G_ERR (
+			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+			exit /b 0
+		)
 
 		goto READER_ReadList_Loop
 	)
@@ -303,9 +302,9 @@ exit /b 0
 		
 		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Throw! Exception _ "unbalanced parenthesis."
-			!_C_Invoke! NS Free %%.MalMap
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			!_C_Throw! Exception _ "unbalanced parenthesis."
 			exit /b 0
 		)
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
@@ -317,6 +316,11 @@ exit /b 0
 
 		@REM Read the key.
 		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.MalKey
+		if defined _G_ERR (
+			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			!_C_Invoke! NS Free %%.RawKeys
+			exit /b 0
+		)
 
 
 		@REM Check if the key is MalStr or MalKwd.
@@ -324,8 +328,8 @@ exit /b 0
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
 			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
 			!_C_Invoke! NS Free %%.MalKey
-			!_C_Invoke! NS Free %%.MalMap
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalMap %%.MalMap
 			exit /b 0
 		)
 		
@@ -337,12 +341,18 @@ exit /b 0
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			!_C_Throw! Exception _ "Unmatched map key-value pair."
 			!_C_Invoke! NS Free %%.MalKey
-			!_C_Invoke! NS Free %%.MalMap
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalMap %%.MalMap
 			exit /b 0
 		)
 
 		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.MalVal
+		if defined _G_ERR (
+			!_C_Invoke! NS Free %%.MalKey
+			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			exit /b 0
+		)
 		if defined !%%.MalMap!.Item[!%%.RawKey!] (
 			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
 			set %%.Exist=False

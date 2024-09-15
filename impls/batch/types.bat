@@ -84,7 +84,9 @@ goto :eof
 		if "!%%.Type!" neq "MalMap" (
 			!_C_Fatal! "Arg _Mal is not a MalMap."
 		)
-		!_C_Invoke! NS Free !%%.Mal!.RawKeys
+		if defined !%%.Mal!.RawKeys (
+			!_C_Invoke! NS Free !%%.Mal!.RawKeys
+		)
 		for /f "delims==" %%i in ('set !%%.Mal!.Item 2^>nul') do (
 			set "%%.Var=%%i"
 			if "!%%.Var:~-4!" == ".Key" (
