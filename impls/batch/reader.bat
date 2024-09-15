@@ -326,8 +326,8 @@ exit /b 0
 		@REM Check if the key is MalStr or MalKwd.
 		!_C_Copy! !%%.MalKey!.Type %%.Type
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
-			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalType %%.MalKey
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
 			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
 			exit /b 0
@@ -340,30 +340,33 @@ exit /b 0
 
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			!_C_Throw! Exception _ "Unmatched map key-value pair."
-			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalType %%.MalKey
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
 			exit /b 0
 		)
 
 		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.MalVal
 		if defined _G_ERR (
-			!_C_Invoke! NS Free %%.MalKey
 			!_C_Invoke! NS Free %%.RawKeys
+			!_C_Invoke! TYPES FreeMalType %%.MalKey
+			!_C_Invoke! TYPES FreeMalType %%.MalVal
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
 			exit /b 0
 		)
 		if defined !%%.MalMap!.Item[!%%.RawKey!] (
 			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+			set "%%.Exist=False"
 			for /l %%i in (1 1 !%%.SameKeyCount!) do (
 				!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Item[%%i].Key %%.ExistKey
 				!_C_Copy! !%%.ExistKey!.Value %%.ExistRawKey
 				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
-					!_C_Invoke! NS Free %%.MalKey
-					!_C_Invoke! NS Free %%.MalVal
 					!_C_Invoke! NS Free %%.RawKeys
+					!_C_Invoke! TYPES FreeMalType %%.MalKey
+					!_C_Invoke! TYPES FreeMalType %%.MalVal
 					!_C_Invoke! TYPES FreeMalMap %%.MalMap
 					!_C_Throw! Exception _ "Key '!%%.RawKey!' already exist."
+					exit /b 0
 				)
 			)
 			

@@ -38,6 +38,9 @@ exit /b 0
 :TYPES_FreeMalType _Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
+		if not defined !%%.Mal! (
+			exit /b 0
+		)
 		!_C_Copy! !%%.Mal!.Type %%.Type
 		if "!%%.Type!" == "MalBool" (
 			!_C_Invoke! NS Free %%.Mal

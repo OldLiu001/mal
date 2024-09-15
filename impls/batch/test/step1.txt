@@ -1,2 +1,4 @@
 ([1  2] 3 nil true false :kw "str" {:kw {"kw" map}} [(){}])
 ;=>([1 2] 3 nil true false :kw "str" {:kw {"kw" map}} [() {}])
+
+{:k v :K v2 :K v3}
