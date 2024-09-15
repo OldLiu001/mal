@@ -14,13 +14,19 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 ) else (
 	call :UTILITIES_Init %~n0
 )
+del varlog.txt
+del varlog2.txt
 !_C_Invoke! MAIN Main
 exit /b 0
 
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		for /l %%_ in () do (
+
 			set _ | find /N /V "" >> varlog.txt
+			set | find /N /V "" >> varlog2.txt
+			set _ | find /N /V "" 
+			
 			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
 			!_C_Invoke! IO ReadEscapedLine
 			if defined _G_RET (
@@ -72,6 +78,8 @@ exit /b 0
 		set "%%.ObjMal=!%~1!"
 		
 		!_C_Invoke! Printer PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
+
+		!_C_Invoke! TYPES FreeMalType %%.ObjMal
 		
 		!_C_Invoke! IO WriteStr %%.StrMal
 

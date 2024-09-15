@@ -38,9 +38,9 @@ Type
 	MalNum
 	MalSym
 	MalKwd
+	MalStr
 	MalLst
 	MalVec
-	MalStr
 	MalMap
 
 String

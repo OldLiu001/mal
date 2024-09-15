@@ -231,8 +231,8 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 		
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
+			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
 			!_C_Throw! Exception _ "unbalanced parenthesis."
-			!_C_Invoke! NS Free %%.ObjMalCode
 			exit /b 0
 		)
 
@@ -241,10 +241,8 @@ exit /b 0
 		if "!%%.CurToken!" == ")" (
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalLst" (
-				!_C_Invoke! NS Free %%.ObjMalCode
-				set _G_ERR=_
-				set _G_ERR.Type=Exception
-				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unbalanced parenthesis."
+				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+				!_C_Throw! Exception _ "unbalanced parenthesis."
 				exit /b 0
 			)
 			set /a %%.TokenPtr += 1

@@ -64,7 +64,6 @@ exit /b 0
 		) else (
 			!_C_Fatal! "MalType '!%%.Type!' not support yet."
 		)
-		!_C_Invoke! NS Free %%.ObjMal
 
 		!_C_Return! %%.StrMal
 	)
@@ -90,8 +89,10 @@ exit /b 0
 				!_C_Invoke! PRINTER PrintMalType !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value & !_C_GetRet! %%.StrVal
 
 				!_C_Invoke! Str AppendStr %%.Str %%.StrKey
+				!_C_Invoke! NS Free %%.StrKey
 				!_C_Invoke! Str AppendVal %%.Str " "
 				!_C_Invoke! Str AppendStr %%.Str %%.StrVal
+				!_C_Invoke! NS Free %%.StrVal
 				if %%j neq !%%.SameKeyCount! !_C_Invoke! Str AppendVal %%.Str " "
 			)
 			if %%i neq !%%.KeyCount! !_C_Invoke! Str AppendVal %%.Str " "
