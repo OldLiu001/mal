@@ -73,3 +73,9 @@ RawKeyArr
 
 MalAtom
 	Value
+
+Enviroment
+	Item[Key]=_
+	Item[Key].Count
+	Item[Key].Sub[Num].Key=objMalKey
+	Item[Key].Sub[Num].Value=objMalVal
