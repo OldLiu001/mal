@@ -35,6 +35,25 @@ exit /b 0
 	)
 exit /b 0
 
+:TYPES_NewBatFn _Mod _Name _AutoEval -> _MalFn
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mod=%~1"
+		set "%%.Name=%~2"
+		if "%~3" == "False" (
+			set "%%.AutoEval=False"
+		) else (
+			set "%%.AutoEval=True"
+		)
+
+		!_C_Invoke! NS New MalFn & !_C_GetRet! %%.MalFn
+		set "!%%.MalFn!.SubType=BAT"
+		set "!%%.MalFn!.Mod=!%%.Mod!"
+		set "!%%.MalFn!.Name=!%%.Name!"
+		set "!%%.MalFn!.AutoEval=!%%.AutoEval!"
+		!_C_Return! %%.MalFn
+	)
+exit /b 0
+
 :TYPES_FreeMalType _Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
@@ -60,6 +79,8 @@ exit /b 0
 			!_C_Invoke! TYPES FreeMalListOrVec %%.Mal
 		) else if "!%%.Type!" == "MalMap" (
 			!_C_Invoke! TYPES FreeMalMap %%.Mal
+		) else if "!%%.Type!" == "MalFn" (
+			!_C_Invoke! TYPES FreeMalFn %%.Mal
 		) else (
 			!_C_Fatal! "Arg _Mal is not a valid Mal type."
 		)
@@ -97,6 +118,17 @@ goto :eof
 			) else if "!%%.Var:~-6!" == ".Value" (
 				!_C_Invoke! TYPES FreeMalType %%i
 			)
+		)
+		!_C_Invoke! NS Free %%.Mal
+	)
+exit /b 0
+
+:TYPES_FreeMalFn _Mal -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		!_C_Copy! !%%.Mal!.Type %%.Type
+		if "!%%.Type!" neq "MalFn" (
+			!_C_Fatal! "Arg _Mal is not a MalFn."
 		)
 		!_C_Invoke! NS Free %%.Mal
 	)

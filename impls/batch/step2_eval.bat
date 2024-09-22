@@ -19,19 +19,19 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 set "!_G_ENV!.Item[+]=_"
 set "!_G_ENV!.Item[+].Count=1"
 set "!_G_ENV!.Item[+].Sub[1].Key=+"
-set "!_G_ENV!.Item[+].Sub[1].Value=MAdd"
+!_C_Invoke! TYPES NewBatFn MAIN MAdd True & !_C_GetRet! !_G_ENV!.Item[+].Sub[1].Value
 set "!_G_ENV!.Item[-]=_"
 set "!_G_ENV!.Item[-].Count=1"
 set "!_G_ENV!.Item[-].Sub[1].Key=-"
-set "!_G_ENV!.Item[-].Sub[1].Value=MSub"
+!_C_Invoke! TYPES NewBatFn MAIN MSub True & !_C_GetRet! !_G_ENV!.Item[-].Sub[1].Value
 set "!_G_ENV!.Item[*]=_"
 set "!_G_ENV!.Item[*].Count=1"
 set "!_G_ENV!.Item[*].Sub[1].Key=*"
-set "!_G_ENV!.Item[*].Sub[1].Value=MMul"
+!_C_Invoke! TYPES NewBatFn MAIN MMul True & !_C_GetRet! !_G_ENV!.Item[*].Sub[1].Value
 set "!_G_ENV!.Item[/]=_"
 set "!_G_ENV!.Item[/].Count=1"
 set "!_G_ENV!.Item[/].Sub[1].Key=/"
-set "!_G_ENV!.Item[/].Sub[1].Value=MDiv"
+!_C_Invoke! TYPES NewBatFn MAIN MDiv True & !_C_GetRet! !_G_ENV!.Item[/].Sub[1].Value
 
 !_C_Invoke! MAIN Main
 exit /b 0
@@ -39,7 +39,6 @@ exit /b 0
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		for /l %%_ in () do (
-
 			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
 			!_C_Invoke! IO ReadEscapedLine
 			if defined _G_RET (
@@ -88,16 +87,34 @@ exit /b 0
 
 		if "!%%.Type!" == "MalSym" (
 			!_C_Copy! !%%.ObjMal!.Value %%.Val
-			if exist !%%.Env!.Item[!%%.Val!] (
+			if defined !%%.Env!.Item[!%%.Val!] (
+				!_C_Copy! !%%.Env!.Item[!%%.Val!].Count %%.Count
+				set "%%.Found=False"
+				for /l %%i in (1 1 !%%.Count!) do (
+					if "!%%.Found!" neq "True" (
+						!_C_Copy! !%%.Env!.Item[!%%.Val!].Sub[%%i].Key %%.Key
+						if "!%%.Key!" == "!%%.Val!" (
+							!_C_Copy! !%%.Env!.Item[!%%.Val!].Sub[%%i].Value %%.RetMal
+							set "%%.Found=True"
+						)
+					)
+				)
+				if "!%%.Found!" == "False" (
+					!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
+				)
+				
+				!_C_Invoke! TYPES FreeMalType %%.ObjMal
 
 			) else (
 				!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
 			)
 		) else if "!%%.Type!" == "MalLst" (
-
+			!_C_Fatal! TODO
+		) else (
+			!_C_Copy! %%.ObjMal %%.RetMal
 		)
 
-		!_C_Return! %%.ObjMal
+		!_C_Return! %%.RetMal
 	)
 exit /b 0
 
