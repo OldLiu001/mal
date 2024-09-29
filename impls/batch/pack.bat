@@ -33,7 +33,9 @@ if not exist "%entry%" (
 ) >"%output%"
 type %entry% >>"%output%"
 
-for /f "delims=" %%i in ('dir /b *.bat *.cmd ^| findstr /v /r "^step"') do (
+for /f "delims=" %%i in (
+	'dir /b *.bat *.cmd ^| findstr /v /r "^step"'
+) do (
 	if "%%i" neq "%entry%" (
 		(
 			echo. & echo exit /b 0

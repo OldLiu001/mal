@@ -1,14 +1,10 @@
-当前进度：step1已经完成。
+当前进度：
 批处理编程结构基本固定
 
 TODO：
-
-Tag全部重命名
-
-分离Utils&逻辑 -> utility.bat
+封装Map数据结构（区分大小写）
+写New Insert Delete Clear Exist 等方法
 
 更改字符串数据结构 & 处理逻辑 ： 
 换行与不换行，末尾是否有换行需要清晰化+封装
 换行的表示
-
- {:k v :k v2}
