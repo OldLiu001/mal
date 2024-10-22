@@ -46,13 +46,13 @@ exit /b 0
 
 	for /f "tokens=1,2,*" %%a in ('echo.%*') do (
 		if defined MAL_BATCH_IMPL_SINGLE_FILE (
-			if "%%a" == "MAIN" (
+			if /i "%%a" == "MAIN" (
 				call :MAIN_%%b %%c
 			) else (
 				call :%%a_%%b %%c
 			)
 		) else (
-			if "%%a" == "MAIN" (
+			if /i "%%a" == "MAIN" (
 				call !_G_MAIN! CALL_SELF :MAIN_%%b %%c
 			) else (
 				call %%a :%%a_%%b %%c

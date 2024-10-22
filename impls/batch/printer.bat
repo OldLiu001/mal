@@ -62,7 +62,8 @@ exit /b 0
 			!_C_Invoke! NS Free %%.StrMal
 			!_C_Invoke! PRINTER PrintMalMap %%.ObjMal & !_C_GetRet! %%.StrMal
 		) else if "!%%.Type!" == "MalFn" (
-			set "%%.Fn=<FN>"
+			!_C_Invoke! NS Free %%.StrMal
+			set "%%.Fn=<Function>"
 			!_C_Invoke! Str FromVar %%.Fn & !_C_GetRet! %%.StrMal
 		) else (
 			!_C_Fatal! "MalType '!%%.Type!' not support yet."

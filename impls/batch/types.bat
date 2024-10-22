@@ -133,3 +133,43 @@ exit /b 0
 		!_C_Invoke! NS Free %%.Mal
 	)
 exit /b 0
+
+:TYPES_CheckType _Var _Type1 _Type2 ... -> _Bool
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Bool=False"
+		!_C_Copy! !%~1!.Type %%.Type
+	)
+	:TYPES_CheckType_Loop
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		if "%~1" neq "" (
+			if "%~1" equ "!%%.Type!" (
+				set "%%.Bool=True"
+			)
+			shift
+			goto TYPES_CheckType_Loop
+		)
+		!_C_Return! %%.Bool
+	)
+exit /b 0
+
+:TYPES_CopyMalType _Mal -> _ClonedMal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		!_C_Copy! !%%.Mal!.Type %%.Type
+		if "!%%.Type!" == "MalFn" (
+			!_C_Copy! !%%.Mal!.SubType %%.SubType
+			if "!%%.SubType!" == "BAT" (
+				!_C_Copy! !%%.Mal!.Mod %%.Mod
+				!_C_Copy! !%%.Mal!.Name %%.Name
+				!_C_Copy! !%%.Mal!.AutoEval %%.AutoEval
+				!_C_Invoke! Types NewBatFn !%%.Mod! !%%.Name! !%%.AutoEval! & !_C_GetRet! %%.ClonedMal
+			) else (
+				!_C_Fatal! "Not implemented yet."
+			)
+		) else (
+			!_C_Fatal! "Not implemented yet."
+		)
+		!_C_Return! %%.ClonedMal
+	)
+exit /b 0
+	

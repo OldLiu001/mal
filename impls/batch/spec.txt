@@ -1,5 +1,7 @@
 v:0.5
 
+Count 均从1开始计数
+
 Special Symbol Mapping:
 	! --- $E
 	^ --- $C
