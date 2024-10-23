@@ -78,6 +78,7 @@ MalAtom
 	Value
 
 Enviroment
+	Outer
 	Item[Key]=_
 	Item[Key].Count
 	Item[Key].Sub[Num].Key=objMalKey
