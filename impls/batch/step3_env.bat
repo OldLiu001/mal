@@ -146,6 +146,7 @@ exit /b 0
 				!_C_Copy! %%.ObjMal %%.RetMal
 			)
 		) else if "!%%.Type!" == "MalVec" (
+			!_C_Fatal! "TODO: rewrite this to create new vec and free old vec"
 			!_C_Copy! !%%.ObjMal!.Count %%.Count
 			for /l %%i in (1 1 !%%.Count!) do (
 				!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.ObjMal!.Item[%%i]
@@ -351,5 +352,61 @@ exit /b 0
 		!_C_Invoke! Types CopyMalType %%.NewVal & !_C_GetRet! %%.CopiedVal
 		!_C_Invoke! Env Set %%.Env %%.Key %%.CopiedVal
 		!_C_Return! %%.NewVal
+	)
+exit /b 0
+
+:Main_MLet _Mal _Env -> _Mal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		set "%%.Env=!%~2!"
+		!_C_Copy! !%%.Mal!.Count %%.Count
+		if !%%.Count! neq 3 (
+			!_C_Throw! Exception _ "Invalid arguments count."
+			exit /b 0
+		)
+		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalLst MalVec & !_C_GetRet! %%.CheckResult
+		if "!%%.CheckResult!" neq "True" (
+			!_C_Throw! Exception _ "Invalid argument type."
+			exit /b 0
+		)
+		
+		!_C_Copy! !%%.Mal!.Item[2] %%.BindList
+		!_C_Copy! !%%.BindList!.Count %%.BindCount
+		set /a "%%.IsOdd = %%.BindCount & 1"
+		if !%%.IsOdd! equ 1 (
+			!_C_Throw! Exception _ "The binding list is not valid and should have an even number of elements."
+			exit /b 0
+		)
+		
+		!_C_Invoke! Env New %%.Env & !_C_GetRet! %%.NewEnv
+		for /l %%i in (1 2 !%%.BindCount!) do (
+			set /a %%.KeyIndex = %%i
+			set /a %%.ValIndex = %%i + 1
+			
+			!_C_Copy! !%%.BindList!.Item[!%%.KeyIndex!] %%.Key
+			!_C_Copy! !%%.BindList!.Item[!%%.ValIndex!] %%.Val
+			
+			!_C_Invoke! TYPES CheckType %%.Key MalSym & !_C_GetRet! %%.CheckResult
+			if "!%%.CheckResult!" neq "True" (
+				!_C_Throw! Exception _ "Invalid binding list key type, expect 'MalSym'."
+				exit /b 0
+			)
+			!_C_Copy! !%%.Key!.Value %%.RawKey
+			!_C_Invoke! Main Eval %%.Val %%.NewEnv & !_C_GetRet! %%.Val
+			if defined _G_ERR (
+				!_C_Invoke! Env Free %%.NewEnv
+				exit /b 0
+			)
+			
+			!_C_Invoke! Env Set %%.NewEnv %%.RawKey %%.Val
+		)
+		
+		!_C_Invoke! Main Eval !%%.Mal!.Item[3] %%.NewEnv & !_C_GetRet! %%.RetMal
+		if defined _G_ERR (
+			!_C_Invoke! Env Free %%.NewEnv
+			exit /b 0
+		)
+		!_C_Invoke! Env Free %%.NewEnv
+		!_C_Return! %%.RetMal
 	)
 exit /b 0

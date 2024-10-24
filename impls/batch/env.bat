@@ -37,11 +37,14 @@ exit /b 0
 				if "!%%.Key!" == "!%%.CurKey!" (
 					set /a %%.Index = %%i
 					!_C_Invoke! Types FreeMalType !%%.Env!.Item[!%%.Key!].Sub[!%%.Index!].Value
+					set /a %%.Count -= 1
 				)
 			)
 
 			!_C_Copy! %%.Key !%%.Env!.Item[!%%.Key!].Sub[!%%.Index!].Key
 			!_C_Copy! %%.Val !%%.Env!.Item[!%%.Key!].Sub[!%%.Index!].Value
+			set /a %%.Count += 1
+			!_C_Copy! %%.Count !%%.Env!.Item[!%%.Key!].Count
 		)
 		!_C_Return! _
 	)
@@ -106,5 +109,18 @@ exit /b 0
 			)
 		)
 		!_C_Return! %%.Ret
+	)
+exit /b 0
+
+:Env_Free _Env -> _
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Env=!%~1!"
+		for /f "delims==" %%i in ('set !%%.Env!.Item 2^>nul') do (
+			set "%%.Var=%%i"
+			if "!%%.Var:~-6!" == ".Value" (
+				!_C_Invoke! TYPES FreeMalType %%i
+			)
+		)
+		!_C_Invoke! NS Free %%.Env
 	)
 exit /b 0

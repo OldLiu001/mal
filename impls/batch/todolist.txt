@@ -4,10 +4,18 @@
 TODO：
 let*
 EvalLater 封装
+
+var的垃圾回收
+变量初始化引用计数为1
+变量复制全部使用MalCopy，此时增加引用计数
+变量释放时，若引用计数>1，则减1，否则释放
 frame的垃圾回收
 垃圾回收初步想法：Frame的RefCount为0时自动Free
 Evallater用.Todolist属性表示RefCount-1
 或者引用计数？
+
+垃圾回收思路2
+全部复制
 
 更改字符串数据结构 & 处理逻辑 ： 
 换行与不换行，末尾是否有换行需要清晰化+封装
