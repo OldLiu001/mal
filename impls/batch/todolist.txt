@@ -2,8 +2,12 @@
 批处理编程结构基本固定
 
 TODO：
-封装Map数据结构（区分大小写）
-写New Insert Delete Clear Exist 等方法
+let*
+EvalLater 封装
+frame的垃圾回收
+垃圾回收初步想法：Frame的RefCount为0时自动Free
+Evallater用.Todolist属性表示RefCount-1
+或者引用计数？
 
 更改字符串数据结构 & 处理逻辑 ： 
 换行与不换行，末尾是否有换行需要清晰化+封装
