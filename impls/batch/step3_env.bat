@@ -17,21 +17,33 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 
 !_C_Invoke! Env New _ & !_C_GetRet! _G_ENV
 !_C_Invoke! MAIN EnvInit _G_ENV
+set !_G_ENV!
 !_C_Invoke! MAIN Main
 exit /b 0
 
 :MAIN_EnvInit _Env -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Env=!%~1!"
-		!_C_Invoke! TYPES NewBatFn MAIN MAdd True & !_C_GetRet! %%.MalFn
-		!_C_Invoke! Env Set %%.Env + %%.MalFn
-		!_C_Invoke! TYPES NewBatFn MAIN MSub True & !_C_GetRet! %%.MalFn
-		!_C_Invoke! Env Set %%.Env - %%.MalFn
-		!_C_Invoke! TYPES NewBatFn MAIN MMul True & !_C_GetRet! %%.MalFn
-		!_C_Invoke! Env Set %%.Env * %%.MalFn
-		!_C_Invoke! TYPES NewBatFn MAIN MDiv True & !_C_GetRet! %%.MalFn
-		!_C_Invoke! Env Set %%.Env / %%.MalFn
 		
+		set "%%.Key=+"
+		!_C_Invoke! TYPES NewBatFn MAIN MAdd True & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=-"
+		!_C_Invoke! TYPES NewBatFn MAIN MSub True & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=*"
+		!_C_Invoke! TYPES NewBatFn MAIN MMul True & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=/"
+		!_C_Invoke! TYPES NewBatFn MAIN MDiv True & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		
+		set "%%.Key=def$E"
+		!_C_Invoke! TYPES NewBatFn MAIN MDef False & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=let*"
+		!_C_Invoke! TYPES NewBatFn MAIN MLet False & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
 		!_C_Return! _
 	)
 exit /b 0
@@ -39,6 +51,7 @@ exit /b 0
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		for /l %%_ in () do (
+			set | find /C /V ""
 			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
 			!_C_Invoke! IO ReadEscapedLine
 			if defined _G_RET (
@@ -87,31 +100,15 @@ exit /b 0
 
 		if "!%%.Type!" == "MalSym" (
 			!_C_Copy! !%%.ObjMal!.Value %%.Val
-			if defined !%%.Env!.Item[!%%.Val!] (
-				!_C_Copy! !%%.Env!.Item[!%%.Val!].Count %%.Count
-				set "%%.Found=False"
-				for /l %%i in (1 1 !%%.Count!) do (
-					if "!%%.Found!" neq "True" (
-						!_C_Copy! !%%.Env!.Item[!%%.Val!].Sub[%%i].Key %%.Key
-						if "!%%.Key!" == "!%%.Val!" (
-							!_C_Invoke! Types CopyMalType !%%.Env!.Item[!%%.Val!].Sub[%%i].Value & !_C_GetRet! %%.RetMal
-							set "%%.Found=True"
-						)
-					)
-				)
-				if "!%%.Found!" == "False" (
-					!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
-					exit /b 0
-				)
-				
-				!_C_Invoke! TYPES FreeMalType %%.ObjMal
-
-			) else (
-				!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
+			!_C_Invoke! Env Get %%.Env %%.Val
+			!_C_GetRet! %%.RetMal
+			if defined _G_ERR (
 				!_C_Invoke! TYPES FreeMalType %%.ObjMal
 				exit /b 0
 			)
+			!_C_Invoke! TYPES FreeMalType %%.ObjMal
+			!_C_Invoke! Types CopyMalType %%.RetMal
+			!_C_GetRet! %%.RetMal
 		) else if "!%%.Type!" == "MalLst" (
 			!_C_Copy! !%%.ObjMal!.Count %%.Count
 			if !%%.Count! gtr 0 (
@@ -137,7 +134,7 @@ exit /b 0
 						)
 					)
 					
-					!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal & !_C_GetRet! %%.RetMal
+					!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal %%.Env & !_C_GetRet! %%.RetMal
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
 				) else (
 					!_C_Throw! Exception _ "Can not invoke '!%%.Type!'."
@@ -179,7 +176,8 @@ exit /b 0
 			)
 			!_C_Copy! %%.MalMap %%.RetMal
 		) else (
-			!_C_Copy! %%.ObjMal %%.RetMal
+			!_C_Invoke! Types CopyMalType %%.ObjMal & !_C_GetRet! %%.RetMal
+			!_C_Invoke! TYPES FreeMalType %%.ObjMal
 		)
 
 		!_C_Return! %%.RetMal
@@ -240,7 +238,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 + %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -268,7 +266,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 - %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -296,7 +294,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 * %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -324,7 +322,34 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 / %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
+	)
+exit /b 0
+
+:Main_MDef _Mal _Env -> _Mal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		set "%%.Env=!%~2!"
+		!_C_Copy! !%%.Mal!.Count %%.Count
+		if !%%.Count! neq 3 (
+			!_C_Throw! Exception _ "Invalid arguments count."
+			exit /b 0
+		)
+		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalSym & !_C_GetRet! %%.CheckResult
+		if "!%%.CheckResult!" neq "True" (
+			!_C_Throw! Exception _ "Invalid argument type."
+			exit /b 0
+		)
+		!_C_Copy! !%%.Mal!.Item[2] %%.Sym
+		!_C_Copy! !%%.Sym!.Value %%.Key
+		!_C_Copy! !%%.Mal!.Item[3] %%.Val
+		
+		!_C_Invoke! Main Eval %%.Val %%.Env & !_C_GetRet! %%.NewVal
+		if defined _G_ERR exit /b 0
+		
+		!_C_Invoke! Types CopyMalType %%.NewVal & !_C_GetRet! %%.CopiedVal
+		!_C_Invoke! Env Set %%.Env %%.Key %%.CopiedVal
+		!_C_Return! %%.NewVal
 	)
 exit /b 0

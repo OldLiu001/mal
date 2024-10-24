@@ -7,7 +7,7 @@ if "%~1" neq "" (
 )
 exit /b 0
 
-:TYPES_NewMalAtom _ValType _ValValue -> _ObjMalAtom
+:TYPES_NewMal _ValType _ValValue -> _ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ValType=%~1"
 		set "%%.ValValue=%~2"
@@ -166,6 +166,10 @@ exit /b 0
 			) else (
 				!_C_Fatal! "Not implemented yet."
 			)
+		) else if "!%%.Type!" == "MalNum" (
+			!_C_Copy! !%%.Mal!.Value %%.Val
+			!_C_Invoke! Types NewMal MalNum !%%.Val!
+			!_C_GetRet! %%.ClonedMal
 		) else (
 			!_C_Fatal! "Not implemented yet."
 		)

@@ -231,7 +231,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 + %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -259,7 +259,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 - %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -287,7 +287,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 * %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0
@@ -315,7 +315,7 @@ exit /b 0
 		!_C_Copy! !%%.MalNum1!.Value %%.Num1
 		!_C_Copy! !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 / %%.Num2
-		!_C_Invoke! TYPES NewMalAtom MalNum !%%.Num! & !_C_GetRet! %%.RetMal
+		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
 		!_C_Return! %%.RetMal
 	)
 exit /b 0

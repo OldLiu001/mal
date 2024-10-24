@@ -36,11 +36,17 @@ Type
 	String
 	Reader
 	MalBool
+		Value
 	MalNil
+		Value
 	MalNum
+		Value
 	MalSym
+		Value
 	MalKwd
+		Value
 	MalStr
+		Value
 	MalLst
 	MalVec
 	MalMap
@@ -73,9 +79,6 @@ MalMap
 RawKeyArr
 	Type
 	Key[Num]
-
-MalAtom
-	Value
 
 Enviroment
 	Outer
