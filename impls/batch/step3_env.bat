@@ -146,16 +146,17 @@ exit /b 0
 				!_C_Copy! %%.ObjMal %%.RetMal
 			)
 		) else if "!%%.Type!" == "MalVec" (
-			!_C_Fatal! "TODO: rewrite this to create new vec and free old vec"
+			!_C_Invoke! NS New MalVec & !_C_GetRet! %%.RetMal
 			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			!_C_Copy! !%%.ObjMal!.Count !%%.RetMal!.Count
 			for /l %%i in (1 1 !%%.Count!) do (
-				!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.ObjMal!.Item[%%i]
+				!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.RetMal!.Item[%%i]
 				if defined _G_ERR (
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
 					exit /b 0
 				)
 			)
-			!_C_Copy! %%.ObjMal %%.RetMal
+			!_C_Invoke! Types FreeMalType %%.ObjMal
 		) else if "!%%.Type!" == "MalMap" (
 			!_C_Copy! %%.ObjMal %%.MalMap
 			!_C_Copy! !%%.MalMap!.RawKeyCount %%.KeyCount
