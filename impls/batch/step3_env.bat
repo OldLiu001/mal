@@ -17,7 +17,6 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 
 !_C_Invoke! Env New _ & !_C_GetRet! _G_ENV
 !_C_Invoke! MAIN EnvInit _G_ENV
-set !_G_ENV!
 !_C_Invoke! MAIN Main
 exit /b 0
 
@@ -51,7 +50,6 @@ exit /b 0
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		for /l %%_ in () do (
-			set | find /C /V ""
 			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
 			!_C_Invoke! IO ReadEscapedLine
 			if defined _G_RET (
@@ -153,6 +151,7 @@ exit /b 0
 				!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.RetMal!.Item[%%i]
 				if defined _G_ERR (
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
+					!_C_Invoke! TYPES FreeMalType %%.RetMal
 					exit /b 0
 				)
 			)
