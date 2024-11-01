@@ -81,6 +81,7 @@ RawKeyArr
 	Key[Num]
 
 Enviroment
+	RefCount
 	Outer
 	Item[Key]=_
 	Item[Key].Count
@@ -94,3 +95,9 @@ MalFn (Bat)
 	Name
 	AutoEval : True/False
 
+MalFn (Mal)
+	Type : MalFn
+	SubType : MAL
+	Env (Enviroment)
+	Binds (MalLst/MalVec)
+	Body

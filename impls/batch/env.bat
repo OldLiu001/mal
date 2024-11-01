@@ -14,6 +14,7 @@ exit /b 0
 		)
 		!_C_Invoke! NS New Enviroment & !_C_GetRet! %%.Env
 		!_C_Copy! %%.Outer !%%.Env!.Outer
+		set /a !%%.Env!.RefCount = 0
 		!_C_Return! %%.Env
 	)
 exit /b 0
@@ -115,12 +116,18 @@ exit /b 0
 :Env_Free _Env -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Env=!%~1!"
-		for /f "delims==" %%i in ('set !%%.Env!.Item 2^>nul') do (
-			set "%%.Var=%%i"
-			if "!%%.Var:~-6!" == ".Value" (
-				!_C_Invoke! TYPES FreeMalType %%i
+		!_C_Copy! !%%.Env!.RefCount %%.RefCount
+		if !%%.RefCount! leq 0 (
+			for /f "delims==" %%i in ('set !%%.Env!.Item 2^>nul') do (
+				set "%%.Var=%%i"
+				if "!%%.Var:~-6!" == ".Value" (
+					!_C_Invoke! TYPES FreeMalType %%i
+				)
 			)
+			!_C_Invoke! NS Free %%.Env
+		) else (
+			set /a %%.RefCount -= 1
+			!_C_Copy! %%.RefCount !%%.Env!.RefCount
 		)
-		!_C_Invoke! NS Free %%.Env
 	)
 exit /b 0

@@ -130,7 +130,17 @@ exit /b 0
 		if "!%%.Type!" neq "MalFn" (
 			!_C_Fatal! "Arg _Mal is not a MalFn."
 		)
-		!_C_Invoke! NS Free %%.Mal
+		!_C_Copy! !%%.Mal!.SubType %%.SubType
+		if "!%%.SubType!" == "BAT" (
+			!_C_Invoke! NS Free %%.Mal
+		) else if "!%%.SubType!" == "MAL" (
+			!_C_Invoke! Env Free !%%.Mal!.Env
+			!_C_Invoke! Types FreeMalType !%%.Mal!.Binds
+			!_C_Invoke! Types FreeMalType !%%.Mal!.Body
+			!_C_Invoke! NS Free %%.Mal
+		) else (
+			!_C_Fatal! "Reached an unexpected branch."
+		)
 	)
 exit /b 0
 
@@ -170,6 +180,10 @@ exit /b 0
 			!_C_Copy! !%%.Mal!.Value %%.Val
 			!_C_Invoke! Types NewMal MalNum !%%.Val!
 			!_C_GetRet! %%.ClonedMal
+		) else if "!%%.Type!" == "MalLst" (
+			set /a %%.RefCount = !%%.Mal!.RefCount + 1
+			!_C_Copy! %%.RefCount !%%.Mal!.RefCount
+			!_C_Copy! %%.Mal %%.ClonedMal
 		) else (
 			!_C_Fatal! "Not implemented yet."
 		)
