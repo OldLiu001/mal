@@ -94,10 +94,19 @@ exit /b 0
 		if "!%%.Type!" neq "MalLst" if "!%%.Type!" neq "MalVec" (
 			!_C_Fatal! "Arg _Mal is not a MalLst or MalVec."
 		)
-		for /f "delims==" %%i in ('set !%%.Mal!.Item 2^>nul') do (
-			!_C_Invoke! TYPES FreeMalType %%i
+		set /a %%.RefCount = !%%.Mal!.RefCount
+		echo %%.RefCount !%%.RefCount!
+		if !%%.RefCount! leq 0 (
+			echo free !%%.Mal!
+			for /f "delims==" %%i in ('set !%%.Mal!.Item 2^>nul') do (
+				!_C_Invoke! TYPES FreeMalType %%i
+			)
+			!_C_Invoke! NS Free %%.Mal
+		) else (
+			echo fakefree !%%.Mal!
+			set /a %%.RefCount -= 1
+			!_C_Copy! %%.RefCount !%%.Mal!.RefCount
 		)
-		!_C_Invoke! NS Free %%.Mal
 	)
 goto :eof
 
@@ -134,6 +143,7 @@ exit /b 0
 		if "!%%.SubType!" == "BAT" (
 			!_C_Invoke! NS Free %%.Mal
 		) else if "!%%.SubType!" == "MAL" (
+			echo freefn !%%.Mal!
 			!_C_Invoke! Env Free !%%.Mal!.Env
 			!_C_Invoke! Types FreeMalType !%%.Mal!.Binds
 			!_C_Invoke! Types FreeMalType !%%.Mal!.Body
@@ -183,6 +193,8 @@ exit /b 0
 		) else if "!%%.Type!" == "MalLst" (
 			set /a %%.RefCount = !%%.Mal!.RefCount + 1
 			!_C_Copy! %%.RefCount !%%.Mal!.RefCount
+			echo fake copied
+			set !%%.Mal!.RefCount
 			!_C_Copy! %%.Mal %%.ClonedMal
 		) else (
 			!_C_Fatal! "Not implemented yet."

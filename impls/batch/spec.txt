@@ -91,13 +91,14 @@ Enviroment
 MalFn (Bat)
 	Type : MalFn
 	SubType : BAT
+	AutoEval : True/False
 	Mod
 	Name
-	AutoEval : True/False
 
 MalFn (Mal)
 	Type : MalFn
 	SubType : MAL
+	AutoEval : True/False
 	Env (Enviroment)
 	Binds (MalLst/MalVec)
 	Body

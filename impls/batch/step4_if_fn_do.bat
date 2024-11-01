@@ -123,8 +123,6 @@ exit /b 0
 				!_C_Copy! !%%.ObjMal!.Item[1] %%.Fn
 				!_C_Copy! !%%.Fn!.Type %%.Type
 				if "!%%.Type!" equ "MalFn" (
-					!_C_Copy! !%%.Fn!.Mod %%.Mod
-					!_C_Copy! !%%.Fn!.Name %%.Name
 					!_C_Copy! !%%.Fn!.AutoEval %%.AutoEval
 					if "!%%.AutoEval!" == "True" (
 						for /l %%i in (2 1 !%%.Count!) do (
@@ -135,9 +133,43 @@ exit /b 0
 							)
 						)
 					)
-					
-					!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal %%.Env & !_C_GetRet! %%.RetMal
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
+					!_C_Copy! !%%.Fn!.SubType %%.SubType
+					if "!%%.SubType!" == "BAT" (
+						!_C_Copy! !%%.Fn!.Mod %%.Mod
+						!_C_Copy! !%%.Fn!.Name %%.Name
+						
+						!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal %%.Env & !_C_GetRet! %%.RetMal
+						!_C_Invoke! TYPES FreeMalType %%.ObjMal
+					) else (
+						!_C_Copy! !%%.Fn!.Env %%.FnEnv
+						!_C_Copy! !%%.Fn!.Binds %%.Binds
+						!_C_Copy! !%%.Fn!.Body %%.Body
+						
+						!_C_Invoke! Env New %%.FnEnv & !_C_GetRet! %%.NewEnv
+						
+						rem bind the arguments.
+						set !%%.Binds!
+						!_C_Copy! !%%.Binds!.Count %%.KeyCount
+						set /a %%.ValueIndex = 2
+						for /l %%i in (1 1 !%%.KeyCount!) do (
+							if !%%.ValueIndex! gtr !%%.Count! (
+								!_C_Throw! Exception _ "Invalid arguments count."
+								!_C_Invoke! Env Free %%.NewEnv
+								!_C_Invoke! TYPES FreeMalType %%.ObjMal
+								exit /b 0
+							)
+							!_C_Copy! !%%.Binds!.Item[%%i] %%.MalKey
+							!_C_Copy! !%%.MalKey!.Value %%.RawKey
+							!_C_Copy! !%%.ObjMal!.Item[!%%.ValueIndex!] %%.MalVal
+							!_C_Invoke! Env Set %%.NewEnv %%.RawKey %%.MalVal
+							
+							set /a %%.ValueIndex += 1
+						)
+						
+						!_C_Invoke! Main Eval %%.Body %%.NewEnv & !_C_GetRet! %%.RetMal
+						!_C_Invoke! Env Free %%.NewEnv
+						!_C_Invoke! TYPES FreeMalType %%.ObjMal
+					)
 				) else (
 					!_C_Throw! Exception _ "Can not invoke '!%%.Type!'."
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
@@ -424,6 +456,11 @@ exit /b 0
 			!_C_Throw! Exception _ "Invalid arguments count."
 			exit /b 0
 		)
+		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalLst MalVec & !_C_GetRet! %%.CheckResult
+		if "!%%.CheckResult!" neq "True" (
+			!_C_Throw! Exception _ "Invalid argument type."
+			exit /b 0
+		)
 		!_C_Copy! !%%.Mal!.Item[2] %%.Binds
 		!_C_Copy! !%%.Binds!.Count %%.BindCnt
 		for /l %%i in (1 1 !%%.BindCnt!) do (
@@ -448,6 +485,7 @@ exit /b 0
 		set /a %%.RefCount += 1
 		!_C_Copy! %%.RefCount !%%.Env!.RefCount
 		!_C_Copy! %%.Env !%%.MalFn!.Env
+		set "!%%.MalFn!.AutoEval=True"
 		!_C_Return! %%.MalFn
 	)
 exit /b 0
