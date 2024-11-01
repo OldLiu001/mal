@@ -43,9 +43,18 @@ exit /b 0
 		set "%%.Key=let*"
 		!_C_Invoke! TYPES NewBatFn MAIN MLet False & !_C_GetRet! %%.MalFn
 		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		
 		set "%%.Key=fn*"
 		!_C_Invoke! TYPES NewBatFn MAIN MFn False & !_C_GetRet! %%.MalFn
 		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=do"
+		!_C_Invoke! TYPES NewBatFn MAIN MDo False & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		set "%%.Key=if"
+		!_C_Invoke! TYPES NewBatFn MAIN MIf False & !_C_GetRet! %%.MalFn
+		!_C_Invoke! Env Set %%.Env %%.Key %%.MalFn
+		
+		
 		!_C_Return! _
 	)
 exit /b 0
@@ -475,12 +484,8 @@ exit /b 0
 		!_C_Invoke! NS New MalFn & !_C_GetRet! %%.MalFn
 		set "!%%.MalFn!.SubType=MAL"
 		set "!%%.MalFn!.AutoEval=True"
-		echo 1
-		set !%%.Binds!
 		!_C_Invoke! Types CopyMalType %%.Binds & !_C_GetRet! !%%.MalFn!.Binds
-		echo 2
 		!_C_Invoke! Types CopyMalType !%%.Mal!.Item[3] & !_C_GetRet! !%%.MalFn!.Body
-		echo 3
 		!_C_Copy! !%%.Env!.RefCount %%.RefCount
 		set /a %%.RefCount += 1
 		!_C_Copy! %%.RefCount !%%.Env!.RefCount
@@ -489,3 +494,57 @@ exit /b 0
 		!_C_Return! %%.MalFn
 	)
 exit /b 0
+
+:MAIN_MDo _Mal _Env -> _Mal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		set "%%.Env=!%~2!"
+		!_C_Copy! !%%.Mal!.Count %%.Count
+		if !%%.Count! lss 2 (
+			!_C_Throw! Exception _ "Invalid arguments count."
+			exit /b 0
+		)
+		for /l %%i in (2 1 !%%.Count!) do (
+			!_C_Invoke! Main Eval !%%.Mal!.Item[%%i] %%.Env & !_C_GetRet! %%.RetMal
+			if defined _G_ERR exit /b 0
+			if %%i neq !%%.Count! (
+				!_C_Invoke! TYPES FreeMalType %%.RetMal
+			)
+		)
+		!_C_Return! %%.RetMal
+	)
+exit /b 0
+
+
+:MAIN_MIf _Mal _Env -> _Mal
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.Mal=!%~1!"
+		set "%%.Env=!%~2!"
+		!_C_Copy! !%%.Mal!.Count %%.Count
+		if !%%.Count! neq 4 (
+			!_C_Throw! Exception _ "Invalid arguments count."
+			exit /b 0
+		)
+		!_C_Invoke! Main Eval !%%.Mal!.Item[2] %%.Env & !_C_GetRet! %%.CondMal
+		if defined _G_ERR exit /b 0
+		!_C_Copy! !%%.CondMal!.Type %%.Type
+		rem if is nil or false, return the result of the else branch.
+		rem otherwise, return the result of the then branch.
+		set %%.Cond=True
+		if "!%%.Type!" == "MalNil" (
+			set %%.Cond=False
+		) else if "!%%.Type!" == "MalBool" (
+			!_C_Copy! !%%.CondMal!.Value %%.Val
+			if "!%%.Val!" == "false" (
+				set %%.Cond=False
+			)
+		)
+		!_C_Invoke! TYPES FreeMalType %%.CondMal
+		
+		if "!%%.Cond!" equ "True" (
+			!_C_Invoke! Main Eval !%%.Mal!.Item[3] %%.Env & !_C_GetRet! %%.RetMal
+		) else (
+			!_C_Invoke! Main Eval !%%.Mal!.Item[4] %%.Env & !_C_GetRet! %%.RetMal
+		)
+		!_C_Return! %%.RetMal
+	)
