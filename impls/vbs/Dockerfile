@@ -19,6 +19,10 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
+# skip the geographic area selection
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
 RUN apt install wine winetricks -y
 RUN winetricks -q wsh57
 RUN winetricks -q dotnet35
