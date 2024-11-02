@@ -1,6 +1,9 @@
 v:0.5
 
 Count 均从1开始计数
+RefCount 从0开始计数
+
+TODO 变量统一添加RefCount属性
 
 Special Symbol Mapping:
 	! --- $E
@@ -102,3 +105,4 @@ MalFn (Mal)
 	Env (Enviroment)
 	Binds (MalLst/MalVec)
 	Body
+	BodyRefList（TODO）

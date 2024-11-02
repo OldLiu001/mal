@@ -2,17 +2,11 @@
 批处理编程结构基本固定
 
 TODO：
-let*
 EvalLater 封装
-
-var的垃圾回收
-变量初始化引用计数为1
-变量复制全部使用MalCopy，此时增加引用计数
-变量释放时，若引用计数>1，则减1，否则释放
-frame的垃圾回收
-垃圾回收初步想法：Frame的RefCount为0时自动Free
-Evallater用.Todolist属性表示RefCount-1
-或者引用计数？
+垃圾回收统一使用RefCount
+闭包分析内部对外的隐式引用（遍历AST），引用计数+1
+( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+释放Fn时同时释放隐式引用
 
 垃圾回收思路2
 全部复制

@@ -157,7 +157,6 @@ exit /b 0
 						!_C_Invoke! Env New %%.FnEnv & !_C_GetRet! %%.NewEnv
 						
 						rem bind the arguments.
-						set !%%.Binds!
 						!_C_Copy! !%%.Binds!.Count %%.KeyCount
 						set /a %%.ValueIndex = 2
 						for /l %%i in (1 1 !%%.KeyCount!) do (
@@ -528,8 +527,6 @@ exit /b 0
 		!_C_Invoke! Main Eval !%%.Mal!.Item[2] %%.Env & !_C_GetRet! %%.CondMal
 		if defined _G_ERR exit /b 0
 		!_C_Copy! !%%.CondMal!.Type %%.Type
-		rem if is nil or false, return the result of the else branch.
-		rem otherwise, return the result of the then branch.
 		set %%.Cond=True
 		if "!%%.Type!" == "MalNil" (
 			set %%.Cond=False

@@ -61,6 +61,7 @@ exit /b 0
 			exit /b 0
 		)
 		!_C_Copy! !%%.Mal!.Type %%.Type
+		echo free !%%.Mal! !%%.Type!
 		if "!%%.Type!" == "MalBool" (
 			!_C_Invoke! NS Free %%.Mal
 		) else if "!%%.Type!" == "MalNil" (
