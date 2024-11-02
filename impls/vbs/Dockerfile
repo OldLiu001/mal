@@ -24,9 +24,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 
 RUN dpkg --add-architecture i386
-RUN apt update
-RUN apt install xvfb wine32 winetricks -y
-RUN useradd -m wineuser
-RUN passwd -d wineuser
-RUN sudo -u wineuser winetricks -q wsh57
-RUN sudo -u wineuser xvfb-run -a --server-args="-screen 0 1280x800x24 -nolisten tcp" winetricks -q dotnet35
+RUN wget https://raw.githubusercontent.com/scottyhardy/docker-wine/master/docker-wine
+RUN chmod +x docker-wine
+RUN ./docker-wine --xvfb winetricks -q wsh57
+RUN ./docker-wine --xvfb winetricks -q dotnet35
