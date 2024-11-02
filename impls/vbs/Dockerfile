@@ -21,10 +21,11 @@ WORKDIR /mal
 
 # skip the geographic area selection
 ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Shanghai
+ARG TZ=Asia/Shanghai
+ENV VBS_MAL_ENV=WINE
 
 RUN dpkg --add-architecture i386
-RUN wget https://raw.githubusercontent.com/scottyhardy/docker-wine/master/docker-wine
-RUN chmod +x docker-wine
-RUN ./docker-wine --xvfb winetricks -q wsh57
-RUN ./docker-wine --xvfb winetricks -q dotnet35
+RUN apt update
+RUN apt install wine32 winetricks -y
+RUN winetricks -q wsh57
+#RUN ./docker-wine --xvfb winetricks -q dotnet35
