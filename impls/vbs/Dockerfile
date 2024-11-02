@@ -29,4 +29,9 @@ RUN apt install xvfb wine32 winetricks -y
 RUN rm -rf ~/.wine
 RUN WINEARCH=win32 winecfg
 RUN winetricks -q wsh57
-RUN xvfb-run -a --server-args="-screen 0 1280x800x24 -nolisten tcp" winetricks -q dotnet35
+RUN Xvfb :99 -screen 0 1024x768x24 &
+RUN export DISPLAY=:99
+ENV DISPLAY=:99
+ARG DISPLAY=:99
+#RUN xvfb-run -a --server-args="-screen 0 1280x800x24 -nolisten tcp" winetricks -q dotnet35
+RUN winetricks -q dotnet35
