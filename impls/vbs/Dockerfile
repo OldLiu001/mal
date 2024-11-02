@@ -27,5 +27,4 @@ ENV VBS_MAL_ENV=WINE
 RUN dpkg --add-architecture i386
 RUN apt update
 RUN apt install wine32 winetricks -y
-RUN winetricks -q wsh57
-#RUN ./docker-wine --xvfb winetricks -q dotnet35
+RUN wine cmd /c echo hello,world
