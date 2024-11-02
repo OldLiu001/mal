@@ -1,0 +1,3 @@
+winetricks -q wsh57
+winetricks -q dotnet35
+WINEDEBUG=-all wine cscript -nologo stepA_mal.vbs
