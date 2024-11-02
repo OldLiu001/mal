@@ -23,6 +23,8 @@ WORKDIR /mal
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 
-RUN apt install wine winetricks -y
+RUN dpkg --add-architecture i386
+RUN apt update
+RUN apt install wine wine32 winetricks -y
 RUN winetricks -q wsh57
 RUN winetricks -q dotnet35
