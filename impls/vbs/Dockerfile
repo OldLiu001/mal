@@ -26,5 +26,7 @@ ENV TZ=Asia/Shanghai
 RUN dpkg --add-architecture i386
 RUN apt update
 RUN apt install xvfb wine32 winetricks -y
+RUN rm -rf ~/.wine
+RUN WINEARCH=win32 winecfg
 RUN winetricks -q wsh57
 RUN xvfb-run -a --server-args="-screen 0 1280x800x24 -nolisten tcp" winetricks -q dotnet35
