@@ -32,5 +32,5 @@ RUN wine winecfg
 RUN winetricks -q wsh57
 RUN wine cmd /c echo hello,world
 RUN wine cscript
-RUN apt install xvfb
+RUN apt install xvfb -y
 RUN xvfb-run winetricks -q dotnet35
