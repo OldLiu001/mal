@@ -32,3 +32,4 @@ RUN wine winecfg
 RUN winetricks -q wsh57
 RUN wine cmd /c echo hello,world
 RUN wine cscript
+RUN winetricks -q dotnet35
