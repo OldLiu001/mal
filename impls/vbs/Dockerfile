@@ -27,10 +27,8 @@ ENV WINEPREFIX=/tmp/.wine-your-new-directory
 
 RUN dpkg --add-architecture i386
 RUN apt update
-RUN apt install wine32=6.16 wine=6.16 winetricks -y
+RUN apt install wine32 winetricks -y
 RUN wine winecfg
 RUN winetricks -q wsh57
 RUN wine cmd /c echo hello,world
 RUN wine cscript
-RUN apt install xvfb -y
-RUN xvfb-run winetricks -q dotnet35
