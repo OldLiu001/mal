@@ -3,4 +3,4 @@
 #WSLENV=MAL_VBS_IMPL_NO_STDERR/w:MAL_VBS_IMPL_ECHO_STDIN/w \
 #cscript.exe -nologo "`wslpath -w "$(dirname $0)/${STEP:-stepA_mal}.vbs"`" "${@}"
 
-WINEPREFIX=/mal/.wine2 WINEDEBUG=-all wine cscript -nologo "$(dirname $0)/${STEP:-stepA_mal}.vbs"
+WINEDEBUG=-all wine cscript -nologo "$(dirname $0)/${STEP:-stepA_mal}.vbs"
