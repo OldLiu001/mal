@@ -6,7 +6,8 @@ integer status;
 initial begin
 // 打开标准输入
 //file = $fopen("top_module.v", "r");
-file = $fopen("/proc/self/fd/0", "r");
+  //file = $fopen("/proc/self/fd/0", "r"); //linux ok
+  file = $fopen("/dev/stdin", "r"); //linux & macos ok
 
 if (|file) begin
 while (!$feof(file)) begin
