@@ -23,12 +23,11 @@ WORKDIR /mal
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TZ=Asia/Shanghai
 ENV VBS_MAL_ENV=WINE
-ARG WINEPREFIX=/tmp/.wine
+ARG WINEPREFIX=/mal/.wine2
 
 RUN dpkg --add-architecture i386
 RUN apt update
 RUN apt install wine32 winetricks -y
-RUN wine winecfg
 RUN winetricks -q wsh57
 RUN wine cmd /c echo hello,world
 RUN wine cscript
