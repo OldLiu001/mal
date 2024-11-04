@@ -23,7 +23,7 @@ WORKDIR /mal
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TZ=Asia/Shanghai
 ENV VBS_MAL_ENV=WINE
-ENV WINEPREFIX=~/.wine-your-new-directory
+ENV WINEPREFIX=/tmp/.wine-your-new-directory
 
 RUN dpkg --add-architecture i386
 RUN apt update
