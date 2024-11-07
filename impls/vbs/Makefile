@@ -1,5 +1,5 @@
 all:
-	brew install wine winetricks
+	brew install --cask --no-quarantine wine@staging
 	wine winecfg
 	winetricks -q wsh57
 	winetricks -q dotnet35
