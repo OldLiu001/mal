@@ -100,7 +100,6 @@ IMPL:
   - {IMPL: ts}
   - {IMPL: vala}
   - {IMPL: vb}
-  - {IMPL: vbs}
   - {IMPL: vhdl, NO_SELF_HOST_PERF: 1}  # perf timeout
   - {IMPL: vimscript}
   # no self-host perf for wasm due to mac stack overflow
@@ -124,3 +123,4 @@ IMPL:
   - {IMPL: swift6, NO_DOCKER: 1, OS: macos}
 
 # - {IMPL: vbs, NO_DOCKER: 1, OS: windows}
+  - {IMPL: vbs, NO_DOCKER: 1, OS: macos}
