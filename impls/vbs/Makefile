@@ -1,9 +1,9 @@
 all:
 	brew install --cask --no-quarantine wine@staging
 	brew install winetricks
-	winetricks -q wsh57
-	echo winetricks -q dotnet35
-	wine cmd /c echo hello,world
-	wine cscript /?
+	WINEARCH=win32 winetricks -q wsh57
+	WINEARCH=win32 winetricks -q dotnet35
+	WINEARCH=win32 wine cmd /c echo hello,world
+	WINEARCH=win32 wine cscript
 
 clean:
