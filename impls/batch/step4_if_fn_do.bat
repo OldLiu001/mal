@@ -489,6 +489,8 @@ exit /b 0
 		set /a %%.RefCount += 1
 		!_C_Copy! %%.RefCount !%%.Env!.RefCount
 		!_C_Copy! %%.Env !%%.MalFn!.Env
+		@REM TODO：这里需要考虑环境的引用计数问题。
+		@REM 上层环境的引用计数也需要增加。
 		set "!%%.MalFn!.AutoEval=True"
 		!_C_Return! %%.MalFn
 	)
@@ -545,3 +547,4 @@ exit /b 0
 		)
 		!_C_Return! %%.RetMal
 	)
+exit /b 0

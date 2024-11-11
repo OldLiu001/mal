@@ -31,11 +31,16 @@ exit /b 0
 		if not defined !%~1!. (
 			!_C_Fatal! "'!%~1!' is not a namespace."
 		)
-
-		for /f "delims==" %%i in (
-			'set !%~1!'
-		) do (
-			set "%%i="
+		set /a %%.RefCnt = !%~1!.RefCount
+		if %%.RefCnt neq 0 (
+			set /a %%.RefCnt -= 1
+			!_C_Copy! %%.RefCnt !%~1!.RefCount
+		) else (
+			for /f "delims==" %%i in (
+				'set !%~1!'
+			) do (
+				set "%%i="
+			)
 		)
 
 		!_C_Return! _
