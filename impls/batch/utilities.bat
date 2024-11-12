@@ -31,6 +31,13 @@ exit /b 0
 		set "_C_Fatal=call UTILITIES :UTILITIES_Fatal"
 		set "_C_Throw=call UTILITIES :UTILITIES_Throw"
 	)
+
+	set "|-=!_C_Invoke!"
+	set "->=& !_C_GetRet!"
+	set "<-=!_C_Return!"
+	set "|=exit /b 0"
+	set "?=if defined _G_ERR"
+	set "&=!_C_Copy!"
 exit /b 0
 
 :UTILITIES_Invoke _Mod _Fn * -> *
@@ -89,7 +96,7 @@ exit /b 0
 	pause & exit 1
 exit /b 0
 
-:UTILITIES_Throw _Type _Data _Msg
+:UTILITIES_Throw _Msg [_Type=Exception] [_Data=_]
 	set _G_ERR=_
 	set "_G_ERR.Type=%~1"
 	if "%~2" neq "_" set "_G_ERR.Data=!%~2!"

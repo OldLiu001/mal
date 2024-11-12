@@ -485,12 +485,14 @@ exit /b 0
 		set "!%%.MalFn!.AutoEval=True"
 		!_C_Invoke! Types CopyMalType %%.Binds & !_C_GetRet! !%%.MalFn!.Binds
 		!_C_Invoke! Types CopyMalType !%%.Mal!.Item[3] & !_C_GetRet! !%%.MalFn!.Body
-		!_C_Copy! !%%.Env!.RefCount %%.RefCount
-		set /a %%.RefCount += 1
-		!_C_Copy! %%.RefCount !%%.Env!.RefCount
-		!_C_Copy! %%.Env !%%.MalFn!.Env
-		@REM TODO：这里需要考虑环境的引用计数问题。
-		@REM 上层环境的引用计数也需要增加。
+		:MAIN_MFn_Loop
+			echo loop
+			!_C_Copy! !%%.Env!.RefCount %%.RefCount
+			set /a %%.RefCount += 1
+			!_C_Copy! %%.RefCount !%%.Env!.RefCount
+			!_C_Copy! %%.Env !%%.MalFn!.Env
+			!_C_Copy! !%%.Env!.Outer %%.Env
+		if "!%%.Env!" neq "_" goto MAIN_MFn_Loop
 		set "!%%.MalFn!.AutoEval=True"
 		!_C_Return! %%.MalFn
 	)
@@ -506,13 +508,13 @@ exit /b 0
 			exit /b 0
 		)
 		for /l %%i in (2 1 !%%.Count!) do (
-			!_C_Invoke! Main Eval !%%.Mal!.Item[%%i] %%.Env & !_C_GetRet! %%.RetMal
+			%|-% Main Eval !%%.Mal!.Item[%%i] %%.Env %->% %%.RetMal
 			if defined _G_ERR exit /b 0
 			if %%i neq !%%.Count! (
 				!_C_Invoke! TYPES FreeMalType %%.RetMal
 			)
 		)
-		!_C_Return! %%.RetMal
+		%<-% %%.RetMal
 	)
 exit /b 0
 

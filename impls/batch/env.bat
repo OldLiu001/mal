@@ -118,7 +118,6 @@ exit /b 0
 		set "%%.Env=!%~1!"
 		!_C_Copy! !%%.Env!.RefCount %%.RefCount
 		if !%%.RefCount! leq 0 (
-			echo free !%%.Env!
 			for /f "delims==" %%i in ('set !%%.Env!.Item 2^>nul') do (
 				set "%%.Var=%%i"
 				if "!%%.Var:~-6!" == ".Value" (
@@ -127,7 +126,6 @@ exit /b 0
 			)
 			!_C_Invoke! NS Free %%.Env
 		) else (
-			echo fake free !%%.Env!
 			set /a %%.RefCount -= 1
 			!_C_Copy! %%.RefCount !%%.Env!.RefCount
 		)

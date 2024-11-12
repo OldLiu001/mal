@@ -32,7 +32,7 @@ exit /b 0
 			!_C_Fatal! "'!%~1!' is not a namespace."
 		)
 		set /a %%.RefCnt = !%~1!.RefCount
-		if %%.RefCnt neq 0 (
+		if %%.RefCnt gtr 0 (
 			set /a %%.RefCnt -= 1
 			!_C_Copy! %%.RefCnt !%~1!.RefCount
 		) else (
