@@ -1,11 +1,8 @@
-@REM v:1.4
-
 @echo off
 if "%~1" neq "" (
-	call %* || !_C_Fatal! "Call '%~nx0' failed."
-	exit /b 0
+	call %* || %?|% "Call '%~nx0' failed."
 )
-exit /b 0
+%-|%
 
 :IO_ReadEscapedLine _ -> _Line
 	for %%. in (_L{!_G_LEVEL!}_) do (

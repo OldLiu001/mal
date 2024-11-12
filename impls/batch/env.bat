@@ -1,9 +1,8 @@
 @echo off
 if "%~1" neq "" (
-	call %* || !_C_Fatal! "Call '%~nx0' failed."
-	exit /b 0
+	call %* || %?|% "Call '%~nx0' failed."
 )
-exit /b 0
+%-|%
 
 :ENV_New _Outer -> _Env
 	for %%. in (_L{!_G_LEVEL!}_) do (

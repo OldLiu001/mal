@@ -1,5 +1,3 @@
-@REM v: 1.4
-
 @echo off
 setlocal disabledelayedexpansion
 for /f "delims=#" %%. in (

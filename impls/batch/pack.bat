@@ -6,6 +6,7 @@ if "%~1" == "" (
 	echo Usage: %~n0 ^<entry^> ^<output^> 
 	echo 	^<entry^> - Entry point of the program, like "stepX_XXX.bat"
 	echo 	^<output^> - Output file, e.g. "mal_packed.bat"
+	echo.
 	pause
 	exit /b 1
 )

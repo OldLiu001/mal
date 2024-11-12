@@ -1,4 +1,3 @@
-@REM v: 1.4
 @echo off & setlocal ENABLEDELAYEDEXPANSION
 
 for /f "delims=" %%i in ('more') do (
