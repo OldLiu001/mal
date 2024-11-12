@@ -98,7 +98,7 @@ exit /b 0
 		!_C_GetRet! %%.Env
 		
 		if "!%%.Env!" == "_" (
-			!_C_Throw! Exception _ "Symbol '!%%.Key!' not found."
+			%??% "Symbol '!%%.Key!' not found."
 			exit /b 0
 		)
 		

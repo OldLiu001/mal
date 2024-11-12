@@ -32,7 +32,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 		if "!%%.TotalTokenNum!" == "0" (
 			!_C_Invoke! NS Free %%.ObjReader
-			!_C_Throw! Empty _ _
+			!_C_Throw! "" Empty
 			exit /b 0
 		)
 		
@@ -58,7 +58,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			!_C_Throw! Exception _ "unexpected EOF, need more token."
+			%??% "unexpected EOF, need more token."
 			exit /b 0
 		)
 
@@ -128,13 +128,13 @@ exit /b 0
 			!_C_Invoke! READER ReadMeta %%.ObjReader & !_C_GetRet! %%.ObjAST
 			if defined _G_ERR exit /b 0
 		) else if "!%%.CurToken!" == ")" (
-			!_C_Throw! Exception _ "unexpected token ')'."
+			%??% "unexpected token ')'."
 			exit /b 0
 		) else if "!%%.CurToken!" == "]" (
-			!_C_Throw! Exception _ "unexpected token ']'."
+			%??% "unexpected token ']'."
 			exit /b 0
 		) else if "!%%.CurToken!" == "}" (
-			!_C_Throw! Exception _ "unexpected token '}'."
+			%??% "unexpected token '}'."
 			exit /b 0
 		) else if "!%%.CurToken:~,1!" == ";" (
 			!_C_Throw! Empty _ _
@@ -154,7 +154,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			!_C_Throw! Exception _ "unexpected EOF, need more token."
+			%??% "unexpected EOF, need more token."
 			exit /b 0
 		)
 
@@ -196,7 +196,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			!_C_Throw! Exception _ "unbalanced parenthesis."
+			%??% "unbalanced parenthesis."
 			exit /b 0
 		)
 
@@ -216,7 +216,7 @@ exit /b 0
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
 			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
-			!_C_Throw! Exception _ "unbalanced parenthesis."
+			%??% "unbalanced parenthesis."
 			exit /b 0
 		)
 		
@@ -229,7 +229,7 @@ exit /b 0
 		
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
 			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
-			!_C_Throw! Exception _ "unbalanced parenthesis."
+			%??% "unbalanced parenthesis."
 			exit /b 0
 		)
 
@@ -239,7 +239,7 @@ exit /b 0
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalLst" (
 				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
-				!_C_Throw! Exception _ "unbalanced parenthesis."
+				%??% "unbalanced parenthesis."
 				exit /b 0
 			)
 			set /a %%.TokenPtr += 1
@@ -250,7 +250,7 @@ exit /b 0
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalVec" (
 				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
-				!_C_Throw! Exception _ "unbalanced parenthesis."
+				%??% "unbalanced parenthesis."
 				exit /b 0
 			)
 			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
@@ -284,7 +284,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenCount %%.TokenCount
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Throw! Exception _ "unbalanced parenthesis."
+			%??% "unbalanced parenthesis."
 			exit /b 0
 		)
 
@@ -304,7 +304,7 @@ exit /b 0
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			!_C_Invoke! NS Free %%.RawKeys
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
-			!_C_Throw! Exception _ "unbalanced parenthesis."
+			%??% "unbalanced parenthesis."
 			exit /b 0
 		)
 		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
@@ -329,7 +329,7 @@ exit /b 0
 			!_C_Invoke! NS Free %%.RawKeys
 			!_C_Invoke! TYPES FreeMalType %%.MalKey
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
-			!_C_Throw! Exception _ "Map key must be 'MalStr' or 'MalKwd'."
+			%??% "Map key must be 'MalStr' or 'MalKwd'."
 			exit /b 0
 		)
 		
@@ -339,7 +339,7 @@ exit /b 0
 		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Throw! Exception _ "Unmatched map key-value pair."
+			%??% "Unmatched map key-value pair."
 			!_C_Invoke! NS Free %%.RawKeys
 			!_C_Invoke! TYPES FreeMalType %%.MalKey
 			!_C_Invoke! TYPES FreeMalMap %%.MalMap
@@ -365,7 +365,7 @@ exit /b 0
 					!_C_Invoke! TYPES FreeMalType %%.MalKey
 					!_C_Invoke! TYPES FreeMalType %%.MalVal
 					!_C_Invoke! TYPES FreeMalMap %%.MalMap
-					!_C_Throw! Exception _ "Key '!%%.RawKey!' already exist."
+					%??% "Key '!%%.RawKey!' already exist."
 					exit /b 0
 				)
 			)
@@ -408,7 +408,7 @@ exit /b 0
 		set /a !%%.Reader!.TokenPtr += 1
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Throw! Exception _ "Unexpected EOF, need more token."
+			%??% "Unexpected EOF, need more token."
 			exit /b 0
 		)
 

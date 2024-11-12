@@ -100,7 +100,7 @@ exit /b 0
 					)
 				)
 				if "!%%.Found!" == "False" (
-					!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
+					%??% "Symbol '!%%.Val!' not found."
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
 					exit /b 0
 				)
@@ -108,7 +108,7 @@ exit /b 0
 				!_C_Invoke! TYPES FreeMalType %%.ObjMal
 
 			) else (
-				!_C_Throw! Exception _ "Symbol '!%%.Val!' not found."
+				%??% "Symbol '!%%.Val!' not found."
 				!_C_Invoke! TYPES FreeMalType %%.ObjMal
 				exit /b 0
 			)
@@ -131,7 +131,7 @@ exit /b 0
 					!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal & !_C_GetRet! %%.RetMal
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
 				) else (
-					!_C_Throw! Exception _ "Can not invoke '!%%.Type!'."
+					%??% "Can not invoke '!%%.Type!'."
 					!_C_Invoke! TYPES FreeMalType %%.ObjMal
 					exit /b 0
 				)
@@ -213,17 +213,17 @@ exit /b 0
 		set "%%.Mal=!%~1!"
 		!_C_Copy! !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
-			!_C_Throw! Exception _ "Invalid arguments count."
+			%??% "Invalid arguments count."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
@@ -241,17 +241,17 @@ exit /b 0
 		set "%%.Mal=!%~1!"
 		!_C_Copy! !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
-			!_C_Throw! Exception _ "Invalid arguments count."
+			%??% "Invalid arguments count."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
@@ -269,17 +269,17 @@ exit /b 0
 		set "%%.Mal=!%~1!"
 		!_C_Copy! !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
-			!_C_Throw! Exception _ "Invalid arguments count."
+			%??% "Invalid arguments count."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
@@ -297,17 +297,17 @@ exit /b 0
 		set "%%.Mal=!%~1!"
 		!_C_Copy! !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
-			!_C_Throw! Exception _ "Invalid arguments count."
+			%??% "Invalid arguments count."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
 		if "!%%.IsNum!" neq "True" (
-			!_C_Throw! Exception _ "Invalid argument type."
+			%??% "Invalid argument type."
 			exit /b 0
 		)
 		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1

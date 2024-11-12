@@ -1,17 +1,13 @@
-
-	@REM Version 1.5
-
 @echo off
 if "%~1" neq "" (
-	call %* || !_C_Fatal! "Call '%~nx0' failed."
-	exit /b 0
+	call %* || %?|% "Call '%~nx0' failed."
 )
-exit /b 0
+%-|%
 
 
 :UTILITIES_Init _MainModName
 	set "_G_LEVEL=0"
-	set "_G_TRACE=>%~1"
+	set "_G_TRACE=%~1"
 	set "_G_RET="
 	set "_G_ERR="
 	set "_G_MAIN=%~1"
@@ -32,19 +28,18 @@ exit /b 0
 		set "_C_Throw=call UTILITIES :UTILITIES_Throw"
 	)
 
-	set "|-=!_C_Invoke!"
+	set "|=!_C_Invoke!"
 	set "->=& !_C_GetRet!"
 	set "<-=!_C_Return!"
-	set "|=exit /b 0"
+	set "-|=exit /b 0"
 	set "?=if defined _G_ERR"
 	set "&=!_C_Copy!"
-exit /b 0
+	set "??=!_C_Throw!"
+	set "?|=!_C_Fatal!"
+%-|%
 
 :UTILITIES_Invoke _Mod _Fn * -> *
 	set /a _G_LEVEL = _G_LEVEL
-	if not defined _G_TRACE (
-		set "_G_TRACE=>"
-	)
 
 	set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
 	set "_G_TRACE=!_G_TRACE!>(%~1)%~2"
@@ -73,39 +68,43 @@ exit /b 0
 
 	set /a _G_LEVEL -= 1
 	
-	!_C_Copy! _G_TRACE_{!_G_LEVEL!} _G_TRACE
+	%&% _G_TRACE_{!_G_LEVEL!} _G_TRACE
 	set "_G_TRACE_{!_G_LEVEL!}="
-exit /b 0
+%-|%
 
 :UTILITIES_GetRet _Var -> _
 	if not defined _G_ERR (
-		!_C_Copy! _G_RET %~1
+		%&% _G_RET %~1
 	)
 	set _G_RET=
-exit /b 0
+%-|%
 
 :UTILITIES_Return _Var -> _
 	set _G_RET=
 	if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
-		!_C_Copy! %~1 _G_RET
+		%&% %~1 _G_RET
 	)
-exit /b 0
+%-|%
 
 :UTILITIES_Fatal _Msg
 	>&2 echo [!_G_TRACE!] Fatal: %~1
 	pause & exit 1
-exit /b 0
+%-|%
 
 :UTILITIES_Throw _Msg [_Type=Exception] [_Data=_]
 	set _G_ERR=_
-	set "_G_ERR.Type=%~1"
-	if "%~2" neq "_" set "_G_ERR.Data=!%~2!"
-	set "_G_ERR.Msg=[!_G_TRACE!] !_G_ERR.Type!: %~3"
-exit /b 0
+	set "_G_ERR.Msg=[!_G_TRACE!] !_G_ERR.Type!: %~1"
+	if "%~2" neq "" (
+		set "_G_ERR.Type=%~2"
+	) else (
+		set "_G_ERR.Type=Exception"
+	)
+	if "%~3" neq "_" set "_G_ERR.Data=!%~2!"
+%-|%
 
 :UTILITIES_CopyVar _VarFrom _VarTo -> _
 	if not defined %~1 (
 		!_C_Fatal! "'%~1' undefined."
 	)
 	set "%~2=!%~1!"
-exit /b 0
+%-|%
