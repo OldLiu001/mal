@@ -4,163 +4,161 @@ if "%~1" neq "" (
 )
 %-|%
 
-
-
-:READER_ReadString _StrMalCode -> _ObjAST
+:READER_ReadString StrMalCode -> ObjAST
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.StrMalCode=!%~1!"
 		
-		!_C_Invoke! NS New Reader & !_C_GetRet! %%.ObjReader
+		%|% NS New Reader %->% %%.ObjReader
 		
 
 		set "!%%.ObjReader!.TokenCount=0"
 		set "!%%.ObjReader!.TokenPtr=1"
 
-		!_C_Copy! !%%.StrMalCode!.LineCount %%.LineCount
+		%&% !%%.StrMalCode!.LineCount %%.LineCount
 		for /l %%i in (1 1 !%%.LineCount!) do (
-			!_C_Invoke! READER Tokenize !%%.StrMalCode!.Line[%%i] %%.ObjReader
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjReader
-				exit /b 0
+			%|% READER Tokenize !%%.StrMalCode!.Line[%%i] %%.ObjReader
+			%?% (
+				%|% NS Free %%.ObjReader
+				%-|%
 			)
 		)
 
 		rem Check if there is any token.
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
+		%&% !%%.ObjReader!.TokenCount %%.TotalTokenNum
 		if "!%%.TotalTokenNum!" == "0" (
-			!_C_Invoke! NS Free %%.ObjReader
-			!_C_Throw! "" Empty
-			exit /b 0
+			%|% NS Free %%.ObjReader
+			%??% "" Empty
+			%-|%
 		)
 		
 		rem Translate the tokens to AST.
-		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjAST
-		if defined _G_ERR (
-			!_C_Invoke! NS Free %%.ObjReader
-			exit /b 0
+		%|% READER ReadForm %%.ObjReader %->% %%.ObjAST
+		%?% (
+			%|% NS Free %%.ObjReader
+			%-|%
 		)
 		
 
-		!_C_Invoke! NS Free %%.ObjReader
+		%|% NS Free %%.ObjReader
 
-		!_C_Return! %%.ObjAST
+		%<-% %%.ObjAST
 	)
-exit /b 0
+%-|%
 
-:READER_ReadForm  _ObjReader -> _ObjMal
+:READER_ReadForm  ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
 			%??% "unexpected EOF, need more token."
-			exit /b 0
+			%-|%
 		)
 
-		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
+		%&% !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
 		
 		if "!%%.CurToken!" == "(" (
-			!_C_Invoke! READER ReadList %%.ObjReader & !_C_GetRet! %%.ObjAST
-			if defined _G_ERR exit /b 0
+			%|% READER ReadList %%.ObjReader %->% %%.ObjAST
+			%?% %-|%
 		) else if "!%%.CurToken!" == "[" (
-			!_C_Invoke! READER ReadList %%.ObjReader & !_C_GetRet! %%.ObjAST
-			if defined _G_ERR exit /b 0
+			%|% READER ReadList %%.ObjReader %->% %%.ObjAST
+			%?% %-|%
 		) else if "!%%.CurToken!" == "{" (
-			!_C_Invoke! READER ReadMap %%.ObjReader & !_C_GetRet! %%.ObjAST
-			if defined _G_ERR exit /b 0
+			%|% READER ReadMap %%.ObjReader %->% %%.ObjAST
+			%?% %-|%
 		) else if "!%%.CurToken!" == "'" (
-			!_C_Invoke! TYPES NewMalAtom MalSym quote & !_C_GetRet! %%.ObjMalSymQuote
+			%|% TYPES NewMal MalSym quote %->% %%.ObjMalSymQuote
 			set /a !%%.ObjReader!.TokenPtr += 1
 
-			!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjMal
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjMalSymQuote
-				exit /b 0
+			%|% READER ReadForm %%.ObjReader %->% %%.ObjMal
+			%?% (
+				%|% NS Free %%.ObjMalSymQuote
+				%-|%
 			)
-			!_C_Invoke! TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal & !_C_GetRet! %%.ObjAST
+			%|% TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal %->% %%.ObjAST
 		) else if "!%%.CurToken!" == "`" (
-			!_C_Invoke! TYPES NewMalAtom MalSym quasiquote & !_C_GetRet! %%.ObjMalSymQuote
+			%|% TYPES NewMal MalSym quasiquote %->% %%.ObjMalSymQuote
 			set /a !%%.ObjReader!.TokenPtr += 1
 
-			!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjMal
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjMalSymQuote
-				exit /b 0
+			%|% READER ReadForm %%.ObjReader %->% %%.ObjMal
+			%?% (
+				%|% NS Free %%.ObjMalSymQuote
+				%-|%
 			)
-			!_C_Invoke! TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal & !_C_GetRet! %%.ObjAST
+			%|% TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal %->% %%.ObjAST
 		) else if "!%%.CurToken!" == "@" (
-			!_C_Invoke! TYPES NewMalAtom MalSym deref
-			!_C_Copy! _G_RET %%.ObjMalSymQuote
+			%|% TYPES NewMal MalSym deref
+			%&% _G_RET %%.ObjMalSymQuote
 			set /a !%%.ObjReader!.TokenPtr += 1
 
-			!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjMal
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjMalSymQuote
-				exit /b 0
+			%|% READER ReadForm %%.ObjReader %->% %%.ObjMal
+			%?% (
+				%|% NS Free %%.ObjMalSymQuote
+				%-|%
 			)
-			!_C_Invoke! TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal & !_C_GetRet! %%.ObjAST
+			%|% TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal %->% %%.ObjAST
 		) else if "!%%.CurToken!" == "~" (
-			!_C_Invoke! TYPES NewMalAtom MalSym unquote & !_C_GetRet! %%.ObjMalSymQuote
+			%|% TYPES NewMal MalSym unquote %->% %%.ObjMalSymQuote
 			set /a !%%.ObjReader!.TokenPtr += 1
 
-			!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjMal
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjMalSymQuote
-				exit /b 0
+			%|% READER ReadForm %%.ObjReader %->% %%.ObjMal
+			%?% (
+				%|% NS Free %%.ObjMalSymQuote
+				%-|%
 			)
-			!_C_Invoke! TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal & !_C_GetRet! %%.ObjAST
+			%|% TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal %->% %%.ObjAST
 		) else if "!%%.CurToken!" == "~@" (
-			!_C_Invoke! TYPES NewMalAtom MalSym splice-unquote & !_C_GetRet! %%.ObjMalSymQuote
+			%|% TYPES NewMal MalSym splice-unquote %->% %%.ObjMalSymQuote
 			set /a !%%.ObjReader!.TokenPtr += 1
 
-			!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.ObjMal
-			if defined _G_ERR (
-				!_C_Invoke! NS Free %%.ObjMalSymQuote
-				exit /b 0
+			%|% READER ReadForm %%.ObjReader %->% %%.ObjMal
+			%?% (
+				%|% NS Free %%.ObjMalSymQuote
+				%-|%
 			)
-			!_C_Invoke! TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal & !_C_GetRet! %%.ObjAST
+			%|% TYPES NewMalList %%.ObjMalSymQuote %%.ObjMal %->% %%.ObjAST
 		) else if "!%%.CurToken!" == "$C" (
-			!_C_Invoke! READER ReadMeta %%.ObjReader & !_C_GetRet! %%.ObjAST
-			if defined _G_ERR exit /b 0
+			%|% READER ReadMeta %%.ObjReader %->% %%.ObjAST
+			%?% %-|%
 		) else if "!%%.CurToken!" == ")" (
 			%??% "unexpected token ')'."
-			exit /b 0
+			%-|%
 		) else if "!%%.CurToken!" == "]" (
 			%??% "unexpected token ']'."
-			exit /b 0
+			%-|%
 		) else if "!%%.CurToken!" == "}" (
 			%??% "unexpected token '}'."
-			exit /b 0
+			%-|%
 		) else if "!%%.CurToken:~,1!" == ";" (
-			!_C_Throw! Empty _ _
+			%??% "" Empty
 		) else (
-			!_C_Invoke! READER ReadAtom %%.ObjReader & !_C_GetRet! %%.ObjAST
+			%|% READER ReadAtom %%.ObjReader %->% %%.ObjAST
 		)
 
-		!_C_Return! %%.ObjAST
+		%<-% %%.ObjAST
 	)
-exit /b 0
+%-|%
 
-:READER_ReadAtom _ObjReader -> _ObjMal
+:READER_ReadAtom ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
 			%??% "unexpected EOF, need more token."
-			exit /b 0
+			%-|%
 		)
 
-		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
+		%&% !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
 		set /a %%.TokenPtr += 1
-		!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+		%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 		
-		!_C_Invoke! NS New & !_C_GetRet! %%.ObjMalCode
-		!_C_Copy! %%.CurToken !%%.ObjMalCode!.Value
+		%|% NS New %->% %%.ObjMalCode
+		%&% %%.CurToken !%%.ObjMalCode!.Value
 		
 		rem check token's MalType.
 		set /a %%.TestNum = %%.CurToken
@@ -179,208 +177,207 @@ exit /b 0
 		) else (
 			set "!%%.ObjMalCode!.Type=MalSym"
 		)
-		rem TODO: CheckMore.
 
-		!_C_Return! %%.ObjMalCode
+		%<-% %%.ObjMalCode
 	)
-exit /b 0
+%-|%
 
-:READER_ReadList _ObjReader -> _ObjMal
+:READER_ReadList ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.TotalTokenNum
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenCount %%.TotalTokenNum
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
 			%??% "unbalanced parenthesis."
-			exit /b 0
+			%-|%
 		)
 
-		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
+		%&% !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
 
 		if "!%%.CurToken!" Equ "(" (
-			!_C_Invoke! NS New MalLst & !_C_GetRet! %%.ObjMalCode
+			%|% NS New MalLst %->% %%.ObjMalCode
 		) else if "!%%.CurToken!" Equ "[" (
-			!_C_Invoke! NS New MalVec & !_C_GetRet! %%.ObjMalCode
+			%|% NS New MalVec %->% %%.ObjMalCode
 		) else (
-			>&2 echo [!_G_TRACE!] unexpected token '!%%.CurToken!'.
-			pause & exit 1
+			%?|% "unexpected token '!%%.CurToken!'."
 		)
 
 		set /a %%.TokenPtr += 1
-		!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+		%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+			%|% TYPES FreeMalListOrVec %%.ObjMalCode
 			%??% "unbalanced parenthesis."
-			exit /b 0
+			%-|%
 		)
 		
-
 		set "%%.Count=0"
 	)
 	:READER_ReadList_Loop
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
 		
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+			%|% TYPES FreeMalListOrVec %%.ObjMalCode
 			%??% "unbalanced parenthesis."
-			exit /b 0
+			%-|%
 		)
 
-		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
+		%&% !%%.ObjReader!.Token[!%%.TokenPtr!] %%.CurToken
 
 		if "!%%.CurToken!" == ")" (
-			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
+			%&% !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalLst" (
-				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+				%|% TYPES FreeMalListOrVec %%.ObjMalCode
 				%??% "unbalanced parenthesis."
-				exit /b 0
+				%-|%
 			)
 			set /a %%.TokenPtr += 1
-			!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+			%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 			goto READER_ReadList_Pass
 		)
 		if "!%%.CurToken!" == "]" (
-			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
+			%&% !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalVec" (
-				!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
+				%|% TYPES FreeMalListOrVec %%.ObjMalCode
 				%??% "unbalanced parenthesis."
-				exit /b 0
+				%-|%
 			)
-			!_C_Copy! !%%.ObjMalCode!.Type %%.Type
 			set /a %%.TokenPtr += 1
-			!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+			%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 			goto READER_ReadList_Pass
 		)
 		set /a %%.Count += 1
 
-		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! !%%.ObjMalCode!.Item[!%%.Count!]
-		if defined _G_ERR (
-			!_C_Invoke! TYPES FreeMalListOrVec %%.ObjMalCode
-			exit /b 0
+		%|% READER ReadForm %%.ObjReader
+		%|->% %%.MalRet
+		%?% (
+			%|% TYPES FreeMalListOrVec %%.ObjMalCode
+			%-|%
 		)
+		set
+		%|% NS Link %%.ObjMalCode Item[!%%.Count!] %%.MalRet
 
 		goto READER_ReadList_Loop
 	)
 	:READER_ReadList_Pass
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Copy! %%.Count !%%.ObjMalCode!.Count
+		%&% %%.Count !%%.ObjMalCode!.Count
 
-		!_C_Return! %%.ObjMalCode
+		%<-% %%.ObjMalCode
 	)
-exit /b 0
+%-|%
 
-:READER_ReadMap _ObjReader -> _ObjMal
+:READER_ReadMap ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.TokenCount
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenCount %%.TokenCount
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%??% "unbalanced parenthesis."
-			exit /b 0
+			%-|%
 		)
 
 		set /a %%.TokenPtr += 1
-		!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+		%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 
-		!_C_Invoke! NS New MalMap & !_C_GetRet! %%.MalMap
+		%|% NS New MalMap %->% %%.MalMap
 
 		set "%%.MapKeyCount=0"
 		set /a %%.RawKeyCount=0
-		!_C_Invoke! NS New RawKeyArr & !_C_GetRet! %%.RawKeys
+		%|% NS New RawKeyArr %->% %%.RawKeys
 	)
 	:READER_ReadMap_Loop
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
-			!_C_Invoke! NS Free %%.RawKeys
-			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.RawKeys
+			%|% TYPES FreeMalMap %%.MalMap
 			%??% "unbalanced parenthesis."
-			exit /b 0
+			%-|%
 		)
-		!_C_Copy! !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
+		%&% !%%.ObjReader!.Token[!%%.TokenPtr!] %%.Token
 		if "!%%.Token!" == "}" (
 			set /a %%.TokenPtr += 1
-			!_C_Copy! %%.TokenPtr !%%.ObjReader!.TokenPtr
+			%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 			goto READER_ReadMap_Pass
 		)
 
 		@REM Read the key.
-		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.MalKey
-		if defined _G_ERR (
-			!_C_Invoke! TYPES FreeMalMap %%.MalMap
-			!_C_Invoke! NS Free %%.RawKeys
-			exit /b 0
+		%|% READER ReadForm %%.ObjReader %->% %%.MalKey
+		%?% (
+			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.RawKeys
+			%-|%
 		)
 
 
 		@REM Check if the key is MalStr or MalKwd.
-		!_C_Copy! !%%.MalKey!.Type %%.Type
+		%&% !%%.MalKey!.Type %%.Type
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
-			!_C_Invoke! NS Free %%.RawKeys
-			!_C_Invoke! TYPES FreeMalType %%.MalKey
-			!_C_Invoke! TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.RawKeys
+			%|% TYPES FreeMalType %%.MalKey
+			%|% TYPES FreeMalMap %%.MalMap
 			%??% "Map key must be 'MalStr' or 'MalKwd'."
-			exit /b 0
+			%-|%
 		)
 		
-		!_C_Copy! !%%.MalKey!.Value %%.RawKey
+		%&% !%%.MalKey!.Value %%.RawKey
 
 
-		!_C_Copy! !%%.ObjReader!.TokenPtr %%.TokenPtr
+		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%??% "Unmatched map key-value pair."
-			!_C_Invoke! NS Free %%.RawKeys
-			!_C_Invoke! TYPES FreeMalType %%.MalKey
-			!_C_Invoke! TYPES FreeMalMap %%.MalMap
-			exit /b 0
+			%|% NS Free %%.RawKeys
+			%|% TYPES FreeMalType %%.MalKey
+			%|% TYPES FreeMalMap %%.MalMap
+			%-|%
 		)
 
-		!_C_Invoke! READER ReadForm %%.ObjReader & !_C_GetRet! %%.MalVal
-		if defined _G_ERR (
-			!_C_Invoke! NS Free %%.RawKeys
-			!_C_Invoke! TYPES FreeMalType %%.MalKey
-			!_C_Invoke! TYPES FreeMalType %%.MalVal
-			!_C_Invoke! TYPES FreeMalMap %%.MalMap
-			exit /b 0
+		%|% READER ReadForm %%.ObjReader %->% %%.MalVal
+		%?% (
+			%|% NS Free %%.RawKeys
+			%|% TYPES FreeMalType %%.MalKey
+			%|% TYPES FreeMalType %%.MalVal
+			%|% TYPES FreeMalMap %%.MalMap
+			%-|%
 		)
 		if defined !%%.MalMap!.Item[!%%.RawKey!] (
-			!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+			%&% !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
 			set "%%.Exist=False"
 			for /l %%i in (1 1 !%%.SameKeyCount!) do (
-				!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Item[%%i].Key %%.ExistKey
-				!_C_Copy! !%%.ExistKey!.Value %%.ExistRawKey
+				%&% !%%.MalMap!.Item[!%%.RawKey!].Item[%%i].Key %%.ExistKey
+				%&% !%%.ExistKey!.Value %%.ExistRawKey
 				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
-					!_C_Invoke! NS Free %%.RawKeys
-					!_C_Invoke! TYPES FreeMalType %%.MalKey
-					!_C_Invoke! TYPES FreeMalType %%.MalVal
-					!_C_Invoke! TYPES FreeMalMap %%.MalMap
+					%|% NS Free %%.RawKeys
+					%|% TYPES FreeMalType %%.MalKey
+					%|% TYPES FreeMalType %%.MalVal
+					%|% TYPES FreeMalMap %%.MalMap
 					%??% "Key '!%%.RawKey!' already exist."
-					exit /b 0
+					%-|%
 				)
 			)
 			
 			if "!%%.Exist!" == "False" (
 				set /a !%%.MalMap!.Item[!%%.RawKey!].Count += 1
 				
-				!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
-				!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
-				!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
+				%&% "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
+				%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key %%.MalKey
+				%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value %%.MalVal
 			)
 		) else (
 			set "!%%.MalMap!.Item[!%%.RawKey!]=_"
 			set "!%%.MalMap!.Item[!%%.RawKey!].Count=1"
 
-			!_C_Copy! "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
-			!_C_Copy! %%.MalKey !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key
-			!_C_Copy! %%.MalVal !%%.MalMap!.Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value
+			%&% "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
+			%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key %%.MalKey
+			%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value %%.MalVal
 
 			set /a %%.RawKeyCount += 1
 			set "!%%.RawKeys!.Key[!%%.RawKeyCount!]=!%%.RawKey!"
@@ -391,14 +388,14 @@ exit /b 0
 	)
 	:READER_ReadMap_Pass
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		!_C_Copy! %%.MapKeyCount !%%.MalMap!.Count
-		!_C_Copy! %%.RawKeyCount !%%.MalMap!.RawKeyCount
-		!_C_Copy! %%.RawKeys !%%.MalMap!.RawKeys
-		!_C_Return! %%.MalMap
+		%&% %%.MapKeyCount !%%.MalMap!.Count
+		%&% %%.RawKeyCount !%%.MalMap!.RawKeyCount
+		%|% NS Link %%.MalMap RawKeys %%.RawKeys
+		%<-% %%.MalMap
 	)
-exit /b 0
+%-|%
 
-:READER_ReadMeta _Reader -> _ObjMal
+:READER_ReadMeta Reader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Reader=!%~1!"
 
@@ -406,28 +403,25 @@ exit /b 0
 		
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%??% "Unexpected EOF, need more token."
-			exit /b 0
+			%-|%
 		)
 
-		!_C_Invoke! TYPES NewMalAtom MalSym "with-meta" & !_C_GetRet! %%.MalSym
-		!_C_Invoke! READER ReadForm %%.Reader & !_C_GetRet! %%.MalMeta
-		!_C_Invoke! READER ReadForm %%.Reader & !_C_GetRet! %%.MalType
-		!_C_Invoke! TYPES NewMalList %%.MalSym %%.MalType %%.MalMeta & !_C_GetRet! %%.MalRes
-		!_C_Return! %%.MalRes
+		%|% TYPES NewMal MalSym "with-meta" %->% %%.MalSym
+		%|% READER ReadForm %%.Reader %->% %%.MalMeta
+		%|% READER ReadForm %%.Reader %->% %%.MalType
+		%|% TYPES NewMalList %%.MalSym %%.MalType %%.MalMeta %->% %%.MalRes
+		%<-% %%.MalRes
 	)
-exit /b 0
+%-|%
 
 
-
-
-
-:READER_Tokenize _Line _ObjReader -> _
+:READER_Tokenize Line ObjReader -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Line=!%~1!"
 		set "%%.ObjReader=!%~2!"
 
-		!_C_Copy! %%.Line %%.CurLine
-		!_C_Copy! !%%.ObjReader!.TokenCount %%.CurTokenNum
+		%&% %%.Line %%.CurLine
+		%&% !%%.ObjReader!.TokenCount %%.CurTokenNum
 
 		rem Tokenize the _CurLine.
 		set %%.ParsingStr=False
@@ -440,7 +434,7 @@ exit /b 0
 				set _G_ERR=_
 				set _G_ERR.Type=Exception
 				set "_G_ERR.Msg=[!_G_TRACE!] Exception: unexpected EOF, string is incomplete."
-				exit /b 0
+				%-|%
 			)
 			goto READER_Tokenizing_Pass
 		)
@@ -448,9 +442,9 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == " " (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurLine=!%%.CurLine:~1!"
@@ -459,9 +453,9 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "	" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurLine=!%%.CurLine:~1!"
@@ -470,9 +464,9 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "," (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurLine=!%%.CurLine:~1!"
@@ -481,14 +475,14 @@ exit /b 0
 			if "!%%.CurLine:~,2!" == "~@" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=~@"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~2!"
 				goto READER_Tokenizing_Loop
@@ -496,14 +490,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "[" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=["
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -511,14 +505,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "]" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=]"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -526,14 +520,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "(" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=("
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -541,14 +535,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == ")" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=)"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -556,14 +550,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "{" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken={"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -571,14 +565,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "}" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=}"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -586,14 +580,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "'" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken='"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -601,14 +595,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "`" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=`"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -616,14 +610,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "~" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=~"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -631,14 +625,14 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == "@" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=@"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~1!"
 				goto READER_Tokenizing_Loop
@@ -647,14 +641,14 @@ exit /b 0
 			if "!%%.CurLine:~,2!" == "$C" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				set "%%.CurToken=$C"
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 
 				set "%%.CurLine=!%%.CurLine:~2!"
 				goto READER_Tokenizing_Loop
@@ -662,9 +656,9 @@ exit /b 0
 			if "!%%.CurLine:~,2!" == "$D" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				rem string.
@@ -676,15 +670,15 @@ exit /b 0
 			if "!%%.CurLine:~,1!" == ";" (
 				if defined %%.NormalToken (
 					rem save normal token first.
-					!_C_Copy! %%.NormalToken %%.CurToken
+					%&% %%.NormalToken %%.CurToken
 					set /a %%.CurTokenNum += 1
-					!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+					%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 					set %%.NormalToken=
 				)
 				rem comment.
-				!_C_Copy! %%.CurLine %%.CurToken
+				%&% %%.CurLine %%.CurToken
 				set /a %%.CurTokenNum += 1
-				!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 				set "%%.CurLine="
 				goto READER_Tokenizing_Loop
 			)
@@ -712,7 +706,7 @@ exit /b 0
 				set "%%.ParsingStr=False"
 				set /a %%.CurTokenNum += 1
 				set "%%.StrToken=$D!%%.StrToken!$D"
-				!_C_Copy! %%.StrToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+				%&% %%.StrToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 				goto READER_Tokenizing_Loop
 			)
 			set "%%.StrToken=!%%.StrToken!!%%.CurLine:~,1!"
@@ -724,13 +718,13 @@ exit /b 0
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if defined %%.NormalToken (
 			rem save normal token first.
-			!_C_Copy! %%.NormalToken %%.CurToken
+			%&% %%.NormalToken %%.CurToken
 			set /a %%.CurTokenNum += 1
-			!_C_Copy! %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
+			%&% %%.CurToken !%%.ObjReader!.Token[!%%.CurTokenNum!]
 			set %%.NormalToken=
 		)
-		!_C_Copy! %%.CurTokenNum !%%.ObjReader!.TokenCount
+		%&% %%.CurTokenNum !%%.ObjReader!.TokenCount
 
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
