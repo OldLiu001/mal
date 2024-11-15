@@ -1,9 +1,7 @@
-@REM v1.4
-
 @echo off
 if "%~1" equ "CALL_SELF" (
 	for /f "tokens=1,*" %%a in ('echo.%*') do (
-		call %%b || !_C_Fatal! "Call '%~nx0' failed."
+		call %%b || %?|% "Call '%~nx0' failed."
 	)
 	exit /b 0
 )
@@ -14,6 +12,7 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 ) else (
 	call :UTILITIES_Init %~n0
 )
+
 !_C_Invoke! MAIN Main
 exit /b 0
 
