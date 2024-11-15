@@ -5,7 +5,7 @@ if "%~1" neq "" (
 %-|%
 
 
-:UTILITIES_Init _MainModName
+:UTILITIES_Init MainModName
 	set "_G_LEVEL=0"
 	set "_G_TRACE=%~1"
 	set "_G_RET="
@@ -39,7 +39,7 @@ if "%~1" neq "" (
 	set "?|=!_C_Fatal!"
 %-|%
 
-:UTILITIES_Invoke _Mod _Fn * -> *
+:UTILITIES_Invoke Mod Fn * -> *
 	set /a _G_LEVEL = _G_LEVEL
 
 	set "_G_TRACE_{!_G_LEVEL!}=!_G_TRACE!"
@@ -73,26 +73,26 @@ if "%~1" neq "" (
 	set "_G_TRACE_{!_G_LEVEL!}="
 %-|%
 
-:UTILITIES_GetRet _Var -> _
+:UTILITIES_GetRet Var -> _
 	if not defined _G_ERR (
 		%&% _G_RET %~1
 	)
 	set _G_RET=
 %-|%
 
-:UTILITIES_Return _Var -> _
+:UTILITIES_Return [Var] -> _
 	set _G_RET=
 	if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
 		%&% %~1 _G_RET
 	)
 %-|%
 
-:UTILITIES_Fatal _Msg
+:UTILITIES_Fatal Msg
 	>&2 echo [!_G_TRACE!] Fatal: %~1
 	pause & exit 1
 %-|%
 
-:UTILITIES_Throw _Msg [_Type=Exception] [_Data=_]
+:UTILITIES_Throw Msg [Type=Exception] [Data]
 	set _G_ERR=_
 	set "_G_ERR.Msg=[!_G_TRACE!] !_G_ERR.Type!: %~1"
 	if "%~2" neq "" (
@@ -103,7 +103,7 @@ if "%~1" neq "" (
 	if "%~3" neq "_" set "_G_ERR.Data=!%~2!"
 %-|%
 
-:UTILITIES_CopyVar _VarFrom _VarTo -> _
+:UTILITIES_CopyVar From To -> _
 	if not defined %~1 (
 		!_C_Fatal! "'%~1' undefined."
 	)
