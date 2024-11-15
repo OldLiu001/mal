@@ -20,86 +20,86 @@ if "%~1" neq "" (
 			)
 		)
 		if defined MAL_BATCH_IMPL_ECHO_STDIN (
-			!_C_Invoke! IO WriteEscapedLineVar %%.Line
+			%|% IO WriteEscapedLineVar %%.Line
 		)
-		!_C_Return! %%.Line
+		%<-% %%.Line
 	)
-exit /b 0
+%-|%
 
-:IO_WriteEscapedLineVar _Var -> _
+:IO_WriteEscapedLineVar Var -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Var=%~1"
 		if "!%%.Var!" == "" (
-			!_C_Fatal! "Arg _Var is empty."
+			%?|% "Arg 'Var' is empty."
 		)
 		if not defined !%%.Var! (
-			!_C_Fatal! "'!%%.Var!' undefined."
+			%?|% "Arg '!%%.Var!' undefined."
 		)
-		!_C_Copy! !%%.Var! %%.Var
+		%&% !%%.Var! %%.Var
 		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 			echo."!%%.Var!"| call WRITEALL
 		) else (
 			echo."!%%.Var!"| call "%~s0" CALL_WRITEALL
 		)
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:IO_WriteVal _Val -> _
+:IO_WriteVal Val -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Val=%~1"
 		<nul set /p "=!%%.Val!"
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:IO_WriteVar _Var -> _
+:IO_WriteVar Var -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Var=%~1"
 		if "!%%.Var!" == "" (
-			!_C_Fatal! "Arg _Var is empty."
+			%?|% "Arg _Var is empty."
 		)
 		if not defined !%%.Var! (
-			!_C_Fatal! "'!%%.Var!' undefined."
+			%?|% "'!%%.Var!' undefined."
 		)
-		!_C_Copy! !%%.Var! %%.Var
+		%&% !%%.Var! %%.Var
 		<nul set /p "=!%%.Var!"
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:IO_WriteStr _Str -> _
+:IO_WriteStr Str -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Str=!%~1!"
 		for /f "delims=" %%b in ("!%%.Str!.LineCount") do (
 			for /l %%i in (1 1 !%%b!) do (
-				!_C_Copy! !%%.Str!.Line[%%i] %%.Line
-				!_C_Invoke! IO WriteEscapedLineVar %%.Line
+				%&% !%%.Str!.Line[%%i] %%.Line
+				%|% IO WriteEscapedLineVar %%.Line
 			)
 		)
 
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:IO_WriteErrLineVal _Val -> _
+:IO_WriteErrLineVal Val -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if defined MAL_BATCH_IMPL_NO_STDERR (
 			echo.%~1
 		) else (
 			2>&1 echo.%~1
 		)
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:IO_WriteErrLineVar _Var -> _
+:IO_WriteErrLineVar Var -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if defined MAL_BATCH_IMPL_NO_STDERR (
 			echo.!%~1!
 		) else (
 			2>&1 echo.!%~1!
 		)
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%

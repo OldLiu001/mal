@@ -28,13 +28,13 @@ if "%~1" neq "" (
 		set "_C_Throw=call UTILITIES :UTILITIES_Throw"
 	)
 
+	set "&=!_C_Copy!"
 	set "|=!_C_Invoke!"
 	set "->=& !_C_GetRet!"
 	set "|->=!_C_GetRet!"
 	set "<-=!_C_Return!"
 	set "-|=exit /b 0"
 	set "?=if defined _G_ERR"
-	set "&=!_C_Copy!"
 	set "??=!_C_Throw!"
 	set "?|=!_C_Fatal!"
 %-|%

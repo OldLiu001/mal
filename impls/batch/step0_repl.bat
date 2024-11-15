@@ -31,21 +31,21 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	)
 %-|%
 
-:MAIN_Read _Mal -> _Mal
+:MAIN_Read Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		%<-% %%.Mal
 	)
 %-|%
 
-:MAIN_Eval _Mal -> _Mal
+:MAIN_Eval Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		%<-% %%.Mal
 	)
 %-|%
 
-:MAIN_Print _Mal -> _
+:MAIN_Print Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		%|% IO WriteEscapedLineVar %%.Mal
@@ -53,7 +53,7 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	)
 %-|%
 
-:MAIN_REP _Mal -> _
+:MAIN_REP Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		%|% MAIN Read %%.Mal %->% %%.Mal
