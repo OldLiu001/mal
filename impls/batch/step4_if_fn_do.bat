@@ -483,13 +483,19 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 		set "!%%.MalFn!.AutoEval=True"
 		%|% Types CopyMalType %%.Binds %->% !%%.MalFn!.Binds
 		%|% Types CopyMalType !%%.Mal!.Item[3] %->% !%%.MalFn!.Body
+	)
 		:MAIN_MFn_Loop
-			echo loop
+	for %%. in (_L{!_G_LEVEL!}_) do (
+			echo !%%.Env! loop
 			%&% !%%.Env!.RefCount %%.RefCount
 			set /a %%.RefCount += 1
 			%&% %%.RefCount !%%.Env!.RefCount
 			%&% %%.Env !%%.MalFn!.Env
 			%&% !%%.Env!.Outer %%.Env
+			echo !%%.Env!
+			set !%%.Env!
+			echo !%%.Env! loophead
+		echo if "!%%.Env!" neq "_" goto MAIN_MFn_Loop
 		if "!%%.Env!" neq "_" goto MAIN_MFn_Loop
 		set "!%%.MalFn!.AutoEval=True"
 		%<-% %%.MalFn

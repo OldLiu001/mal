@@ -2,7 +2,9 @@
 批处理编程结构基本固定
 
 TODO：
-每个堆变量新增Freeer、RefCount属性，统一Free逻辑
+每个堆变量使用统一的NSMETA储存RefCount，外部引用持有列表Links LinkCount
+新增函数Link
+然后统一Free逻辑（首先释放自身，然后根据元数据递归释放Link的其他NS）
 
 1、垃圾回收最简单思路
 Fn定义时不仅当前环境RefCount+1
