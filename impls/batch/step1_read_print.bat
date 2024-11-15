@@ -18,7 +18,7 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		for /l %%_ in () do (set | find /C /V ""
+		for /l %%_ in () do (
 			
 
 			set "%%.Prompt=user> " & %|% IO WriteVar %%.Prompt
