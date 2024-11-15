@@ -208,7 +208,7 @@ if "%~1" neq "" (
 		%&% %%.TokenPtr !%%.ObjReader!.TokenPtr
 
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			%|% TYPES FreeMalListOrVec %%.ObjMalCode
+			%|% NS Free %%.ObjMalCode
 			%??% "unbalanced parenthesis."
 			%-|%
 		)
@@ -220,7 +220,7 @@ if "%~1" neq "" (
 		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
 		
 		if !%%.TokenPtr! Gtr !%%.TotalTokenNum! (
-			%|% TYPES FreeMalListOrVec %%.ObjMalCode
+			%|% NS Free %%.ObjMalCode
 			%??% "unbalanced parenthesis."
 			%-|%
 		)
@@ -230,7 +230,7 @@ if "%~1" neq "" (
 		if "!%%.CurToken!" == ")" (
 			%&% !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalLst" (
-				%|% TYPES FreeMalListOrVec %%.ObjMalCode
+				%|% NS Free %%.ObjMalCode
 				%??% "unbalanced parenthesis."
 				%-|%
 			)
@@ -241,7 +241,7 @@ if "%~1" neq "" (
 		if "!%%.CurToken!" == "]" (
 			%&% !%%.ObjMalCode!.Type %%.Type
 			if "!%%.Type!" Neq "MalVec" (
-				%|% TYPES FreeMalListOrVec %%.ObjMalCode
+				%|% NS Free %%.ObjMalCode
 				%??% "unbalanced parenthesis."
 				%-|%
 			)
@@ -254,11 +254,11 @@ if "%~1" neq "" (
 		%|% READER ReadForm %%.ObjReader
 		%|->% %%.MalRet
 		%?% (
-			%|% TYPES FreeMalListOrVec %%.ObjMalCode
+			%|% NS Free %%.ObjMalCode
 			%-|%
 		)
-		set
 		%|% NS Link %%.ObjMalCode Item[!%%.Count!] %%.MalRet
+		%|% NS Free %%.MalRet
 
 		goto READER_ReadList_Loop
 	)
@@ -297,7 +297,7 @@ if "%~1" neq "" (
 		%&% !%%.ObjReader!.TokenPtr %%.TokenPtr
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%|% NS Free %%.RawKeys
-			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.MalMap
 			%??% "unbalanced parenthesis."
 			%-|%
 		)
@@ -311,7 +311,7 @@ if "%~1" neq "" (
 		@REM Read the key.
 		%|% READER ReadForm %%.ObjReader %->% %%.MalKey
 		%?% (
-			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.MalMap
 			%|% NS Free %%.RawKeys
 			%-|%
 		)
@@ -321,8 +321,8 @@ if "%~1" neq "" (
 		%&% !%%.MalKey!.Type %%.Type
 		if "!%%.Type!" Neq "MalStr" if "!%%.Type!" Neq "MalKwd" (
 			%|% NS Free %%.RawKeys
-			%|% TYPES FreeMalType %%.MalKey
-			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.MalKey
+			%|% NS Free %%.MalMap
 			%??% "Map key must be 'MalStr' or 'MalKwd'."
 			%-|%
 		)
@@ -335,17 +335,17 @@ if "%~1" neq "" (
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%??% "Unmatched map key-value pair."
 			%|% NS Free %%.RawKeys
-			%|% TYPES FreeMalType %%.MalKey
-			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.MalKey
+			%|% NS Free %%.MalMap
 			%-|%
 		)
 
 		%|% READER ReadForm %%.ObjReader %->% %%.MalVal
 		%?% (
 			%|% NS Free %%.RawKeys
-			%|% TYPES FreeMalType %%.MalKey
-			%|% TYPES FreeMalType %%.MalVal
-			%|% TYPES FreeMalMap %%.MalMap
+			%|% NS Free %%.MalKey
+			%|% NS Free %%.MalVal
+			%|% NS Free %%.MalMap
 			%-|%
 		)
 		if defined !%%.MalMap!.Item[!%%.RawKey!] (
@@ -356,9 +356,9 @@ if "%~1" neq "" (
 				%&% !%%.ExistKey!.Value %%.ExistRawKey
 				if "!%%.ExistRawKey!" == "!%%.RawKey!" (
 					%|% NS Free %%.RawKeys
-					%|% TYPES FreeMalType %%.MalKey
-					%|% TYPES FreeMalType %%.MalVal
-					%|% TYPES FreeMalMap %%.MalMap
+					%|% NS Free %%.MalKey
+					%|% NS Free %%.MalVal
+					%|% NS Free %%.MalMap
 					%??% "Key '!%%.RawKey!' already exist."
 					%-|%
 				)
@@ -370,6 +370,8 @@ if "%~1" neq "" (
 				%&% "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
 				%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key %%.MalKey
 				%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value %%.MalVal
+				%|% NS Free %%.MalKey
+				%|% NS Free %%.MalVal
 			)
 		) else (
 			set "!%%.MalMap!.Item[!%%.RawKey!]=_"
@@ -378,6 +380,8 @@ if "%~1" neq "" (
 			%&% "!%%.MalMap!.Item[!%%.RawKey!].Count" %%.SameKeyCount
 			%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Key %%.MalKey
 			%|% NS Link %%.MalMap Item[!%%.RawKey!].Item[!%%.SameKeyCount!].Value %%.MalVal
+			%|% NS Free %%.MalKey
+			%|% NS Free %%.MalVal
 
 			set /a %%.RawKeyCount += 1
 			set "!%%.RawKeys!.Key[!%%.RawKeyCount!]=!%%.RawKey!"
@@ -391,6 +395,7 @@ if "%~1" neq "" (
 		%&% %%.MapKeyCount !%%.MalMap!.Count
 		%&% %%.RawKeyCount !%%.MalMap!.RawKeyCount
 		%|% NS Link %%.MalMap RawKeys %%.RawKeys
+		%|% NS Free %%.RawKeys
 		%<-% %%.MalMap
 	)
 %-|%

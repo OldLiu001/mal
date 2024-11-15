@@ -4,7 +4,7 @@ if "%~1" neq "" (
 )
 %-|%
 
-:TYPES_NewMal _ValType _ValValue -> _ObjMal
+:TYPES_NewMal Type Value -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ValType=%~1"
 		set "%%.ValValue=%~2"
@@ -14,7 +14,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:TYPES_NewMalList _Var1 _Var2 ... -> _ObjMalList
+:TYPES_NewMalList Var1 Var2 ... -> MalList
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%|% NS New MalLst %->% %%.ObjMal
 		set "%%.Count=0"
@@ -32,7 +32,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:TYPES_NewBatFn _Mod _Name _AutoEval -> _MalFn
+:TYPES_NewBatFn Mod Name [AutoEval=True] -> MalFn
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mod=%~1"
 		set "%%.Name=%~2"
@@ -51,7 +51,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:TYPES_FreeMalType _Mal -> _
+:TYPES_FreeMalType Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
 
@@ -91,7 +91,7 @@ if "%~1" neq "" (
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
 
-		
+
 		set "%%.Mal=!%~1!"
 		%&% !%%.Mal!.Type %%.Type
 		if "!%%.Type!" neq "MalLst" if "!%%.Type!" neq "MalVec" (
@@ -158,7 +158,7 @@ goto :eof
 	)
 %-|%
 
-:TYPES_CheckType _Var _Type1 _Type2 ... -> _Bool
+:TYPES_CheckType Var Type1 Type2 ... -> Bool
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Bool=False"
 		%&% !%~1!.Type %%.Type
