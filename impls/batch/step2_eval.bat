@@ -3,7 +3,7 @@ if "%~1" equ "CALL_SELF" (
 	for /f "tokens=1,*" %%a in ('echo.%*') do (
 		call %%b || %?|% "Call '%~nx0' failed."
 	)
-	exit /b 0
+	%-|%
 )
 pushd "%~dp0"
 setlocal ENABLEDELAYEDEXPANSION
@@ -13,45 +13,60 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	call :UTILITIES_Init %~n0
 )
 
-!_C_Invoke! NS New Enviroment & !_C_GetRet! _G_ENV
+%|% NS New Enviroment %->% _G_ENV
+
 set "!_G_ENV!.Item[+]=_"
 set "!_G_ENV!.Item[+].Count=1"
 set "!_G_ENV!.Item[+].Sub[1].Key=+"
-!_C_Invoke! TYPES NewBatFn MAIN MAdd True & !_C_GetRet! !_G_ENV!.Item[+].Sub[1].Value
+%|% TYPES NewBatFn MAIN MAdd True %->% _G_TMP
+%|% NS Link _G_ENV Item[+].Sub[1].Value _G_TMP
+%|% NS Free _G_TMP
+
 set "!_G_ENV!.Item[-]=_"
 set "!_G_ENV!.Item[-].Count=1"
 set "!_G_ENV!.Item[-].Sub[1].Key=-"
-!_C_Invoke! TYPES NewBatFn MAIN MSub True & !_C_GetRet! !_G_ENV!.Item[-].Sub[1].Value
+%|% TYPES NewBatFn MAIN MSub True %->% _G_TMP
+%|% NS Link _G_ENV Item[-].Sub[1].Value _G_TMP
+%|% NS Free _G_TMP
+
 set "!_G_ENV!.Item[*]=_"
 set "!_G_ENV!.Item[*].Count=1"
 set "!_G_ENV!.Item[*].Sub[1].Key=*"
-!_C_Invoke! TYPES NewBatFn MAIN MMul True & !_C_GetRet! !_G_ENV!.Item[*].Sub[1].Value
+%|% TYPES NewBatFn MAIN MMul True %->% _G_TMP
+%|% NS Link _G_ENV Item[*].Sub[1].Value _G_TMP
+%|% NS Free _G_TMP
+
 set "!_G_ENV!.Item[/]=_"
 set "!_G_ENV!.Item[/].Count=1"
 set "!_G_ENV!.Item[/].Sub[1].Key=/"
-!_C_Invoke! TYPES NewBatFn MAIN MDiv True & !_C_GetRet! !_G_ENV!.Item[/].Sub[1].Value
+%|% TYPES NewBatFn MAIN MDiv True %->% _G_TMP
+%|% NS Link _G_ENV Item[/].Sub[1].Value _G_TMP
+%|% NS Free _G_TMP
 
-!_C_Invoke! MAIN Main
-exit /b 0
+%|% MAIN Main
+%-|%
 
 :MAIN_Main
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		for /l %%_ in () do (
-			set "%%.Prompt=user> " & !_C_Invoke! IO WriteVar %%.Prompt
-			!_C_Invoke! IO ReadEscapedLine
+
+			set | find /C /V ""
+
+			set "%%.Prompt=user> " & %|% IO WriteVar %%.Prompt
+			%|% IO ReadEscapedLine
 			if defined _G_RET (
-				!_C_GetRet! %%.Input
+				%|->% %%.Input
 				
-				!_C_Invoke! Str FromVar %%.Input & !_C_GetRet! %%.Str
+				%|% Str FromVar %%.Input %->% %%.Str
 				
-				!_C_Invoke! MAIN REP %%.Str
-				if defined _G_ERR (
+				%|% MAIN REP %%.Str
+				%?% (
 					if "!_G_ERR.Type!" == "Exception" (
-						!_C_Invoke! IO WriteErrLineVar _G_ERR.Msg
+						%|% IO WriteErrLineVar _G_ERR.Msg
 					) else if "!_G_ERR.Type!" == "Empty" (
 						rem do nothing.
 					) else (
-						!_C_Fatal! "Error type '!_G_ERR.Type!' not support."
+						%?|% "Error type '!_G_ERR.Type!' not support."
 					)
 
 					for /f "delims==" %%a in (
@@ -59,261 +74,261 @@ exit /b 0
 					) do set "%%a="
 				)
 				
-				!_C_Invoke! NS Free %%.Str
+				%|% NS Free %%.Str
 			)
 		)
 	)
-exit /b 0
+%-|%
 
-:MAIN_Read _StrMal -> _ObjMal
+:MAIN_Read StrMal -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.StrMal=!%~1!"
 		
-		!_C_Invoke! Reader ReadString %%.StrMal & !_C_GetRet! %%.ObjMal
-		if defined _G_ERR exit /b 0
+		%|% Reader ReadString %%.StrMal %->% %%.ObjMal
+		%?% %-|%
 
-		!_C_Return! %%.ObjMal
+		%<-% %%.ObjMal
 	)
-exit /b 0
+%-|%
 
-:MAIN_Eval _ObjMal _Env -> _ObjMal
+:MAIN_Eval ObjMal Env -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		set "%%.Env=!%~2!"
 
-		!_C_Copy! !%%.ObjMal!.Type %%.Type
+		%&% !%%.ObjMal!.Type %%.Type
 
 		if "!%%.Type!" == "MalSym" (
-			!_C_Copy! !%%.ObjMal!.Value %%.Val
+			%&% !%%.ObjMal!.Value %%.Val
 			if defined !%%.Env!.Item[!%%.Val!] (
-				!_C_Copy! !%%.Env!.Item[!%%.Val!].Count %%.Count
+				%&% !%%.Env!.Item[!%%.Val!].Count %%.Count
 				set "%%.Found=False"
 				for /l %%i in (1 1 !%%.Count!) do (
 					if "!%%.Found!" neq "True" (
-						!_C_Copy! !%%.Env!.Item[!%%.Val!].Sub[%%i].Key %%.Key
+						%&% !%%.Env!.Item[!%%.Val!].Sub[%%i].Key %%.Key
 						if "!%%.Key!" == "!%%.Val!" (
-							!_C_Invoke! Types CopyMalType !%%.Env!.Item[!%%.Val!].Sub[%%i].Value & !_C_GetRet! %%.RetMal
+							%|% NS Copy !%%.Env!.Item[!%%.Val!].Sub[%%i].Value %->% %%.RetMal
 							set "%%.Found=True"
 						)
 					)
 				)
 				if "!%%.Found!" == "False" (
 					%??% "Symbol '!%%.Val!' not found."
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
-					exit /b 0
+					%|% NS Free %%.ObjMal
+					%-|%
 				)
 				
-				!_C_Invoke! TYPES FreeMalType %%.ObjMal
+				%|% NS Free %%.ObjMal
 
 			) else (
 				%??% "Symbol '!%%.Val!' not found."
-				!_C_Invoke! TYPES FreeMalType %%.ObjMal
-				exit /b 0
+				%|% NS Free %%.ObjMal
+				%-|%
 			)
 		) else if "!%%.Type!" == "MalLst" (
-			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			%&% !%%.ObjMal!.Count %%.Count
 			if !%%.Count! gtr 0 (
 				for /l %%i in (1 1 !%%.Count!) do (
-					!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.ObjMal!.Item[%%i]
-					if defined _G_ERR (
-						!_C_Invoke! TYPES FreeMalType %%.ObjMal
-						exit /b 0
+					%|% Main Eval !%%.ObjMal!.Item[%%i] %%.Env %->% !%%.ObjMal!.Item[%%i]
+					%?% (
+						%|% NS Free %%.ObjMal
+						%-|%
 					)
 				)
 				
-				!_C_Copy! !%%.ObjMal!.Item[1] %%.Fn
-				!_C_Copy! !%%.Fn!.Type %%.Type
+				%&% !%%.ObjMal!.Item[1] %%.Fn
+				%&% !%%.Fn!.Type %%.Type
 				if "!%%.Type!" equ "MalFn" (
-					!_C_Copy! !%%.Fn!.Mod %%.Mod
-					!_C_Copy! !%%.Fn!.Name %%.Name
-					!_C_Invoke! !%%.Mod! !%%.Name! %%.ObjMal & !_C_GetRet! %%.RetMal
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
+					%&% !%%.Fn!.Mod %%.Mod
+					%&% !%%.Fn!.Name %%.Name
+					%|% !%%.Mod! !%%.Name! %%.ObjMal %->% %%.RetMal
+					%|% NS Free %%.ObjMal
 				) else (
 					%??% "Can not invoke '!%%.Type!'."
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
-					exit /b 0
+					%|% NS Free %%.ObjMal
+					%-|%
 				)
 			) else (
 				rem empty list.
-				!_C_Copy! %%.ObjMal %%.RetMal
+				%&% %%.ObjMal %%.RetMal
 			)
 		) else if "!%%.Type!" == "MalVec" (
-			!_C_Copy! !%%.ObjMal!.Count %%.Count
+			%&% !%%.ObjMal!.Count %%.Count
 			for /l %%i in (1 1 !%%.Count!) do (
-				!_C_Invoke! Main Eval !%%.ObjMal!.Item[%%i] %%.Env & !_C_GetRet! !%%.ObjMal!.Item[%%i]
-				if defined _G_ERR (
-					!_C_Invoke! TYPES FreeMalType %%.ObjMal
-					exit /b 0
+				%|% Main Eval !%%.ObjMal!.Item[%%i] %%.Env %->% !%%.ObjMal!.Item[%%i]
+				%?% (
+					%|% NS Free %%.ObjMal
+					%-|%
 				)
 			)
-			!_C_Copy! %%.ObjMal %%.RetMal
+			%&% %%.ObjMal %%.RetMal
 		) else if "!%%.Type!" == "MalMap" (
-			!_C_Copy! %%.ObjMal %%.MalMap
-			!_C_Copy! !%%.MalMap!.RawKeyCount %%.KeyCount
-			!_C_Copy! !%%.MalMap!.RawKeys %%.Keys
+			%&% %%.ObjMal %%.MalMap
+			%&% !%%.MalMap!.RawKeyCount %%.KeyCount
+			%&% !%%.MalMap!.RawKeys %%.Keys
 			
 			for /l %%i in (1 1 !%%.KeyCount!) do (
-				!_C_Copy! !%%.Keys!.Key[%%i] %%.RawKey
+				%&% !%%.Keys!.Key[%%i] %%.RawKey
 				
-				!_C_Copy! !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
+				%&% !%%.MalMap!.Item[!%%.RawKey!].Count %%.SameKeyCount
 				
 				for /l %%j in (1 1 !%%.SameKeyCount!) do (
-					!_C_Invoke! Main Eval !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value %%.Env
-					!_C_GetRet! !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value
-					if defined _G_ERR (
-						!_C_Invoke! TYPES FreeMalType %%.ObjMal
-						exit /b 0
+					%|% Main Eval !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value %%.Env
+					%|->% !%%.MalMap!.Item[!%%.RawKey!].Item[%%j].Value
+					%?% (
+						%|% NS Free %%.ObjMal
+						%-|%
 					)
 				)
 			)
-			!_C_Copy! %%.MalMap %%.RetMal
+			%&% %%.MalMap %%.RetMal
 		) else (
-			!_C_Copy! %%.ObjMal %%.RetMal
+			%&% %%.ObjMal %%.RetMal
 		)
 
-		!_C_Return! %%.RetMal
+		%<-% %%.RetMal
 	)
-exit /b 0
+%-|%
 
-:MAIN_Print _ObjMal -> _
+:MAIN_Print ObjMal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		
-		!_C_Invoke! Printer PrintMalType %%.ObjMal & !_C_GetRet! %%.StrMal
+		%|% Printer PrintMalType %%.ObjMal %->% %%.StrMal
 
-		!_C_Invoke! TYPES FreeMalType %%.ObjMal
+		%|% NS Free %%.ObjMal
 		
-		!_C_Invoke! IO WriteStr %%.StrMal
+		%|% IO WriteStr %%.StrMal
 
-		!_C_Invoke! NS Free %%.StrMal
+		%|% NS Free %%.StrMal
 
-		!_C_Return! _
+		%<-% _
 	)
-exit /b 0
+%-|%
 
-:MAIN_REP _Mal -> _
+:MAIN_REP Mal -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
 		
-		!_C_Invoke! MAIN Read %%.Mal & !_C_GetRet! %%.Mal
-		if defined _G_ERR exit /b 0
-		!_C_Invoke! MAIN Eval %%.Mal _G_ENV & !_C_GetRet! %%.Mal
-		if defined _G_ERR exit /b 0
-		!_C_Invoke! MAIN Print %%.Mal
-		!_C_Return! _
+		%|% MAIN Read %%.Mal %->% %%.Mal
+		%?% %-|%
+		%|% MAIN Eval %%.Mal _G_ENV %->% %%.Mal2
+		%?% %-|%
+		%|% MAIN Print %%.Mal2
+		%<-% _
 	)
-exit /b 0
+%-|%
 
 
 
-:MAIN_MAdd _Mal -> _Mal
+:MAIN_MAdd Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
-		!_C_Copy! !%%.Mal!.Count %%.Count
+		%&% !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
 			%??% "Invalid arguments count."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[2] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[3] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
-		!_C_Copy! !%%.Mal!.Item[3] %%.MalNum2
-		!_C_Copy! !%%.MalNum1!.Value %%.Num1
-		!_C_Copy! !%%.MalNum2!.Value %%.Num2
+		%&% !%%.Mal!.Item[2] %%.MalNum1
+		%&% !%%.Mal!.Item[3] %%.MalNum2
+		%&% !%%.MalNum1!.Value %%.Num1
+		%&% !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 + %%.Num2
-		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
-		!_C_Return! %%.RetMal
+		%|% TYPES NewMal MalNum !%%.Num! %->% %%.RetMal
+		%<-% %%.RetMal
 	)
-exit /b 0
+%-|%
 
-:MAIN_MSub _Mal -> _Mal
+:MAIN_MSub Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
-		!_C_Copy! !%%.Mal!.Count %%.Count
+		%&% !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
 			%??% "Invalid arguments count."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[2] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[3] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
-		!_C_Copy! !%%.Mal!.Item[3] %%.MalNum2
-		!_C_Copy! !%%.MalNum1!.Value %%.Num1
-		!_C_Copy! !%%.MalNum2!.Value %%.Num2
+		%&% !%%.Mal!.Item[2] %%.MalNum1
+		%&% !%%.Mal!.Item[3] %%.MalNum2
+		%&% !%%.MalNum1!.Value %%.Num1
+		%&% !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 - %%.Num2
-		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
-		!_C_Return! %%.RetMal
+		%|% TYPES NewMal MalNum !%%.Num! %->% %%.RetMal
+		%<-% %%.RetMal
 	)
-exit /b 0
+%-|%
 
-:MAIN_MMul _Mal -> _Mal
+:MAIN_MMul Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
-		!_C_Copy! !%%.Mal!.Count %%.Count
+		%&% !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
 			%??% "Invalid arguments count."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[2] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[3] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
-		!_C_Copy! !%%.Mal!.Item[3] %%.MalNum2
-		!_C_Copy! !%%.MalNum1!.Value %%.Num1
-		!_C_Copy! !%%.MalNum2!.Value %%.Num2
+		%&% !%%.Mal!.Item[2] %%.MalNum1
+		%&% !%%.Mal!.Item[3] %%.MalNum2
+		%&% !%%.MalNum1!.Value %%.Num1
+		%&% !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 * %%.Num2
-		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
-		!_C_Return! %%.RetMal
+		%|% TYPES NewMal MalNum !%%.Num! %->% %%.RetMal
+		%<-% %%.RetMal
 	)
-exit /b 0
+%-|%
 
-:MAIN_MDiv _Mal -> _Mal
+:MAIN_MDiv Mal -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mal=!%~1!"
-		!_C_Copy! !%%.Mal!.Count %%.Count
+		%&% !%%.Mal!.Count %%.Count
 		if !%%.Count! neq 3 (
 			%??% "Invalid arguments count."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[2] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[2] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Invoke! TYPES CheckType !%%.Mal!.Item[3] MalNum & !_C_GetRet! %%.IsNum
+		%|% TYPES CheckType !%%.Mal!.Item[3] MalNum %->% %%.IsNum
 		if "!%%.IsNum!" neq "True" (
 			%??% "Invalid argument type."
-			exit /b 0
+			%-|%
 		)
-		!_C_Copy! !%%.Mal!.Item[2] %%.MalNum1
-		!_C_Copy! !%%.Mal!.Item[3] %%.MalNum2
-		!_C_Copy! !%%.MalNum1!.Value %%.Num1
-		!_C_Copy! !%%.MalNum2!.Value %%.Num2
+		%&% !%%.Mal!.Item[2] %%.MalNum1
+		%&% !%%.Mal!.Item[3] %%.MalNum2
+		%&% !%%.MalNum1!.Value %%.Num1
+		%&% !%%.MalNum2!.Value %%.Num2
 		set /a %%.Num = %%.Num1 / %%.Num2
-		!_C_Invoke! TYPES NewMal MalNum !%%.Num! & !_C_GetRet! %%.RetMal
-		!_C_Return! %%.RetMal
+		%|% TYPES NewMal MalNum !%%.Num! %->% %%.RetMal
+		%<-% %%.RetMal
 	)
-exit /b 0
+%-|%

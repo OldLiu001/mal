@@ -74,7 +74,7 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 		
 		%|% Printer PrintMalType %%.ObjMal %->% %%.StrMal
 
-		%|% TYPES FreeMalType %%.ObjMal
+		%|% NS Free %%.ObjMal
 		
 		%|% IO WriteStr %%.StrMal
 

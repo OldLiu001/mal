@@ -39,6 +39,19 @@ if "%~1" neq "" (
 	)
 %-|%
 
+:NS_Copy NS -> NS
+	for %%. in (_L{!_G_LEVEL!}_) do (
+		set "%%.NS=!%~1!"
+		%&% !%%.NS! %%.NSMeta
+
+		if not defined !%%.NSMeta!.RefCnt (
+			%?|% "Attempt to copy a freed namespace."
+		)
+		set /a !%%.NSMeta!.RefCnt += 1
+		%<-% %%.NS
+	)
+%-|%
+
 :NS_Free NS -> _
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"

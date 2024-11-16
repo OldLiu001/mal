@@ -1,9 +1,9 @@
 v:0.5
 
-Count 均从1开始计数
-RefCount 从0开始计数
+约定：除了专门用于Free的函数外
+所有函数不对传入参数NS进行Free
+（全部进行借用而不移交所有权）
 
-TODO 变量统一添加RefCount属性
 
 Special Symbol Mapping:
 	! --- $E

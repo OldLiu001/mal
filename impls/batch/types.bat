@@ -24,6 +24,7 @@ if "%~1" neq "" (
 		if "%~1" neq "" (
 			set /a %%.Count += 1
 			%|% NS Link %%.ObjMal Item[!%%.Count!] %~1
+			%|% NS Free %~1
 			shift
 			goto TYPES_NewMalList_Loop
 		)
