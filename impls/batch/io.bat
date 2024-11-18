@@ -4,7 +4,7 @@ if "%~1" neq "" (
 )
 %-|%
 
-:IO_ReadEscapedLine _ -> _Line
+:IO_ReadEscapedLine -> _Line
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 			for /f "delims=" %%a in (
@@ -26,7 +26,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteEscapedLineVar Var -> _
+:IO_WriteEscapedLineVar _Var
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Var=%~1"
 		if "!%%.Var!" == "" (
@@ -45,7 +45,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteVal Val -> _
+:IO_WriteVal _Val
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Val=%~1"
 		<nul set /p "=!%%.Val!"
@@ -53,7 +53,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteVar Var -> _
+:IO_WriteVar _Var
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Var=%~1"
 		if "!%%.Var!" == "" (
@@ -68,7 +68,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteStr Str -> _
+:IO_WriteStr &Str
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Str=!%~1!"
 		for /f "delims=" %%b in ("!%%.Str!.LineCount") do (
@@ -82,7 +82,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteErrLineVal Val -> _
+:IO_WriteErrLineVal _Val
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if defined MAL_BATCH_IMPL_NO_STDERR (
 			echo.%~1
@@ -93,7 +93,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:IO_WriteErrLineVar Var -> _
+:IO_WriteErrLineVar _Var
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if defined MAL_BATCH_IMPL_NO_STDERR (
 			echo.!%~1!
