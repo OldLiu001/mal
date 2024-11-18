@@ -4,7 +4,7 @@ if "%~1" neq "" (
 )
 %-|%
 
-:READER_ReadString StrMalCode -> ObjAST
+:READER_ReadString &StrMal -> ObjAST
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.StrMalCode=!%~1!"
 		
@@ -45,7 +45,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:READER_ReadForm  ObjReader -> ObjMal
+:READER_ReadForm &ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
@@ -141,7 +141,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:READER_ReadAtom ObjReader -> ObjMal
+:READER_ReadAtom &ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
@@ -182,7 +182,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:READER_ReadList ObjReader -> ObjMal
+:READER_ReadList &ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
@@ -270,7 +270,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:READER_ReadMap ObjReader -> ObjMal
+:READER_ReadMap &ObjReader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjReader=!%~1!"
 
@@ -400,7 +400,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:READER_ReadMeta Reader -> ObjMal
+:READER_ReadMeta &Reader -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Reader=!%~1!"
 
@@ -420,7 +420,7 @@ if "%~1" neq "" (
 %-|%
 
 
-:READER_Tokenize Line ObjReader -> _
+:READER_Tokenize _Line &ObjReader
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Line=!%~1!"
 		set "%%.ObjReader=!%~2!"
