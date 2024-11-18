@@ -116,3 +116,4 @@ NSMeta
 	RefCnt
 	LnkCnt
 	Lnk[]
+	Meta (预留)
