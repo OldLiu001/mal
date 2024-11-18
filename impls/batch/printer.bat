@@ -5,7 +5,7 @@ if "%~1" neq "" (
 %-|%
 
 
-:PRINTER_PrintMalType _ObjMal -> _StrMal
+:PRINTER_PrintMalType &ObjMal -> StrMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		if not defined !%%.ObjMal!.Type (
@@ -71,7 +71,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:PRINTER_PrintMalMap _MalMap -> _Str
+:PRINTER_PrintMalMap &MalMap -> Str
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.MalMap=!%~1!"
 
