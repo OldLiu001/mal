@@ -3,6 +3,8 @@
 
 
 TODO：
+浅拷贝Copy思路：NS全部Copy，NSMeta的RefCnt清零，Lnks中的每个RefCnt+1
+
 NS结构和NS操作解耦合（封装NS Set（检测Mut）和NS Get）
 （为了统一Meta逻辑）
 TYPES的CopyMalType对Atom做特殊处理
