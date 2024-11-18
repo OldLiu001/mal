@@ -50,7 +50,7 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	)
 %-|%
 
-:MAIN_Read StrMal -> ObjMal
+:MAIN_Read &StrMal -> ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.StrMal=!%~1!"
 		
@@ -68,13 +68,11 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	)
 %-|%
 
-:MAIN_Print ObjMal -> _
+:MAIN_Print &ObjMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ObjMal=!%~1!"
 		
 		%|% Printer PrintMalType %%.ObjMal %->% %%.StrMal
-
-		%|% NS Free %%.ObjMal
 		
 		%|% IO WriteStr %%.StrMal
 
@@ -84,14 +82,15 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 	)
 %-|%
 
-:MAIN_REP Mal -> _
+:MAIN_REP &StrMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
-		set "%%.Mal=!%~1!"
+		set "%%.StrMal=!%~1!"
 		
-		%|% MAIN Read %%.Mal %->% %%.Mal
+		%|% MAIN Read %%.StrMal %->% %%.ObjMal
 		%?% %-|%
-		%|% MAIN Eval %%.Mal %->% %%.Mal
-		%|% MAIN Print %%.Mal
+		%|% MAIN Eval %%.ObjMal %->% %%.ObjMal
+		%|% MAIN Print %%.ObjMal
+		%|% NS Free %%.ObjMal
 		%<-% _
 	)
 %-|%
