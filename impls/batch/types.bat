@@ -4,7 +4,7 @@ if "%~1" neq "" (
 )
 %-|%
 
-:TYPES_NewMal Type Value -> Mal
+:TYPES_NewMal _Type _Value -> Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.ValType=%~1"
 		set "%%.ValValue=%~2"
@@ -33,7 +33,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:TYPES_NewBatFn Mod Name [AutoEval=True] -> MalFn
+:TYPES_NewBatFn _Mod _Name [_AutoEval=True] -> MalFn
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Mod=%~1"
 		set "%%.Name=%~2"
@@ -52,114 +52,31 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:TYPES_FreeMalType Mal -> _
+:TYPES_FreeMalType Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
-
-
-		set "%%.Mal=!%~1!"
-		if not defined !%%.Mal! (
-			%-|%
-		)
-		%&% !%%.Mal!.Type %%.Type
-		if "!%%.Type!" == "MalBool" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalNil" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalNum" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalSym" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalKwd" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalStr" (
-			%|% NS Free %%.Mal
-		) else if "!%%.Type!" == "MalLst" (
-			%|% TYPES FreeMalListOrVec %%.Mal
-		) else if "!%%.Type!" == "MalVec" (
-			%|% TYPES FreeMalListOrVec %%.Mal
-		) else if "!%%.Type!" == "MalMap" (
-			%|% TYPES FreeMalMap %%.Mal
-		) else if "!%%.Type!" == "MalFn" (
-			%|% TYPES FreeMalFn %%.Mal
-		) else (
-			%?|% "arg is not a valid Mal type."
-		)
 	)
 %-|%
 
-:TYPES_FreeMalListOrVec _Mal -> _
+:TYPES_FreeMalListOrVec Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
-
-
-		set "%%.Mal=!%~1!"
-		%&% !%%.Mal!.Type %%.Type
-		if "!%%.Type!" neq "MalLst" if "!%%.Type!" neq "MalVec" (
-			%?|% "arg is not a MalLst or MalVec."
-		)
-		set /a %%.RefCount = !%%.Mal!.RefCount
-		if !%%.RefCount! leq 0 (
-			for /f "delims==" %%i in ('set !%%.Mal!.Item 2^>nul') do (
-				%|% TYPES FreeMalType %%i
-			)
-			%|% NS Free %%.Mal
-		) else (
-			set /a %%.RefCount -= 1
-			%&% %%.RefCount !%%.Mal!.RefCount
-		)
 	)
 goto :eof
 
-:TYPES_FreeMalMap _Mal -> _
+:TYPES_FreeMalMap Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
-
-		set "%%.Mal=!%~1!"
-		%&% !%%.Mal!.Type %%.Type
-		if "!%%.Type!" neq "MalMap" (
-			%?|% "Arg _Mal is not a MalMap."
-		)
-		if defined !%%.Mal!.RawKeys (
-			%|% NS Free !%%.Mal!.RawKeys
-		)
-		for /f "delims==" %%i in ('set !%%.Mal!.Item 2^>nul') do (
-			set "%%.Var=%%i"
-			if "!%%.Var:~-4!" == ".Key" (
-				%|% TYPES FreeMalType %%i
-			) else if "!%%.Var:~-6!" == ".Value" (
-				%|% TYPES FreeMalType %%i
-			)
-		)
-		%|% NS Free %%.Mal
 	)
 %-|%
 
-:TYPES_FreeMalFn _Mal -> _
+:TYPES_FreeMalFn Mal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
-
-
-		set "%%.Mal=!%~1!"
-		%&% !%%.Mal!.Type %%.Type
-		if "!%%.Type!" neq "MalFn" (
-			%?|% "Arg _Mal is not a MalFn."
-		)
-		%&% !%%.Mal!.SubType %%.SubType
-		if "!%%.SubType!" == "BAT" (
-			%|% NS Free %%.Mal
-		) else if "!%%.SubType!" == "MAL" (
-			%|% Env Free !%%.Mal!.Env
-			%|% Types FreeMalType !%%.Mal!.Binds
-			%|% Types FreeMalType !%%.Mal!.Body
-			%|% NS Free %%.Mal
-		) else (
-			%?|% "Reached an unexpected branch."
-		)
 	)
 %-|%
 
-:TYPES_CheckType Var Type1 Type2 ... -> Bool
+:TYPES_CheckType &Var _Type1 _Type2 ... -> _Bool
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.Bool=False"
 		%&% !%~1!.Type %%.Type
@@ -177,42 +94,9 @@ goto :eof
 	)
 %-|%
 
-:TYPES_CopyMalType _Mal -> _ClonedMal
+:TYPES_CopyMalType &Mal -> ClonedMal
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		%?|% "Deprecated."
-
-		set "%%.Mal=!%~1!"
-		%&% !%%.Mal!.Type %%.Type
-		if "!%%.Type!" == "MalFn" (
-			%&% !%%.Mal!.SubType %%.SubType
-			if "!%%.SubType!" == "BAT" (
-				%&% !%%.Mal!.Mod %%.Mod
-				%&% !%%.Mal!.Name %%.Name
-				%&% !%%.Mal!.AutoEval %%.AutoEval
-				%|% Types NewBatFn !%%.Mod! !%%.Name! !%%.AutoEval! %->% %%.ClonedMal
-			) else (
-				%?|% "Not implemented yet."
-			)
-		) else if "!%%.Type!" == "MalNum" (
-			%&% !%%.Mal!.Value %%.Val
-			%|% Types NewMal MalNum !%%.Val!
-			%|->% %%.ClonedMal
-		) else if "!%%.Type!" == "MalBool" (
-			%&% !%%.Mal!.Value %%.Val
-			%|% Types NewMal MalBool !%%.Val!
-			%|->% %%.ClonedMal
-		) else if "!%%.Type!" == "MalNil" (
-			%&% !%%.Mal!.Value %%.Val
-			%|% Types NewMal MalNil !%%.Val!
-			%|->% %%.ClonedMal
-		) else if "!%%.Type!" == "MalLst" (
-			set /a %%.RefCount = !%%.Mal!.RefCount + 1
-			%&% %%.RefCount !%%.Mal!.RefCount
-			%&% %%.Mal %%.ClonedMal
-		) else (
-			%?|% "Not implemented yet."
-		)
-		%<-% %%.ClonedMal
 	)
 %-|%
 	
