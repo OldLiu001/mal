@@ -4,7 +4,7 @@ if "%~1" neq "" (
 )
 %-|%
 
-:NS_New [Type] -> NS
+:NS_New [_Type] -> NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set /a _G_NSP += 1
 		set "_G_NS[!_G_NSP!]=_G_NSMETA[!_G_NSP!]"
@@ -17,7 +17,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:NS_Link NS Field SubNS -> _
+:NS_Link &NS _Field &SubNS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
 		set "%%.Field=%~2"
@@ -39,7 +39,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:NS_Copy NS -> NS
+:NS_Copy &NS -> NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
 		%&% !%%.NS! %%.NSMeta
@@ -52,7 +52,7 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:NS_Free NS -> _
+:NS_Free NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
 		%&% !%%.NS! %%.NSMeta
