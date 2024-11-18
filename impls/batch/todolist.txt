@@ -1,9 +1,14 @@
 当前进度：
 批处理编程结构基本固定
 
+
 TODO：
-NS结构和NS操作解耦合（封装NS Set和NS Get）
+NS结构和NS操作解耦合（封装NS Set（检测Mut）和NS Get）
+（为了统一Meta逻辑）
+TYPES的CopyMalType对Atom做特殊处理
 考虑增加.Mut字段以及MakeImmut等函数 以及Copy时选择性Copy
+MakeMut 检查RefCnt=0 （类似rust的RefCell）
+也许还可以考虑CopyOnWrite思路
 
 待思考：可变和不可变、NS不对外暴露结构的必要性
 Copy与CopyMut
