@@ -26,10 +26,8 @@ if not defined MAL_BATCH_IMPL_SINGLE_FILE (
 			%|% IO ReadEscapedLine
 			if defined _G_RET (
 				%|->% %%.Input
-			) else (
-				goto :Main
+				%|% MAIN REP %%.Input
 			)
-			%|% MAIN REP %%.Input
 		)
 	)
 %-|%

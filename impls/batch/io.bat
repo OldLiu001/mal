@@ -7,13 +7,13 @@ if "%~1" neq "" (
 :IO_ReadEscapedLine -> _Line
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if not defined MAL_BATCH_IMPL_SINGLE_FILE (
-			for /f "delims=" %%a in (
+			for /f "tokens=* eol=" %%a in (
 				'call READLINE'
 			) do (
 				set "%%.Line=%%~a"
 			)
 		) else (
-			for /f "delims=" %%a in (
+			for /f "tokens=* eol=" %%a in (
 				'call "%~s0" CALL_READLINE'
 			) do (
 				set "%%.Line=%%~a"
