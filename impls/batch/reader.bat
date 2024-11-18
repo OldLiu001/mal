@@ -406,6 +406,8 @@ if "%~1" neq "" (
 
 		set /a !%%.Reader!.TokenPtr += 1
 		
+		%&% !%%.Reader!.TokenPtr %%.TokenPtr
+		%&% !%%.Reader!.TokenCount %%.TokenCount
 		if !%%.TokenPtr! Gtr !%%.TokenCount! (
 			%??% "Unexpected EOF, need more token."
 			%-|%
@@ -413,7 +415,24 @@ if "%~1" neq "" (
 
 		%|% TYPES NewMal MalSym "with-meta" %->% %%.MalSym
 		%|% READER ReadForm %%.Reader %->% %%.MalMeta
+		%?% (
+			%|% NS Free %%.MalSym
+			%-|%
+		)
+		%|% TYPES CheckType %%.MalMeta MalMap %->% %%.IsCorrect
+		if "!%%.IsCorrect!" == "False" (
+			%|% NS Free %%.MalSym
+			%|% NS Free %%.MalMeta
+			%??% "Meta must be a map."
+			%-|%
+		)
 		%|% READER ReadForm %%.Reader %->% %%.MalType
+		%?% (
+			%|% NS Free %%.MalSym
+			%|% NS Free %%.MalMeta
+			%-|%
+		)
+		
 		%|% TYPES NewMalList %%.MalSym %%.MalType %%.MalMeta %->% %%.MalRes
 		%<-% %%.MalRes
 	)
