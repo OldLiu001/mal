@@ -1,5 +1,5 @@
 use framework "Foundation"
-use scripting additions
+--use scripting additions
 log "请输入一些文本："
 current application's NSLog("Hello, World!")
 current application's NSLog("Hello, World!")
