@@ -1,0 +1,2 @@
+#!/bin/bash
+osascript -l AppleScript "$(dirname $0)/${STEP:-stepA_mal}.applescript" "${@}"
