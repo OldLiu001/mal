@@ -13,7 +13,7 @@ on prt(mal)
 	return mal
 end
 
-on repl(mal)
+on rep(mal)
 	return prt(eval(read(mal)))
 end
 
@@ -24,5 +24,5 @@ repeat
 	stdOut's writeData:(current application's NSString's stringWithString:"user> ")'s dataUsingEncoding:(current application's NSUTF8StringEncoding)
 	set str to (current application's NSString's alloc's initWithData:(stdIn's availableData()) encoding:(current application's NSUTF8StringEncoding)) as text
 	if str = "" then exit repeat
-	stdOut's writeData:(current application's NSString's stringWithString:str)'s dataUsingEncoding:(current application's NSUTF8StringEncoding)
+	stdOut's writeData:(current application's NSString's stringWithString:rep(str))'s dataUsingEncoding:(current application's NSUTF8StringEncoding)
 end
