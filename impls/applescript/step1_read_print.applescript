@@ -36,7 +36,23 @@ to nsdata_to_str(nsdata)
 	end
 end
 
+on import from fileName
+	set filePath to POSIX path of (path to me) as text & "/../" & fileName
+	set fileObj to POSIX file filePath
+	log fileObj
+	log class of fileObj
+	log 1
+	set a to run script "on testhello()
+	display dialog 233
+	end
+	return testhello"
+	log a()
+	log 2
+end
+
 on run
+	(load script alias "Macintosh HD:Users:oldliu:Desktop:mal:impls:applescript:a.scpt")'s hello()
+	
 	local stdIn, stdOut
 	tell NSFileHandle of current application
 		copy its fileHandleWithStandardInput to stdIn
