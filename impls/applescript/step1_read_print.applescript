@@ -1,4 +1,4 @@
-use AppleScript version "2.4"
+use AppleScript version "2.8"
 use scripting additions
 use framework "Foundation"
 
@@ -18,51 +18,56 @@ on rep(mal)
 	return prt(eval(read(mal)))
 end
 
-to str_to_nsstr(str)
-	return current application's NSString's stringWithString:str
-end
-
-to nsstr_to_nsdata(nsstr)
-	return nsstr's dataUsingEncoding:(current application's NSUTF8StringEncoding)
-end
-
-to str_to_nsdata(str)
-	return nsstr_to_nsdata(str_to_nsstr(str))
-end
-
-to nsdata_to_str(nsdata)
-	tell current application
-		return (its NSString's alloc's initWithData:nsdata encoding:(its NSUTF8StringEncoding)) as text
-	end
-end
-
-on import from fileName
-	set filePath to POSIX path of (path to me) as text & "/../" & fileName
-	set fileObj to POSIX file filePath
-	log fileObj
-	log class of fileObj
-	log 1
-	set a to run script "on testhello()
-	display dialog 233
-	end
-	return testhello"
-	log a()
-	log 2
-end
-
 on run
-	(load script alias "Macintosh HD:Users:oldliu:Desktop:mal:impls:applescript:a.scpt")'s hello()
+	local reader
+	set reader to importLibrary("reader")
 	
-	local stdIn, stdOut
+	local standardInput, standardOutput
 	tell NSFileHandle of current application
-		copy its fileHandleWithStandardInput to stdIn
-		copy its fileHandleWithStandardOutput to stdOut
+		copy its fileHandleWithStandardInput to standardInput
+		copy its fileHandleWithStandardOutput to standardOutput
 	end
 	
+	local inputText
 	repeat
-		stdOut's writeData:str_to_nsdata("user> ")
-		set str to nsdata_to_str(stdIn's availableData())
-		if str = "" then exit
-		stdOut's writeData:str_to_nsdata(rep(str))
+		standardOutput's writeData:covertTextToNSData("user> ")
+		set inputText to convertNSDataToText(standardInput's availableData())
+		if inputText = "" then exit
+		standardOutput's writeData:covertTextToNSData(rep(inputText))
 	end
+end
+
+to convertTextToNSString(inputText)
+	return current application's NSString's stringWithString:inputText
+end
+
+to convertNSStringToText(inputNSString)
+	return inputNSString as text
+end
+
+to convertNSStringToNSData(inputNSString)
+	return inputNSString's dataUsingEncoding:(current application's NSUTF8StringEncoding)
+end
+
+to convertNSDataToNSString(inputNSData)
+	tell current application
+		return its NSString's alloc's initWithData:inputNSData encoding:its NSUTF8StringEncoding
+	end
+end
+
+to covertTextToNSData(inputText)
+	return convertNSStringToNSData(convertTextToNSString(inputText))
+end
+
+to convertNSDataToText(inputNSData)
+	return convertNSStringToText(convertNSDataToNSString(inputNSData))
+end
+
+to importLibrary(fileName)
+	local selfPath, parentPath, libPath
+	set AppleScript's text item delimiters to ":"
+	set selfPath to path to me as text
+	set parentPath to item 1 thru -2 of every text item of selfPath as text
+	set libPath to parentPath & ":" & fileName & ".scpt"
+	return load script libPath as alias
 end

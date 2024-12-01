@@ -108,7 +108,7 @@ scheme_STEP_TO_PROG_foment      = impls/scheme/$($(1)).scm
 # Map of step (e.g. "step8") to executable file for that step
 ada_STEP_TO_PROG =           impls/ada/$($(1))
 ada.2_STEP_TO_PROG =         impls/ada.2/$($(1))
-applescript_STEP_TO_PROG =   impls/applescript/$($(1)).applescript
+applescript_STEP_TO_PROG =   impls/applescript/$($(1)).scpt
 awk_STEP_TO_PROG =           impls/awk/$($(1)).awk
 bash_STEP_TO_PROG =          impls/bash/$($(1)).sh
 basic_STEP_TO_PROG =         $(basic_STEP_TO_PROG_$(basic_MODE))

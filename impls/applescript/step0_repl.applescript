@@ -1,4 +1,4 @@
-use AppleScript version "2.4"
+use AppleScript version "2.8"
 use scripting additions
 use framework "Foundation"
 
@@ -18,35 +18,44 @@ on rep(mal)
 	return prt(eval(read(mal)))
 end
 
-to str_to_nsstr(str)
-	return current application's NSString's stringWithString:str
-end
-
-to nsstr_to_nsdata(nsstr)
-	return nsstr's dataUsingEncoding:(current application's NSUTF8StringEncoding)
-end
-
-to str_to_nsdata(str)
-	return nsstr_to_nsdata(str_to_nsstr(str))
-end
-
-to nsdata_to_str(nsdata)
-	tell current application
-		return (its NSString's alloc's initWithData:nsdata encoding:(its NSUTF8StringEncoding)) as text
-	end
-end
-
 on run
-	local stdIn, stdOut
+	local standardInput, standardOutput
 	tell NSFileHandle of current application
-		copy its fileHandleWithStandardInput to stdIn
-		copy its fileHandleWithStandardOutput to stdOut
+		copy its fileHandleWithStandardInput to standardInput
+		copy its fileHandleWithStandardOutput to standardOutput
 	end
 	
+	local inputText
 	repeat
-		stdOut's writeData:str_to_nsdata("user> ")
-		set str to nsdata_to_str(stdIn's availableData())
-		if str = "" then exit
-		stdOut's writeData:str_to_nsdata(rep(str))
+		standardOutput's writeData:covertTextToNSData("user> ")
+		set inputText to convertNSDataToText(standardInput's availableData())
+		if inputText = "" then exit
+		standardOutput's writeData:covertTextToNSData(rep(inputText))
 	end
+end
+
+to convertTextToNSString(inputText)
+	return current application's NSString's stringWithString:inputText
+end
+
+to convertNSStringToText(inputNSString)
+	return inputNSString as text
+end
+
+to convertNSStringToNSData(inputNSString)
+	return inputNSString's dataUsingEncoding:(current application's NSUTF8StringEncoding)
+end
+
+to convertNSDataToNSString(inputNSData)
+	tell current application
+		return its NSString's alloc's initWithData:inputNSData encoding:its NSUTF8StringEncoding
+	end
+end
+
+to covertTextToNSData(inputText)
+	return convertNSStringToNSData(convertTextToNSString(inputText))
+end
+
+to convertNSDataToText(inputNSData)
+	return convertNSStringToText(convertNSDataToNSString(inputNSData))
 end
