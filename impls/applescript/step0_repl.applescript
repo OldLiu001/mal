@@ -2,20 +2,20 @@ use AppleScript version "2.8"
 use scripting additions
 use framework "Foundation"
 
-on read(mal)
-	return mal
+on readInput(inputMAL)
+	return inputMAL
 end
 
-on eval(mal)
-	return mal
+on evalInput(inputMAL)
+	return inputMAL
 end
 
-on prt(mal)
-	return mal
+on printInput(inputMAL)
+	return inputMAL
 end
 
-on rep(mal)
-	return prt(eval(read(mal)))
+on readEvalPrint(inputMAL)
+	return printInput(evalInput(readInput(inputMAL)))
 end
 
 on run
@@ -30,7 +30,7 @@ on run
 		standardOutput's writeData:covertTextToNSData("user> ")
 		set inputText to convertNSDataToText(standardInput's availableData())
 		if inputText = "" then exit
-		standardOutput's writeData:covertTextToNSData(rep(inputText))
+		standardOutput's writeData:covertTextToNSData(readEvalPrint(inputText))
 	end
 end
 
