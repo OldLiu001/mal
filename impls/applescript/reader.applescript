@@ -3,68 +3,79 @@ use scripting additions
 use framework "Foundation"
 
 on run
-	log tokenize("  (+ 1 2)  +_+_ =;2333 3+2")
+	assertTrue(False)
+	log tokenizeInput("  (+ 1 2)  +_+_ =;2333 3+2")
+	log readString("  (+ 1 2)  +_+_ =;2333 3+2")
 end
 
 script Reader
-	prop tokens : missing value
-	prop position : 0
+	prop tokenList : missing value
+	prop currentPosition : 1
 	
-	on peek()
+	on hasMoreTokens()
+		return currentPosition ≤ (count of tokenList)
 	end
 	
-	on next()
+	on peekToken()
+		return (item currentPosition of tokenList)
+	end
+	
+	on nextToken()
 	end
 end
 
-on readStr(inputString)
+on readString(inputString)
+	copy Reader to tokenQueue
+	set tokenQueue's tokenList to tokenizeInput(inputString)
 	
+	return readForm(tokenQueue)
 end
 
-on findPattern(thePattern, theString)
-	set theText to current application's NSString's stringWithString:theString
-	set theRegEx to current application's NSRegularExpression's regularExpressionWithPattern:thePattern ¬
-		options:0 |error|:(missing value)
-	set theResult to (theRegEx's matchesInString:theText ¬
-		options:0 ¬
-		range:{location:0, |length|:theText's |length|})'s valueForKey:("range")
+on readForm(tokenQueue)
+	set currentToken to tokenQueue's peekToken()
 	
-	set outputArray to {}
-	repeat with thisRange in theResult
-		copy (theText's substringWithRange:thisRange) as text to end of outputArray
+	if currentToken = "(" or currentToken = "[" then
+		return readListOrVector(tokenQueue)
+	else if currentToken = "{" then
+		return readMap(tokenQueue)
+	else
+		return readAtom(tokenQueue)
+	end
+end
+
+on readAtom(tokenQueue)
+	return 1
+end
+
+on readListOrVector(tokenQueue)
+	return 1
+end
+
+on tokenizeInput(inputString)
+	set patternString to "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
+	set convertedNSString to convertTextToNSString(inputString)
+	tell current application's NSRegularExpression's regularExpressionWithPattern:patternString options:0 |error|:missing value
+		tell its matchesInString:convertedNSString options:0 range:{location:0, |length|:(length of inputString)}
+			set matchRanges to its valueForKey:"range"
+		end
+	end
+	set extractedSubstrings to {}
+	repeat with substringRange in matchRanges
+		copy convertNSStringToText(convertedNSString's substringWithRange:substringRange) to end of extractedSubstrings
 	end repeat
-	return outputArray
-end findPattern:inString:
+	return extractedSubstrings
+end
 
-on tokenize(inputString)
-	set regexPattern to "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
-	log findPattern(regexPattern, inputString)
-	return 123
-	tell current application
-		set regex to its NSRegularExpression's regularExpressionWithPattern:regexPattern options:its NSRegularExpressionCaseInsensitive |error|:missing value
+to convertTextToNSString(inputText)
+	return current application's NSString's stringWithString:inputText
+end
+
+to convertNSStringToText(inputNSString)
+	return inputNSString as text
+end
+
+to assertTrue(inputBoolean)
+	if not inputBoolean then
+		error "Assertion failed"
 	end
-	--set regex to current application's NSRegularExpression's regularExpressionWithPattern:regexPattern options:(current application's NSRegularExpressionCaseInsensitive) |error|:(missing value)
-
-	-- 执行匹配
-	set matches to regex's matchesInString:inputString options:0 range:{0, length of inputString}
-
-	-- 提取匹配结果
-	log matches's |count|()
-	log item 1 of matches
-	set matchedEmails to {}
-	repeat with match in matches
-	--set range to match's range
-	--set matchedString to (inputString's substringWithRange:range) as text
-	--set end of matchedEmails to matchedString
-	log class of match
-	log match(123)
-	end repeat
-
-	-- 输出匹配结果
-	display dialog "Matched emails: " & (matchedEmails as string)
 end
-
-on readForm()
-	log 233
-end
-
