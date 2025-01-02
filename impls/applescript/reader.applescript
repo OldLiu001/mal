@@ -3,8 +3,14 @@ use scripting additions
 use framework "Foundation"
 
 on run
-	assertTrue(False)
+	global typeLibrary
+	set typeLibrary to importLibrary("types")
+	
+	
+	
+	--assertTrue(False)
 	log tokenizeInput("  (+ 1 2)  +_+_ =;2333 3+2")
+	--log tokenizeInput2("  (+ 1 2)  +_+_ =;2333 3+2")
 	log readString("  (+ 1 2)  +_+_ =;2333 3+2")
 end
 
@@ -48,21 +54,30 @@ on readAtom(tokenQueue)
 end
 
 on readListOrVector(tokenQueue)
-	return 1
+	return 2
 end
 
 on tokenizeInput(inputString)
 	set patternString to "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
 	set convertedNSString to convertTextToNSString(inputString)
 	tell current application's NSRegularExpression's regularExpressionWithPattern:patternString options:0 |error|:missing value
-		tell its matchesInString:convertedNSString options:0 range:{location:0, |length|:(length of inputString)}
-			set matchRanges to its valueForKey:"range"
+		set matchRanges to its matchesInString:convertedNSString options:0 range:{location:0, |length|:(length of inputString)}
+	end
+	
+	set extractedSubstrings to {}
+	repeat with rangeResult in matchRanges
+		if rangeResult's numberOfRanges() > 0 then
+			set submatchString to convertedNSString's substringWithRange:(rangeResult's rangeAtIndex:1)
+			tell current application's NSCharacterSet
+				set trimmedString to submatchString's stringByTrimmingCharactersInSet:its whitespaceAndNewlineCharacterSet
+			end
+			copy convertNSStringToText(trimmedString) to trimmedText
+			if trimmedText is not "" and character 1 of trimmedText is not ";" then
+				copy trimmedText to end of extractedSubstrings
+			end
 		end
 	end
-	set extractedSubstrings to {}
-	repeat with substringRange in matchRanges
-		copy convertNSStringToText(convertedNSString's substringWithRange:substringRange) to end of extractedSubstrings
-	end repeat
+	
 	return extractedSubstrings
 end
 
@@ -78,4 +93,13 @@ to assertTrue(inputBoolean)
 	if not inputBoolean then
 		error "Assertion failed"
 	end
+end
+
+to importLibrary(fileName)
+	local selfPath, parentPath, libPath
+	set AppleScript's text item delimiters to ":"
+	set selfPath to path to me as text
+	set parentPath to item 1 thru -2 of every text item of selfPath as text
+	set libPath to parentPath & ":" & fileName & ".scpt"
+	return load script libPath as alias
 end

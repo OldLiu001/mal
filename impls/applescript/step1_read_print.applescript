@@ -19,8 +19,8 @@ on readEvalPrint(inputMAL)
 end
 
 on run
-	local reader
-	set reader to importLibrary("reader")
+	local readerLibrary
+	set readerLibrary to importLibrary("reader")
 	
 	local standardInput, standardOutput
 	tell NSFileHandle of current application
