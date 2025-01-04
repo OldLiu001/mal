@@ -12,6 +12,8 @@ on run
 	log tokenizeInput("  (+ 1 2)  +_+_ =;2333 3+2")
 	--log tokenizeInput2("  (+ 1 2)  +_+_ =;2333 3+2")
 	log readString("  (+ 1 2)  +_+_ =;2333 3+2")
+	log tokenizeInput("    +_+_ =;2333 3+2")
+	log readString(" 111  +_+_ =;2333 3+2")
 end
 
 script Reader
@@ -27,6 +29,9 @@ script Reader
 	end
 	
 	on nextToken()
+		set returnValue to (item currentPosition of tokenList)
+		set currentPosition to (currentPosition + 1)
+		return returnValue
 	end
 end
 
@@ -50,11 +55,16 @@ on readForm(tokenQueue)
 end
 
 on readAtom(tokenQueue)
-	return 1
+	--TODO: judge token's type
+	--return my typeLibrary's makeMALAtom(tokenQueue's nextToken())
 end
 
 on readListOrVector(tokenQueue)
 	return 2
+end
+
+on readMap(tokenQueue)
+	return 3
 end
 
 on tokenizeInput(inputString)
