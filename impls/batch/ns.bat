@@ -4,13 +4,20 @@ if "%~1" neq "" (
 )
 %-|%
 
-:NS_New [_Type] -> NS
+:NS_New _Type -> NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
+		if "%~1" == "" (
+			%?|% "Attempt to create a namespace with an empty type."
+		)
+
 		set /a _G_NSP += 1
-		set "_G_NS[!_G_NSP!]=_G_NSMETA[!_G_NSP!]"
-		set "_G_NSMETA[!_G_NSP!].RefCnt=0"
-		set "_G_NSMETA[!_G_NSP!].LnkCnt=0"
-		set "_G_NS[!_G_NSP!].Type=%~1"
+		set "_G_NS[!_G_NSP!]=%~1"
+		set "_G_NS[!_G_NSP!].=_"
+		set "_G_NS[!_G_NSP!].RefCnt=0"
+		set "_G_NS[!_G_NSP!].LnkCnt=0"
+
+		set /a %%.UpperLevel = _G_LEVEL - 1
+		set _L{!%%.UpperLevel!}.AutoFreeList{_G_NS[!_G_NSP!]}=_G_NS[!_G_NSP!]
 
 		set "%%.Ret=_G_NS[!_G_NSP!]"
 		%<-% %%.Ret
@@ -22,18 +29,26 @@ if "%~1" neq "" (
 		set "%%.NS=!%~1!"
 		set "%%.Field=%~2"
 		set "%%.SubNS=!%~3!"
-		%&% !%%.NS! %%.NSMeta
-		%&% !%%.SubNS! %%.SubNSMeta
 
-		%&% %%.SubNS !%%.NS!.!%%.Field!
+		if not defined !%%.NS!. (
+			%?|% "Attempt to link to a freed namespace."
+		)
+		if not defined !%%.SubNS!. (
+			%?|% "Attempt to link a freed namespace."
+		)
+		if "!%%.Field!" == "" (
+			%?|% "Attempt to link to a namespace with an empty field."
+		)
 
-		set /a !%%.SubNSMeta!.RefCnt += 1
+		%&% %%.SubNS !%%.NS!.Data.!%%.Field!
+
+		set /a !%%.SubNS!.RefCnt += 1
 		
-		%&% !%%.NSMeta!.LnkCnt %%.LnkCnt
+		%&% !%%.NS!.LnkCnt %%.LnkCnt
 		set /a %%.LnkCnt += 1
-		%&% %%.LnkCnt !%%.NSMeta!.LnkCnt
+		%&% %%.LnkCnt !%%.NS!.LnkCnt
 
-		%&% %%.SubNS !%%.NSMeta!.Lnk[!%%.LnkCnt!]
+		%&% %%.SubNS !%%.NS!.Lnk[!%%.LnkCnt!]
 
 		%<-% _
 	)
@@ -42,12 +57,11 @@ if "%~1" neq "" (
 :NS_Copy &NS -> NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
-		%&% !%%.NS! %%.NSMeta
 
-		if not defined !%%.NSMeta!.RefCnt (
+		if not defined !%%.NS!. (
 			%?|% "Attempt to copy a freed namespace."
 		)
-		set /a !%%.NSMeta!.RefCnt += 1
+		set /a !%%.NS!.RefCnt += 1
 		%<-% %%.NS
 	)
 %-|%
@@ -55,12 +69,15 @@ if "%~1" neq "" (
 :NS_Free NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
-		%&% !%%.NS! %%.NSMeta
 
-		%&% !%%.NSMeta!.RefCnt %%.RefCnt
+		if not defined !%%.NS!. (
+			%?|% "Attempt to free a freed namespace."
+		)
+
+		%&% !%%.NS!.RefCnt %%.RefCnt
 		if !%%.RefCnt! gtr 0 (
 			set /a %%.RefCnt -= 1
-			%&% %%.RefCnt !%%.NSMeta!.RefCnt
+			%&% %%.RefCnt !%%.NS!.RefCnt
 		) else (
 			if !%%.RefCnt! lss 0 (
 				%?|% "Double free detected."
@@ -73,7 +90,7 @@ if "%~1" neq "" (
 			)
 
 			for /f "delims==" %%i in (
-				'set !%%.NS! ^& set !%%.NSMeta!'
+				'set !%%.NS!'
 			) do (
 				set "%%i="
 			)

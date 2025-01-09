@@ -53,8 +53,11 @@ Type
 	MalStr
 		Value
 	MalLst
+		Value
 	MalVec
+		Value
 	MalMap
+		Value
 	MalFn
 
 String

@@ -64,7 +64,19 @@ if "%~1" neq "" (
 	)
 	
 	for /f "delims==" %%a in (
-		'set _L{!_G_LEVEL!}_ 2^>nul'
+		'set _L{!_G_LEVEL!}.AutoFreeList 2^>nul'
+	) do (
+		set /a _G_LEVEL += 1
+		if defined MAL_BATCH_IMPL_SINGLE_FILE (
+			call :NS_Free !%%a!
+		) else (
+			call NS :NS_Free !%%a!
+		)
+		set /a _G_LEVEL -= 1
+	)
+
+	for /f "delims==" %%a in (
+		'set _L{!_G_LEVEL!} 2^>nul'
 	) do set "%%a="
 
 	set /a _G_LEVEL -= 1
