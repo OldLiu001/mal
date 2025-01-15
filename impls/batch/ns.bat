@@ -4,12 +4,15 @@ if "%~1" neq "" (
 )
 %-|%
 
-:NS_New _Type -> NS
+:NS_New _Type NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		if "%~1" == "" (
 			%?|% "Attempt to create a namespace with an empty type."
 		)
-
+		if "%~2" == "" (
+			%?|% "Attempt to create a namespace with an empty name."
+		)
+		
 		set /a _G_NSP += 1
 		set "_G_NS[!_G_NSP!]=%~1"
 		set "_G_NS[!_G_NSP!].=_"
@@ -19,8 +22,7 @@ if "%~1" neq "" (
 		set /a %%.UpperLevel = _G_LEVEL - 1
 		set _L{!%%.UpperLevel!}.AutoFreeList{_G_NS[!_G_NSP!]}=_G_NS[!_G_NSP!]
 
-		set "%%.Ret=_G_NS[!_G_NSP!]"
-		%<-% %%.Ret
+		set "%~2=_G_NS[!_G_NSP!]"
 	)
 %-|%
 
@@ -29,7 +31,7 @@ if "%~1" neq "" (
 		set "%%.NS=!%~1!"
 		set "%%.Field=%~2"
 		set "%%.SubNS=!%~3!"
-
+		
 		if not defined !%%.NS!. (
 			%?|% "Attempt to link to a freed namespace."
 		)
@@ -54,22 +56,25 @@ if "%~1" neq "" (
 	)
 %-|%
 
-:NS_Copy &NS -> NS
+:NS_Copy &NS NewNS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
+		set "%%.NewNS=%~2"
 
 		if not defined !%%.NS!. (
 			%?|% "Attempt to copy a freed namespace."
 		)
+		if "!%%.NewNS!" == "" (
+			%?|% "Attempt to copy a namespace to an empty namespace."
+		)
 		set /a !%%.NS!.RefCnt += 1
-		%<-% %%.NS
+		set "!%%.NewNS!=!%%.NS!"
 	)
 %-|%
 
 :NS_Free NS
 	for %%. in (_L{!_G_LEVEL!}_) do (
 		set "%%.NS=!%~1!"
-
 		if not defined !%%.NS!. (
 			%?|% "Attempt to free a freed namespace."
 		)
@@ -83,9 +88,9 @@ if "%~1" neq "" (
 				%?|% "Double free detected."
 			)
 
-			%&% !%%.NSMeta!.LnkCnt %%.LnkCnt
+			%&% !%%.NS!.LnkCnt %%.LnkCnt
 			for /l %%i in (1 1 !%%.LnkCnt!) do (
-				%&% !%%.NSMeta!.Lnk[%%i] %%.SubNS
+				%&% !%%.NS!.Lnk[%%i] %%.SubNS
 				%|% NS Free %%.SubNS
 			)
 

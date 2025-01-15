@@ -70,8 +70,12 @@ if "%~1" neq "" (
 		if defined MAL_BATCH_IMPL_SINGLE_FILE (
 			call :NS_Free !%%a!
 		) else (
-			call NS :NS_Free !%%a!
+			call NS :NS_Free %%a
 		)
+		
+		for /f "delims==" %%a in (
+			'set _L{!_G_LEVEL!} 2^>nul'
+		) do set "%%a="
 		set /a _G_LEVEL -= 1
 	)
 
@@ -95,7 +99,12 @@ if "%~1" neq "" (
 :UTILITIES_Return [Var] -> _
 	set _G_RET=
 	if "%~1" neq "" if "%~1" neq "_" if defined %~1 (
-		%&% %~1 _G_RET
+		if defined !%~1!. (
+			rem Var is a namespace.
+			%|% NS Copy %~1 _G_RET
+		) else (
+			%&% %~1 _G_RET
+		)
 	)
 %-|%
 
