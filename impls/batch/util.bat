@@ -55,12 +55,19 @@ exit /b 0
 	set "_G.RET="
 	set /a _G.LEVEL += 1
 	
-	%?|% "TODO: Add MAIN support."
 	for /f "tokens=1,2,*" %%a in ('echo.%*') do (
 		if defined _G.PACKED (
-			call :%%a_%%b %%c
+			if /i "%%a" == "MAIN" (
+				call :MAIN_%%b %%c
+			) else (
+				call :%%a_%%b %%c
+			)
 		) else (
-			call %%a :%%a_%%b %%c
+			if /i "%%a" == "MAIN" (
+				call !_G.MAIN! CALL_SELF :MAIN_%%b %%c
+			) else (
+				call %%a :%%a_%%b %%c
+			)
 		)
 	)
 	
@@ -173,7 +180,6 @@ exit /b 0
 	set /a _G.NS += 1
 	set "_G.NS.!_G.NS!.NSBODYMARK=1"
 	set "_G.NS.!_G.NS!.RefCnt=1"
-	set "_G.NS.!_G.NS!.LnkCnt=0"
 	
 	set /a _G.NS += 1
 	set "_G.NS.!_G.NS!.NSMARK=1"
@@ -200,10 +206,26 @@ exit /b 0
 	
 	%&% !_T.NSBody!.RefCnt _T.RefCnt
 	if "!_T.RefCnt!" == "1" (
-		%&% %~3 !_T.NSBody!.Data.%~2
+		%&% %~3 !_T.NSBody!.Data.Value.%~2
+		set "!_T.NSBody!.Data.Key.%~2=%~2"
 	) else (
-		rem recursive copy
-		%?|% TODO
+		set /a _G.NS += 1
+		set /a _T.NewNSBody=_G.NS.!_G.NS!
+		set "!_T.NewNSBody!.NSBODYMARK=1"
+		set "!_T.NewNSBody!.RefCnt=1"
+		for /f "delims==" %%a in (
+			'set !_T.NSBody!.Data.Key 2^>nul'
+		) do (
+			%&% %%a !_T.NewNSBody!.Data.Value.%%a
+			set "!_T.NewNSBody!.Data.Key.%%a=%%a"
+		)
+		set "!_T.NewNSBody!.Data.Key.%~2=%~2"
+		
+		
+		call :UTIL_Free !_T.NewNSBody!.Data.Value.%~2
+		%&% %~3 !_T.NewNSBody!.Data.Value.%~2
+		
+		set "!%~1!.Target=!_T.NewNSBody!"
 	)
 	
 	for /f "delims==" %%a in (
@@ -217,14 +239,35 @@ exit /b 0
 		>&2 pause
 		exit 1
 	)
-		%?|% TODO
+	
+	if "%~1" == "" %?|% "NS undefined."
+	if "%~2" == "" %?|% "Field undefined."
+	if "%~3" == "" %?|% "Val undefined."
+	
+	if not defined !%~1!.NSMARK %?|% "Invalid NS."
+	%&% !%~1!.Target _T.NSBody
+	if not defined !_T.NSBody!.NSBODYMARK %?|% "Invalid NSBODY."
+	
+	if defined !_T.NSBody!.Data.Key.%~2 (
+		%&% 
+	) else (
+		%?|% "Field not found."
+	)
+	
+	for /f "delims==" %%a in (
+		'set _T 2^>nul'
+	) do set "%%a="
 %-|%
 
-:UTIL_Free *NS
+:UTIL_Free *Var
 	if not defined _G_UTIL (
 		>&2 echo [%~n0] Fatal: UTIL not initialized.
 		>&2 pause
 		exit 1
 	)
+		rem because _T, need non-recursive.
 		%?|% TODO
+	for /f "delims==" %%a in (
+		'set _T 2^>nul'
+	) do set "%%a="
 %-|%
