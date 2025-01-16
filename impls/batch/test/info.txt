@@ -1,8 +1,0 @@
-
-			set _ | find /N /V "" >> varlog.txt
-			set | find /N /V "" >> varlog2.txt
-			
-			set | find /C /V ""
-
-
-PS D:\@PubCodes\mal-bathc\impls\batch> .\step0_repl.bat

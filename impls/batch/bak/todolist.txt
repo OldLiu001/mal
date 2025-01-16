@@ -1,0 +1,51 @@
+25.1.8
+新增全局变量储存各Type对应的方法
+NS 保持不变
+DS 全局类信息（Type->属性、方法的映射）
+
+MalList 与 List解耦
+MalList.Data -> List
+MalMap思路同MalList
+
+________________________________________
+当前进度：
+批处理编程结构基本固定
+
+
+TODO：
+浅拷贝Copy思路：NS全部Copy，NSMeta的RefCnt清零，Lnks中的每个RefCnt+1
+
+NS结构和NS操作解耦合（封装NS Set（检测Mut）和NS Get）
+（为了统一Meta逻辑）
+TYPES的CopyMalType对Atom做特殊处理
+考虑增加.Mut字段以及MakeImmut等函数 以及Copy时选择性Copy
+MakeMut 检查RefCnt=0 （类似rust的RefCell）
+也许还可以考虑CopyOnWrite思路
+
+待思考：可变和不可变、NS不对外暴露结构的必要性
+Copy与CopyMut
+父对象可变子对象可变，父对象不可变子对象可变的相关复制问题
+Atom与Meta相关问题
+
+垃圾回收重构
+
+=这个符号出现在变量名中时在垃圾回收中会出问题，注意！
+
+1、垃圾回收最简单思路
+Fn定义时不仅当前环境RefCount+1
+其上层所有环境RefCount均+1
+Free Fn时从下到上Free上去
+
+2、（弃用）垃圾回收统一使用RefCount
+闭包分析内部对外的隐式引用（遍历AST），引用计数+1
+( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+释放Fn时同时释放隐式引用
+
+3、（弃用）垃圾回收思路2
+全部复制
+
+
+EvalLater 封装
+更改字符串数据结构 & 处理逻辑 ： 
+换行与不换行，末尾是否有换行需要清晰化+封装
+换行的表示

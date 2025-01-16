@@ -1,0 +1,122 @@
+v:0.5
+
+约定：除了专门用于Free的函数外
+所有函数不对传入参数NS进行Free
+（全部进行借用而不移交所有权）
+_ 普通变量
+无前缀 消耗变量（移交所有权）
+& 引用
+
+Special Symbol Mapping:
+	! --- $E
+	^ --- $C
+	" --- $D
+	% --- $P
+	$ --- $$
+	: --- $A
+
+Function Naming Rule:
+	FunctionName
+
+Variable Naming Rule:
+	Command Variable: _C_CommandName
+	Global  Variable: _G_VARNAME
+	Local   Variable: _L{!_G_LEVEL!}_VarName
+
+Global Variables
+	_
+	_G_RET
+	_G_ERR
+	_G_TRACE
+	_G_LEVEL
+	_G_TMP
+
+_G_ERR
+	Type
+		Exception
+	Msg
+	Data
+
+Type
+	String
+	Reader
+	MalBool
+		Value
+	MalNil
+		Value
+	MalNum
+		Value
+	MalSym
+		Value
+	MalKwd
+		Value
+	MalStr
+		Value
+	MalLst
+		Value
+	MalVec
+		Value
+	MalMap
+		Value
+	MalFn
+
+String
+	LineCount
+	Line[Num]
+
+Reader
+	TokenCount
+	Token[Num]
+	TokenPtr
+
+MalList/MalVec
+	Count
+	Item[Num]
+
+Item[Key] 储存不区分大小写Key对应的所有V
+之后为了区分大小写则与Item[Key].Item[Num].Key比较
+MalMap
+	Count
+	RawKeyCount
+	RawKeys (RawKeyArr)
+	Item[Key]=_
+	Item[Key].Count
+	Item[Key].Item[Num].Key=objMalKey
+	Item[Key].Item[Num].Value=objMalVal
+
+RawKeyArr
+	Type
+	Key[Num]
+
+Enviroment
+	RefCount
+	Outer
+	Item[Key]=_
+	Item[Key].Count
+	Item[Key].Sub[Num].Key=objMalKey
+	Item[Key].Sub[Num].Value=objMalVal
+
+MalFn (Bat)
+	Type : MalFn
+	SubType : BAT
+	AutoEval : True/False
+	Mod
+	Name
+
+MalFn (Mal)
+	Type : MalFn
+	SubType : MAL
+	AutoEval : True/False
+	Env (Enviroment)
+	Binds (MalLst/MalVec)
+	Body
+	BodyRefList（TODO）
+
+
+______________________________
+
+NSMeta
+	RefCnt
+	LnkCnt
+	Lnk[]
+	Meta (预留)
