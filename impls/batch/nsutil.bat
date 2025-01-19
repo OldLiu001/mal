@@ -1,4 +1,6 @@
 @echo off
+%_G.DOTHIS% call %*
+%_G.DOTHIS% exit /b 0
 if "%~1" neq "" (
 	call %* || (
 		if defined _G.TRACE (
@@ -32,22 +34,22 @@ exit /b 0
 
 		set /a "_G.NSP = 0"
 
-		set "{#n=!{! NSUTIL New"
-		set "{#c=!{! NSUTIL Clone"
-		set "{#g=!{! NSUTIL Get"
-		set "{#s=!{! NSUTIL Set"
+		set "{n=!{! NSUTIL New"
+		set "{c=!{! NSUTIL Clone"
+		set "{g=!{! NSUTIL Get"
+		set "{s=!{! NSUTIL Set"
 	)
 %-|%
 
 :NSUTIL_New *NSVar
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 		
-		if "%~1" == "" %?|% "'NSVar' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
 
 		set /a "_G.NSP += 1"
 		set "%%.NSBody=_G.NS[!_G.NSP!]"
@@ -68,13 +70,13 @@ exit /b 0
 
 :NSUTIL_IsNSMeta *NS -> Bool
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 
-		if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
 		%&% "!%~1!.Type" "%%.Type"
 		if /i "!%%.Type!" == "NSMeta" (
@@ -88,13 +90,13 @@ exit /b 0
 
 :NSUTIL_IsNSBody *NS -> Bool
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 
-		if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
 		%&% "!%~1!.Type" "%%.Type"
 		if /i "!%%.Type!" == "NSBody" (
@@ -108,13 +110,13 @@ exit /b 0
 
 :NSUTIL_IsValidNS *NS -> Bool
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 
-		if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
 		%{% NSUTIL IsNSMeta "%~1" %}% %->% %%.Res
 		if not "!%%.Res!" == "1" (
@@ -128,6 +130,7 @@ exit /b 0
 
 :NSUTIL_AssertValidNS *NS
 	for %%. in (_L[!_G.LEVEL!].) do (
+		%_G.DOTHIS% %-|%
 		if not defined _G.NSUTIL (
 			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
 			2>con >&2 pause
@@ -142,6 +145,7 @@ exit /b 0
 
 :NSUTIL_AssertValidNSBody *NS
 	for %%. in (_L[!_G.LEVEL!].) do (
+		%_G.DOTHIS% %-|%
 		if not defined _G.NSUTIL (
 			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
 			2>con >&2 pause
@@ -156,13 +160,13 @@ exit /b 0
 
 :NSUTIL_Clone *From *To
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
-		if "%~1" == "" %?|% "'From' undefined."
-		if "%~2" == "" %?|% "'To' undefined."
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 
@@ -181,13 +185,13 @@ exit /b 0
 
 :NSUTIL_CloneMeta *From *To
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
-		if "%~1" == "" %?|% "'From' undefined."
-		if "%~2" == "" %?|% "'To' undefined."
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 
@@ -203,14 +207,14 @@ exit /b 0
 
 :NSUTIL_HasField *NS -> Bool
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 
-		if "%~1" == "" %?|% "'NS' undefined."
-		if "%~2" == "" %?|% "'Field' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 
@@ -226,15 +230,15 @@ exit /b 0
 
 :NSUTIL_Get *NS Field *Val
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 	
-		if "%~1" == "" %?|% "'NS' undefined."
-		if "%~2" == "" %?|% "'Field' undefined."
-		if "%~3" == "" %?|% "'Val' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 
@@ -249,15 +253,15 @@ exit /b 0
 
 :NSUTIL_Free *NS
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
+
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
 		%&% _G.RET %%.RetBackup
-
-		if "%~1" == "" %?|% "'NS' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 	
@@ -273,13 +277,14 @@ exit /b 0
 
 :NSUTIL_FreeNSBody *NS
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 	
-		if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+		
 		%{% NSUTIL AssertValidNSBody "%~1" %}%
 
 		%&% "!%~1!.RefCnt" "%%.RefCnt"
@@ -312,14 +317,14 @@ exit /b 0
 
 :NSUTIL_CloneBody *NS *NewNS
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 	
-		if "%~1" == "" %?|% "'NS' undefined."
-		if "%~2" == "" %?|% "'NewNS' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'NewNS' undefined."
 
 		%{% NSUTIL AssertValidNSBody "%~1" %}%
 
@@ -347,15 +352,15 @@ exit /b 0
 
 :NSUTIL_Set *NS Field *Val
 	for %%. in (_L[!_G.LEVEL!].) do (
-		if not defined _G.NSUTIL (
-			2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
+		%_G.SKIPTHIS% if not defined _G.NSUTIL (
+		%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		%_G.SKIPTHIS% 	2>con >&2 pause
+		%_G.SKIPTHIS% 	exit 1
+		%_G.SKIPTHIS% )
 	
-		if "%~1" == "" %?|% "'NS' undefined."
-		if "%~2" == "" %?|% "'Field' undefined."
-		if "%~3" == "" %?|% "'Val' undefined."
+		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
 		%{% NSUTIL AssertValidNS "%~1" %}%
 

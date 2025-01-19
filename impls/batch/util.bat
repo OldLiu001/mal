@@ -1,4 +1,6 @@
 @echo off
+%_G.DOTHIS% call %*
+%_G.DOTHIS% exit /b 0
 if "%~1" neq "" (
 	call %* || (
 		if defined _G.TRACE (
@@ -49,26 +51,34 @@ exit /b 0
 		set "?}=& if defined _G.ERR"
 		set "?=if defined _G.ERR"
 		set "-|=exit /b 0"
+
+		if defined _G.FAST (
+			set _G.SKIPTHIS=rem
+			set _G.DOTHIS=
+		) else (
+			set _G.SKIPTHIS=
+			set _G.DOTHIS=rem
+		)
 	) else (
 		%?|% "double initialized."
 	)
 	
-	for /f "delims==" %%a in (
-		'set "_T" 2^>nul'
-	) do set "%%a="
+	%_G.SKIPTHIS% for /f "delims==" %%a in (
+	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
+	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_Invoke ModName Fn ... -> ...
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% )
 	
-	if "%~1" == "" %?|% "'ModName' undefined."
-	if "%~2" == "" %?|% "'Fn' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'ModName' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Fn' undefined."
 	
-	set "_G.TRACE[!_G.LEVEL!]=!_G.TRACE!"
-	set "_G.TRACE=!_G.TRACE!>(%~1)%~2"
+	%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]=!_G.TRACE!"
+	%_G.SKIPTHIS% set "_G.TRACE=!_G.TRACE!>(%~1)%~2"
 	
 	set /a "_G.LEVEL += 1"
 	
@@ -89,8 +99,8 @@ exit /b 0
 	)
 	
 	if defined _G.NSUTIL (
-		set "_G.TRACE[!_G.LEVEL!]=!_G.TRACE!"
-		set "_G.TRACE=!_G.TRACE!>(NSUTIL)Free"
+		%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]=!_G.TRACE!"
+		%_G.SKIPTHIS% set "_G.TRACE=!_G.TRACE!>(NSUTIL)Free"
 		set /a "_G.LEVEL += 1"
 		set /a "_T.PrevLevel = _G.LEVEL - 1"
 
@@ -110,8 +120,8 @@ exit /b 0
 		) do set "%%a="
 
 		set /a "_G.LEVEL -= 1"
-		%&% "_G.TRACE[!_G.LEVEL!]" "_G.TRACE"
-		set "_G.TRACE[!_G.LEVEL!]="
+		%_G.SKIPTHIS% %&% "_G.TRACE[!_G.LEVEL!]" "_G.TRACE"
+		%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]="
 	)
 	
 	for /f "delims==" %%a in (
@@ -120,41 +130,41 @@ exit /b 0
 	
 	set /a _G.LEVEL -= 1
 	
-	%&% "_G.TRACE[!_G.LEVEL!]" "_G.TRACE"
-	set "_G.TRACE[!_G.LEVEL!]="
+	%_G.SKIPTHIS% %&% "_G.TRACE[!_G.LEVEL!]" "_G.TRACE"
+	%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]="
 	
-	for /f "delims==" %%a in (
-		'set "_T" 2^>nul'
-	) do set "%%a="
+	%_G.SKIPTHIS% for /f "delims==" %%a in (
+	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
+	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_GetRet *Var
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-		exit 1
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-	if "%~1" == "" %?|% "'Var' undefined."	
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Var' undefined."	
 
 	if not defined _G.ERR (
 		%&% "_G.RET" "%~1"
 	)
 	set "_G.RET="
 
-	for /f "delims==" %%a in (
-		'set "_T" 2^>nul'
-	) do set "%%a="
+	%_G.SKIPTHIS% for /f "delims==" %%a in (
+	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
+	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_SetRet *Var
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-		exit 1
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-	if "%~1" == "" %?|% "'Var' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Var' undefined."
 
 	if defined _G.NSUTIL (
 		%&% "!%~1!.Type" "_T.Type"
@@ -171,49 +181,49 @@ exit /b 0
 	)
 
 
-	for /f "delims==" %%a in (
-		'set "_T" 2^>nul'
-	) do set "%%a="
+	%_G.SKIPTHIS% for /f "delims==" %%a in (
+	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
+	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_Throw *Var
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-		exit 1
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 	
-	if "%~1" == "" %?|% "'Var' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Var' undefined."
 
 	%?|% TODO: Add NS logic.
 	set "_G.ERR=!%~1!"
 
-	for /f "delims==" %%a in (
-		'set "_T" 2^>nul'
-	) do set "%%a="
+	%_G.SKIPTHIS% for /f "delims==" %%a in (
+	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
+	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_Copy *From *To
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-		exit 1
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 	
-	if "%~1" == "" %?|% "'From' undefined."
-	if "%~2" == "" %?|% "'To' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 	
 	set "%~2=!%~1!"
 %-|%
 
 :UTIL_Fatal Msg
-	if not defined _G.UTIL (
-		2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
-		2>con >&2 pause
-		exit 1
-	)
+	%_G.SKIPTHIS% if not defined _G.UTIL (
+	%_G.SKIPTHIS% 	2>con >&2 echo [%~n0] Fatal: UTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 	
-	if "%~1" == "" %?|% "'Msg' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Msg' undefined."
 	
 	2>con >&2 echo [!_G.TRACE!] Fatal: %~1
 	2>con >&2 pause

@@ -1,4 +1,5 @@
 @echo off
+set _G.FAST=1
 if "%~1" equ "CALL_SELF" (
 	for /f "tokens=1,*" %%a in ('echo.%*') do (
 		call %%b || %?|% "Call '%~nx0' failed."
@@ -14,33 +15,34 @@ if not defined _G.PACKED (
 )
 
 
-
 set _ & (set | find /C /V "") & pause<nul
+time <nul
 %{% MAIN TEST3 %}%
+time <nul
 set _ & (set | find /C /V "") & pause
 %-|%
 
 
 :MAIN_TEST
 	for %%. in (_L[!_G.LEVEL!].) do (
-		%{#n% %%.A %}%
+		%{n% %%.A %}%
 		set %%.B=3
 
 		set %%.B2=30
-		%{#s% %%.A k %%.B %}%
-		%{#s% %%.A k2 %%.B %}%
-		%{#s% %%.A k3 %%.B %}%
-		%{#g% %%.A k  %%.R %}%
+		%{s% %%.A k %%.B %}%
+		%{s% %%.A k2 %%.B %}%
+		%{s% %%.A k3 %%.B %}%
+		%{g% %%.A k  %%.R %}%
 
 
-		%{#s% %%.A k2 %%.B2 %}%
+		%{s% %%.A k2 %%.B2 %}%
 
-		%{#n% %%.o %}%
-		%{#s% %%.A o1 %%.o %}%
+		%{n% %%.o %}%
+		%{s% %%.A o1 %%.o %}%
 
-		%{#s% %%.A k3 %%.o %}%
+		%{s% %%.A k3 %%.o %}%
 
-		%{#s% %%.A o1 %%.B2 %}%
+		%{s% %%.A o1 %%.B2 %}%
 		%<-% %%.A
 	)
 %-|%
