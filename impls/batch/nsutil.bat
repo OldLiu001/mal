@@ -168,7 +168,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
 		set /a "_G.NSP += 1"
 		set "_G.NS[!_G.NSP!].Type=NSMeta"
@@ -193,7 +193,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
 		set /a "_G.NSP += 1"
 		set "_G.NS[!_G.NSP!].Type=NSMeta"
@@ -216,7 +216,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
 		%&% "!%~1!.Target" "%%.NSBody"
 		if defined !%%.NSBody!.Data.Key[%~2] (
@@ -240,7 +240,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
 		%{% NSUTIL HasField "%~1" "%~2" %}% %->% %%.Res
 
@@ -263,7 +263,7 @@ exit /b 0
 
 		%&% _G.RET %%.RetBackup
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 	
 		%&% !%~1!.Target %%.NSBody
 		set "!%~1!.Type="
@@ -285,7 +285,7 @@ exit /b 0
 	
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 		
-		%{% NSUTIL AssertValidNSBody "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
 
 		%&% "!%~1!.RefCnt" "%%.RefCnt"
 
@@ -326,7 +326,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'NewNS' undefined."
 
-		%{% NSUTIL AssertValidNSBody "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
 
 		set /a "_G.NSP += 1"
 		set "%%.NewBody=_G.NS[!_G.NSP!]"
@@ -362,7 +362,7 @@ exit /b 0
 		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
-		%{% NSUTIL AssertValidNS "%~1" %}%
+		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
 		%&% "!%~1!.Target" "%%.NSBody"
 
