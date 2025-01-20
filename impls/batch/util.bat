@@ -1,6 +1,4 @@
 @echo off
-%_G.DOTHIS% call %*
-%_G.DOTHIS% exit /b 0
 if "%~1" neq "" (
 	call %* || (
 		if defined _G.TRACE (

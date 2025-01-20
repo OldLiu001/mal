@@ -1,6 +1,4 @@
 @echo off
-%_G.DOTHIS% call %*
-%_G.DOTHIS% exit /b 0
 if "%~1" neq "" (
 	call %* || (
 		if defined _G.TRACE (
@@ -336,13 +334,13 @@ exit /b 0
 		for /f "delims==" %%a in (
 			'set !%~1!.Data.Key 2^>nul'
 		) do (
-			set "!%%.NewBody!.Data.Key[%%a]=%%a"
+			set "!%%.NewBody!.Data.Key[!%%a!]=!%%a!"
 
-			%{% NSUTIL IsNSMeta "!%~1!.Data.Value[%%a]" %}% %->% %%.IsMeta
+			%{% NSUTIL IsNSMeta "!%~1!.Data.Value[!%%a!]" %}% %->% %%.IsMeta
 			if "!%%.IsMeta!" == "1" (
-				%{% NSUTIL CloneMeta "!%~1!.Data.Value[%%a]" "!%%.NewBody!.Data.Value[%%a]" %}%
+				%{% NSUTIL CloneMeta "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]" %}%
 			) else (
-				%&% "!%~1!.Data.Value[%%a]" "!%%.NewBody!.Data.Value[%%a]"
+				%&% "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]"
 			)
 		)
 

@@ -43,7 +43,14 @@ set _ & (set | find /C /V "") & pause
 		%{s% %%.A k3 %%.o %}%
 
 		%{s% %%.A o1 %%.B2 %}%
-		%<-% %%.A
+		
+		%{c% %%.A %%.B %}%
+		set _ & (set | find /C /V "") & pause
+		
+		%{s% %%.A o1 %%.o %}%
+		set _ & (set | find /C /V "") & pause
+		
+		%<-% %%.B
 	)
 %-|%
 
