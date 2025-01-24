@@ -167,10 +167,15 @@ exit /b 0
 	if defined _G.NSUTIL (
 		%&% "!%~1!.Type" "_T.Type"
 		if /i "!_T.Type!" == "NSMeta" (
-			%{% NSUTIL CloneMeta "%~1" "_G.RET" %}%
-
-			set /a "_T.PrevLevel = _G.LEVEL - 1"
-			set "_G.LEVEL[!_T.PrevLevel!][!_G.RET!]=!_G.RET!"
+			if defined _G.LEVEL[!_G.LEVEL!][!%~1!] (
+				set _G.LEVEL[!_G.LEVEL!][!%~1!]=
+				set /a "_T.PrevLevel = _G.LEVEL - 1"
+				set "_G.RET=!%~1!"
+				set "_G.LEVEL[!_T.PrevLevel!][!_G.RET!]=!_G.RET!"
+			) else (
+				rem Found NS argument, just return it.
+				set "_G.RET=!%~1!"
+			)
 		) else (
 			set "_G.RET=!%~1!"
 		)
