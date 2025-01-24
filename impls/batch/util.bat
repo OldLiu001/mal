@@ -168,7 +168,7 @@ exit /b 0
 		%&% "!%~1!.Type" "_T.Type"
 		if /i "!_T.Type!" == "NSMeta" (
 			if defined _G.LEVEL[!_G.LEVEL!][!%~1!] (
-				set _G.LEVEL[!_G.LEVEL!][!%~1!]=
+				set "_G.LEVEL[!_G.LEVEL!][!%~1!]="
 				set /a "_T.PrevLevel = _G.LEVEL - 1"
 				set "_G.RET=!%~1!"
 				set "_G.LEVEL[!_T.PrevLevel!][!_G.RET!]=!_G.RET!"

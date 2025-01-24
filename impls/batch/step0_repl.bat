@@ -24,8 +24,8 @@ if not defined _G.PACKED (
 		for /l %%_ in () do (
 			set "%%.Prompt=user> "
 			%{% IO WriteVar %%.Prompt %}%
-			%{% IO ReadEscapedLine %?}% (
-				%|->% %%.Input
+			%{% IO ReadEncLine %}% %->% %%.Input
+			if defined %%.Input (
 				%{% MAIN REP %%.Input %}%
 			)
 		)
@@ -47,17 +47,19 @@ if not defined _G.PACKED (
 	)
 %-|%
 
-:MAIN_Print Mal
+:MAIN_Print Mal -> Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Mal=!%~1!"
-		%{% IO WriteEscapedLineVar %}%
+		%{% IO WriteEncLine %%.Mal %}%
+		%<-% %%.Mal
 	)
 %-|%
 
 :MAIN_REP Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Mal=!%~1!"
-		%{% MAIN TEST2 %->% %%.T
-		%<-% %%.T
+		%{% MAIN Read %%.Mal %}% %->% %%.Mal
+		%{% MAIN Eval %%.Mal %}% %->% %%.Mal
+		%{% MAIN Print %%.Mal %}% %->% %%.Mal
 	)
 %-|%
