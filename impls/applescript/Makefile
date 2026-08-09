@@ -20,6 +20,8 @@ step8_macros.scpt: step8_macros.applescript reader.scpt printer.scpt types.scpt
 
 step9_try.scpt: step9_try.applescript reader.scpt printer.scpt types.scpt
 
+stepA_mal.scpt: stepA_mal.applescript reader.scpt printer.scpt types.scpt
+
 reader.scpt: reader.applescript types.scpt
 
 printer.scpt: printer.applescript

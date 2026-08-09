@@ -4,6 +4,7 @@ script Types
 		script MALAtom
 			prop typeName : "atom"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALAtom
 	end makeMALAtom
@@ -12,6 +13,7 @@ script Types
 		script MALNumber
 			prop typeName : "number"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALNumber
 	end makeMALNumber
@@ -20,6 +22,7 @@ script Types
 		script MALSymbol
 			prop typeName : "symbol"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALSymbol
 	end makeMALSymbol
@@ -28,6 +31,7 @@ script Types
 		script MALKeyword
 			prop typeName : "keyword"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALKeyword
 	end makeMALKeyword
@@ -36,6 +40,7 @@ script Types
 		script MALList
 			prop typeName : "list"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALList
 	end makeMALList
@@ -44,6 +49,7 @@ script Types
 		script MALVector
 			prop typeName : "vector"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALVector
 	end makeMALVector
@@ -52,6 +58,7 @@ script Types
 		script MALMap
 			prop typeName : "map"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALMap
 	end makeMALMap
@@ -60,6 +67,7 @@ script Types
 		script MALString
 			prop typeName : "string"
 			prop valueData : inputValue
+			prop metaData : missing value
 		end script
 		return MALString
 	end makeMALString
@@ -68,6 +76,7 @@ script Types
 		script MALNil
 			prop typeName : "nil"
 			prop valueData : "nil"
+			prop metaData : missing value
 		end script
 		return MALNil
 	end makeMALNil
@@ -76,6 +85,7 @@ script Types
 		script MALTrue
 			prop typeName : "true"
 			prop valueData : "true"
+			prop metaData : missing value
 		end script
 		return MALTrue
 	end makeMALTrue
@@ -84,6 +94,7 @@ script Types
 		script MALFalse
 			prop typeName : "false"
 			prop valueData : "false"
+			prop metaData : missing value
 		end script
 		return MALFalse
 	end makeMALFalse
