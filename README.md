@@ -233,6 +233,19 @@ make
 ./stepX_YYY
 ```
 
+### AppleScript
+
+The AppleScript implementation runs on macOS via the built-in
+`osascript` interpreter. It uses AppleScriptObjC (Foundation framework)
+for regular-expression based tokenization and standard input/output
+handling. Sources are compiled to `.scpt` files before running.
+
+```
+cd impls/applescript
+make
+./run step1_read_print
+```
+
 ### GNU awk
 
 The GNU awk implementation of mal has been tested with GNU awk 4.1.1.

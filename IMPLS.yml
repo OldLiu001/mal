@@ -1,6 +1,7 @@
 IMPL:
   - {IMPL: ada}
   - {IMPL: ada.2}
+  - {IMPL: applescript, NO_DOCKER: 1, OS: macos}
   - {IMPL: awk}
   - {IMPL: bash, NO_SELF_HOST: 1}  # step8 timeout
   - {IMPL: basic, basic_MODE: cbm, NO_SELF_HOST: 1}  # step4 OOM
