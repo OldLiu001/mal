@@ -12,6 +12,8 @@ step4_if_fn_do.scpt: step4_if_fn_do.applescript reader.scpt printer.scpt types.s
 
 step5_tco.scpt: step5_tco.applescript reader.scpt printer.scpt types.scpt
 
+step6_file.scpt: step6_file.applescript reader.scpt printer.scpt types.scpt
+
 reader.scpt: reader.applescript types.scpt
 
 printer.scpt: printer.applescript

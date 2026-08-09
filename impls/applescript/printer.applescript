@@ -34,6 +34,8 @@ script Printer
 			return "true"
 		else if typeName = "false" then
 			return "false"
+		else if typeName = "atom" then
+			return "(atom " & pr_str(malObject's valueData, print_readably) & ")"
 		else
 			return "<unknown-type:" & typeName & ">"
 		end if
