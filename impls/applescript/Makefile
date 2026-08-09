@@ -18,6 +18,8 @@ step7_quote.scpt: step7_quote.applescript reader.scpt printer.scpt types.scpt
 
 step8_macros.scpt: step8_macros.applescript reader.scpt printer.scpt types.scpt
 
+step9_try.scpt: step9_try.applescript reader.scpt printer.scpt types.scpt
+
 reader.scpt: reader.applescript types.scpt
 
 printer.scpt: printer.applescript
