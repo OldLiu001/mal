@@ -148,3 +148,5 @@ elm/*.js
 wasm/*.wat
 wasm/*.wasm
 applescript/*.scpt
+applescript/*.standalone.applescript
+applescript/*.standalone.scpt

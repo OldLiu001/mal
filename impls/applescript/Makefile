@@ -1,35 +1,52 @@
-%.scpt: %.applescript
-	osacompile -l AppleScript -o $@ $<
+# AppleScript MAL — build rules
+#
+# 每个 step 提供两种产物形式:
+#   依赖版   dependent : stepN.scpt                   (运行期 load types/reader/printer.scpt)
+#   单文件   standalone: stepN.standalone.applescript  (零依赖单脚本源, 可直接 osascript)
+#                         stepN.standalone.scpt        (零依赖编译产物)
+#
+# 直接运行源码(不走 make):
+#   osascript stepN.applescript            -> 优先用 .scpt 模块, 缺失时自动编译 .applescript 再加载
+#   osascript stepN.standalone.applescript -> 完全自包含, 零依赖
+#
+# 构建:
+#   make                -> 构建所有 step 依赖版 .scpt
+#   make standalone     -> 构建所有 step 单文件版(.standalone.applescript + .standalone.scpt)
+#   make standalone-src -> 仅构建单文件源 .standalone.applescript
+#
+# 合并工具 merge.applescript 为纯 AppleScript 实现, 不依赖 Python / 外部脚本语言。
 
-# step 文件依赖模块
-step1_read_print.scpt: step1_read_print.applescript reader.scpt printer.scpt types.scpt
+SCRIPT = osascript
+CC     = osacompile
 
-step2_eval.scpt: step2_eval.applescript reader.scpt printer.scpt types.scpt
+STEPS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
+        step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
 
-step3_env.scpt: step3_env.applescript reader.scpt printer.scpt types.scpt
+# ---- 依赖版 (运行期加载 types/reader/printer.scpt) ----
+$(STEPS:=.scpt): %.scpt: %.applescript types.scpt reader.scpt printer.scpt
+	$(CC) -l AppleScript -o $@ $<
 
-step4_if_fn_do.scpt: step4_if_fn_do.applescript reader.scpt printer.scpt types.scpt
+types.scpt reader.scpt printer.scpt: %.scpt: %.applescript
+	$(CC) -l AppleScript -o $@ $<
 
-step5_tco.scpt: step5_tco.applescript reader.scpt printer.scpt types.scpt
+# ---- 单文件无依赖版: 合并源 (.standalone.applescript) ----
+# 由 AppleScript 原生 merge.applescript 合并(扁平化内联三个模块), 不依赖 Python
+STANDALONE_SRC = $(STEPS:=.standalone.applescript)
 
-step6_file.scpt: step6_file.applescript reader.scpt printer.scpt types.scpt
+$(STANDALONE_SRC): %.standalone.applescript: $(basename %).applescript types.applescript reader.applescript printer.applescript merge.applescript
+	$(SCRIPT) merge.applescript $*
 
-step7_quote.scpt: step7_quote.applescript reader.scpt printer.scpt types.scpt
+# ---- 单文件无依赖版: 编译产物 (.standalone.scpt) ----
+%.standalone.scpt: %.standalone.applescript
+	$(CC) -l AppleScript -o $@ $<
 
-step8_macros.scpt: step8_macros.applescript reader.scpt printer.scpt types.scpt
+.PHONY: all standalone standalone-src clean
+all: $(STEPS:=.scpt)
 
-step9_try.scpt: step9_try.applescript reader.scpt printer.scpt types.scpt
+standalone-src: $(STANDALONE_SRC)
 
-stepA_mal.scpt: stepA_mal.applescript reader.scpt printer.scpt types.scpt
+standalone: $(STEPS:=.standalone.scpt)
 
-reader.scpt: reader.applescript types.scpt
-
-printer.scpt: printer.applescript
-
-types.scpt: types.applescript
-
-step0_repl.scpt: step0_repl.applescript
-
-.PHONY: clean
 clean:
-	rm -f *.scpt
+	rm -f $(STEPS:=.scpt) $(STEPS:=.standalone.scpt) $(STANDALONE_SRC) \
+	      types.scpt reader.scpt printer.scpt

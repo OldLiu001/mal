@@ -7,11 +7,38 @@ property typesLib : missing value
 property readerLib : missing value
 property printerLib : missing value
 
+
+
+-- 动态加载模块: 优先已编译的 .scpt, 缺失时临时编译 .applescript 再加载
+-- 这样 `osascript stepXxx.applescript` 可不经 make 直接运行
+on loadMod(modName, scriptDir)
+	set scptPath to scriptDir & "/" & modName & ".scpt"
+	set srcPath to scriptDir & "/" & modName & ".applescript"
+	if my fileExists(scptPath) then
+		return load script (scptPath as POSIX file)
+	else if my fileExists(srcPath) then
+		set tmpPath to (do shell script "mktemp -t mal") & ".scpt"
+		do shell script "osacompile -l AppleScript -o " & quoted form of tmpPath & " " & quoted form of srcPath
+		return load script (tmpPath as POSIX file)
+	else
+		error "module not found: " & modName
+	end if
+end loadMod
+
+on fileExists(p)
+	try
+		do shell script "test -f " & quoted form of p
+		return true
+	on error
+		return false
+	end try
+end fileExists
+
 on run()
 	set scriptDir to do shell script "dirname " & quoted form of (POSIX path of (path to me))
-	set typesLib to load script ((scriptDir & "/types.scpt") as POSIX file)
-	set readerLib to load script ((scriptDir & "/reader.scpt") as POSIX file)
-	set printerLib to load script ((scriptDir & "/printer.scpt") as POSIX file)
+	set typesLib to my loadMod("types", scriptDir)
+	set readerLib to my loadMod("reader", scriptDir)
+	set printerLib to my loadMod("printer", scriptDir)
 	readerLib's setTypesLib(typesLib)
 
 	-- 初始化全局环境: + - * /
