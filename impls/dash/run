@@ -1,0 +1,4 @@
+#!/bin/sh
+# mal (dash) runner. Selects the step file via $STEP env var.
+d=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec /bin/dash "$d/${STEP:-stepA_mal}.sh"
