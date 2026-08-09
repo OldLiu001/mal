@@ -24,11 +24,22 @@ set hd = (`awk 'BEGIN{for(i=1;i<=64;i++)printf("\"\" ")}'`)
 set wrap = (`awk 'BEGIN{for(i=1;i<=64;i++)printf("\"\" ")}'`)
 set wmeta = (`awk 'BEGIN{for(i=1;i<=64;i++)printf("\"\" ")}'`)
 
+# csh cannot detect end of input: "$<" yields an empty string both for a
+# blank line and at EOF, and $status stays 0 either way.  Re-read without
+# re-prompting on an empty line and give up after a short run of them.
+@ blank = 0
+
 while (1)
     echo -n "user> "
-    set line = "$<"
-    if ($status != 0) break
-    if ("$line" == "") continue
+    set line = ""
+    while ("$line" == "")
+        set line = "$<"
+        if ("$line" == "") then
+            @ blank++
+            if ($blank >= 3) exit 0
+        endif
+    end
+    @ blank = 0
 
     # Tokenize the whole line once into a temp file (encoded, one token/line).
     echo "$line" | awk -f "$tokprog" > "$tmp"

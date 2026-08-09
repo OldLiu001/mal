@@ -13,6 +13,10 @@
 #   BKEY[i]/BVAL[i]/BENV[i] - one binding: symbol, value, owning environment
 
 set histchars=
+# csh cannot detect EOF: "$<" returns "" for both a blank line and end of
+# input, with $status always 0.  Re-read without re-prompting on an empty
+# line and give up after a short run, so a closed pipe exits promptly.
+@ blank = 0
 set dir = `dirname $0`
 set tokprog = "$dir/tok.awk"
 set decprog = "$dir/dec.awk"
@@ -73,9 +77,14 @@ set ERRTARGET = REPL_PRINT
 # ===================== REPL =====================
 REPL_START:
     echo -n "user> "
+REPL_READ:
     set line = "$<"
-    if ($status != 0) goto REPL_EXIT
-    if ("$line" == "") goto REPL_START
+    if ("$line" == "") then
+        @ blank++
+        if ($blank >= 3) goto REPL_EXIT
+        goto REPL_READ
+    endif
+    @ blank = 0
 
     # ---------- READER ----------
     set rtmp = "/tmp/mal_csh_$$"
@@ -213,6 +222,7 @@ REPL_PRINT:
     goto REPL_START
 
 REPL_EXIT:
+    exit 0
 
 # ===================== EVAL subprogram =====================
 # Entry: E_AST = form, E_ENV = environment index.

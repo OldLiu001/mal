@@ -14,6 +14,10 @@
 #   closures                  __FNC_<n>__  with FNPAR/FNBODY/FNENV[n]
 
 set histchars=
+# csh cannot detect EOF: "$<" returns "" for both a blank line and end of
+# input, with $status always 0.  Re-read without re-prompting on an empty
+# line and give up after a short run, so a closed pipe exits promptly.
+@ blank = 0
 set dir = `dirname $0`
 set tokprog = "$dir/tok.awk"
 set decprog = "$dir/dec.awk"
@@ -114,9 +118,14 @@ INIT_EVAL_DONE:
 # ===================== REPL =====================
 REPL_START:
     echo -n "user> "
+REPL_READ:
     set line = "$<"
-    if ($status != 0) goto REPL_EXIT
-    if ("$line" == "") goto REPL_START
+    if ("$line" == "") then
+        @ blank++
+        if ($blank >= 3) goto REPL_EXIT
+        goto REPL_READ
+    endif
+    @ blank = 0
     set R_LINE = "$line"
     set RCALLER = REPL_AFTER_READ
     goto READ
