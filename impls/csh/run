@@ -1,0 +1,7 @@
+#!/bin/csh -f
+# mal (Make a Lisp) - csh implementation runner
+# STEP env selects the step file (default stepA_mal); remaining args forwarded.
+set step = "$STEP"
+if ("$step" == "") set step = "stepA_mal"
+set dir = `dirname $0`
+exec /bin/csh "$dir/$step.csh" $argv
