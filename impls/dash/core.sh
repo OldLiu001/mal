@@ -117,7 +117,7 @@ mal_closure_native() {  # $1=shell 函数名 -> r=C<id>
   local id
   new_id
   id=$r
-  eval "_CK_C$id=native ; _CF_C$id=\$1"
+  eval "_CK_C$id=native ; _CF_C$id=\$1 ; _CM_C$id=0"
   r="C$id"
 }
 mal_closure_mal() {  # $1=形参名串 $2=body ref $3=闭包env -> r=C<id>
@@ -126,11 +126,11 @@ mal_closure_mal() {  # $1=形参名串 $2=body ref $3=闭包env -> r=C<id>
   id=$r
   # 环境回收的依据：env 只可能经由闭包的 _CE_ 字段逃逸，这里是唯一的捕获点。
   _MAL_NCLOS=$((_MAL_NCLOS+1))
-  eval "_CK_C$id=mal ; _CP_C$id=\$1 ; _CB_C$id=\$2 ; _CE_C$id=\$3"
+  eval "_CK_C$id=mal ; _CP_C$id=\$1 ; _CB_C$id=\$2 ; _CE_C$id=\$3 ; _CM_C$id=0"
   r="C$id"
 }
-closure_get() {  # $1=C<id> -> r_kind r_fn r_params r_body r_env
-  eval "r_kind=\$_CK_$1 ; r_fn=\$_CF_$1 ; r_params=\$_CP_$1 ; r_body=\$_CB_$1 ; r_env=\$_CE_$1"
+closure_get() {  # $1=C<id> -> r_kind r_fn r_params r_body r_env r_ismacro
+  eval "r_kind=\$_CK_$1 ; r_fn=\$_CF_$1 ; r_params=\$_CP_$1 ; r_body=\$_CB_$1 ; r_env=\$_CE_$1 ; r_ismacro=\$_CM_$1"
 }
 
 # ================= 环境 =================
@@ -632,6 +632,7 @@ EVAL() {  # $1=ast ref $2=env -> r
     fname="$r"
   fi
   if [ "$STEPNUM" -lt 3 ]; then fname=""; fi
+  if [ "$STEPNUM" -lt 8 ] && [ "$fname" = defmacro! ]; then fname=""; fi
 
   case "$fname" in
     'def!')
@@ -643,6 +644,22 @@ EVAL() {  # $1=ast ref $2=env -> r
       _ev1 "$3" "$env"
       if [ "$MAL_ERR" = 1 ]; then return; fi
       val="$r"
+      env_set "$env" "$kname" "$val"
+      r="$val"
+      return ;;
+
+    'defmacro!')
+      set -- $elems
+      mal_type "$2"
+      if [ "$r" != __sym ]; then mal_error "defmacro! requires a symbol"; return; fi
+      mal_val "$2"
+      kname="$r"
+      _ev1 "$3" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      val="$r"
+      mal_type "$val"
+      if [ "$r" != __fn ]; then mal_error "defmacro!: not a function"; return; fi
+      eval "_CM_$val=1"      # 打上宏标志
       env_set "$env" "$kname" "$val"
       r="$val"
       return ;;
@@ -730,6 +747,34 @@ EVAL() {  # $1=ast ref $2=env -> r
       mal_error "unquote outside of quasiquote"
       return ;;
   esac
+
+  # ---- 宏展开（step8）----
+  # 首元素是宏时，用未求值的实参 AST 调用它，结果回到循环重新 eval。
+  if [ "$STEPNUM" -ge 8 ]; then
+    if [ -n "$first" ]; then
+      mal_type "$first"
+      if [ "$r" = __sym ]; then
+        mal_val "$first"
+        env_get "$env" "$r"
+        fref="$r"
+        if [ -n "$fref" ]; then
+          mal_type "$fref"
+          if [ "$r" = __fn ]; then
+            closure_get "$fref"
+            if [ "$r_ismacro" = 1 ]; then
+              # 实参：elems 去掉首元素（都是 AST ref，不 eval）
+              set -- $elems
+              shift
+              APPLY "$fref" "$@"
+              if [ "$MAL_ERR" = 1 ]; then return; fi
+              ast="$r"
+              continue
+            fi
+          fi
+        fi
+      fi
+    fi
+  fi
 
   # ---- 通用调用 ----
   evaled=""
@@ -978,6 +1023,104 @@ fn_concat() {  # 参数均为 list/vector，按顺序拼接
   out=${out# }
   mal_list $out
 }
+
+fn_nth() {  # $1=list/vector $2=索引 -> 元素
+  local t elems i e n
+  mal_type "$1"
+  t="$r"
+  case "$t" in
+    __list|__vec)
+      mal_val "$1"
+      elems="$r"
+      mal_val "$2"
+      i=$r
+      n=0
+      for e in $elems; do
+        if [ "$n" = "$i" ]; then r="$e"; return; fi
+        n=$((n+1))
+      done
+      mal_error "nth: index out of range"
+      r=Z ;;
+    __nil)
+      mal_error "nth: nil"
+      r=Z ;;
+    *) mal_error "nth: not a sequence"; r=Z ;;
+  esac
+}
+
+fn_first() {  # $1=list/vector/nil -> 首元素或 nil
+  local t elems
+  mal_type "$1"
+  t="$r"
+  case "$t" in
+    __nil) r=Z ;;
+    __list|__vec)
+      mal_val "$1"
+      elems="$r"
+      if [ -z "$elems" ]; then r=Z; else r=${elems%% *}; fi ;;
+    *) mal_error "first: not a sequence"; r=Z ;;
+  esac
+}
+
+fn_rest() {  # $1=list/vector/nil -> 去掉首元素后的新 list
+  local t elems rest
+  mal_type "$1"
+  t="$r"
+  case "$t" in
+    __nil) mal_list ;;
+    __list|__vec)
+      mal_val "$1"
+      elems="$r"
+      rest=${elems#* }
+      if [ "$rest" = "$elems" ]; then rest=""; fi
+      mal_list $rest ;;
+    *) mal_error "rest: not a sequence"; r=Z ;;
+  esac
+}
+
+fn_macro_p() {  # $1=函数 -> 是否为宏
+  local t
+  mal_type "$1"
+  t="$r"
+  if [ "$t" = __fn ]; then
+    closure_get "$1"
+    if [ "$r_ismacro" = 1 ]; then r=Y; else r=F; fi
+  else
+    r=F
+  fi
+}
+
+fn_macroexpand() {  # $1=AST -> 若首元素是宏则展开一次（可多次），否则原样
+  local ast="$1" t elems first fref
+  while true; do
+    mal_type "$ast"
+    t="$r"
+    if [ "$t" != __list ]; then r="$ast"; return; fi
+    mal_val "$ast"
+    elems="$r"
+    if [ -z "$elems" ]; then r="$ast"; return; fi
+    first=${elems%% *}
+    mal_type "$first"
+    if [ "$r" = __sym ]; then
+      mal_val "$first"
+      env_get "$REPL_ENV" "$r"
+      fref="$r"
+      if [ -z "$fref" ]; then r="$ast"; return; fi
+      mal_type "$fref"
+      if [ "$r" != __fn ]; then r="$ast"; return; fi
+    else
+      fref="$first"
+      if [ "$r" != __fn ]; then r="$ast"; return; fi
+    fi
+    closure_get "$fref"
+    if [ "$r_ismacro" != 1 ]; then r="$ast"; return; fi
+    set -- $elems
+    shift
+    APPLY "$fref" "$@"
+    if [ "$MAL_ERR" = 1 ]; then return; fi
+    ast="$r"
+  done
+}
 fn_equal() {
   local a="$1" b="$2" ta tb ae be ax bx
   mal_type "$a"; ta="$r"
@@ -1113,6 +1256,14 @@ init_repl_env() {
     mal_closure_native fn_cons;   env_set "$e" 'cons' "$r"
     mal_closure_native fn_concat; env_set "$e" 'concat' "$r"
     mal_closure_native fn_vec;    env_set "$e" 'vec' "$r"
+  fi
+  if [ "$STEPNUM" -ge 8 ]; then
+    mal_closure_native fn_nth;        env_set "$e" 'nth' "$r"
+    mal_closure_native fn_first;      env_set "$e" 'first' "$r"
+    mal_closure_native fn_rest;       env_set "$e" 'rest' "$r"
+    mal_closure_native fn_macro_p;    env_set "$e" 'macro?' "$r"
+    mal_closure_native fn_macroexpand; env_set "$e" 'macroexpand' "$r"
+    rep_silent "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
   fi
   if [ "$STEPNUM" -ge 6 ]; then
     mal_closure_native fn_read_string; env_set "$e" 'read-string' "$r"
