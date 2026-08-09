@@ -67,24 +67,23 @@ script Printer
 	end printMap
 
 	on escapeString(str)
-		set result to ""
-		repeat with char in str
-			if char = "\"" then
-				set result to result & "\\\""
-			else if char = "\\" then
-				set result to result & "\\\\"
-			else if char = linefeed then
-				set result to result & "\\n"
-			else if char = return then
-				set result to result & "\\r"
-			else if char = tab then
-				set result to result & "\\t"
-			else if (ASCII number of char) < 32 then
-				set result to result & "\\" & ("0" & (ASCII number of char as text)) & "\\"
+		set out to ""
+		repeat with ch in str
+			set chText to ch as text
+			if chText = "\"" then
+				set out to out & "\\\""
+			else if chText = "\\" then
+				set out to out & "\\\\"
+			else if chText = linefeed then
+				set out to out & "\\n"
+			else if chText = return then
+				set out to out & "\\r"
+			else if chText = tab then
+				set out to out & "\\t"
 			else
-				set result to result & char
+				set out to out & chText
 			end if
 		end repeat
-		return result
+		return out
 	end escapeString
 end script

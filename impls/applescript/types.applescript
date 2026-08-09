@@ -24,6 +24,14 @@ script Types
 		return MALSymbol
 	end makeMALSymbol
 
+	on makeMALKeyword(inputValue)
+		script MALKeyword
+			prop typeName : "keyword"
+			prop valueData : inputValue
+		end script
+		return MALKeyword
+	end makeMALKeyword
+
 	on makeMALList(inputValue)
 		script MALList
 			prop typeName : "list"

@@ -2,6 +2,13 @@ use AppleScript version "2.8"
 use scripting additions
 use framework "Foundation"
 
+-- reader 模块: 依赖 types 模块(通过 setTypesLib 注入)
+property typesLib : missing value
+
+on setTypesLib(lib)
+	set typesLib to lib
+end setTypesLib
+
 script Reader
 	prop tokenList : missing value
 	prop currentPosition : 1
@@ -26,19 +33,19 @@ script Reader
 end script
 
 on readString(inputString)
-	copy Reader to tokenQueue
+	copy my Reader to tokenQueue
 	set tokenQueue's tokenList to tokenizeInput(inputString)
 
 	if tokenQueue's hasMoreTokens() then
 		return readForm(tokenQueue)
 	else
-		return my makeMALNil()
+		return my typesLib's Types's makeMALNil()
 	end if
 end readString
 
 on readForm(tokenQueue)
 	if not (tokenQueue's hasMoreTokens()) then
-		return my makeMALNil()
+		return my typesLib's Types's makeMALNil()
 	end if
 
 	set currentToken to tokenQueue's peekToken()
@@ -54,24 +61,24 @@ on readForm(tokenQueue)
 		return readMap(tokenQueue, "}")
 	else if currentToken = "'" then
 		tokenQueue's nextToken()
-		return my makeMALList({my makeMALSymbol("quote"), readForm(tokenQueue)})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("quote"), readForm(tokenQueue)})
 	else if currentToken = "`" then
 		tokenQueue's nextToken()
-		return my makeMALList({my makeMALSymbol("quasiquote"), readForm(tokenQueue)})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("quasiquote"), readForm(tokenQueue)})
 	else if currentToken = "~" then
 		tokenQueue's nextToken()
-		return my makeMALList({my makeMALSymbol("unquote"), readForm(tokenQueue)})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("unquote"), readForm(tokenQueue)})
 	else if currentToken = "~@" then
 		tokenQueue's nextToken()
-		return my makeMALList({my makeMALSymbol("splice-unquote"), readForm(tokenQueue)})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("splice-unquote"), readForm(tokenQueue)})
 	else if currentToken = "^" then
 		tokenQueue's nextToken()
 		set metaValue to readForm(tokenQueue)
 		set valueValue to readForm(tokenQueue)
-		return my makeMALList({my makeMALSymbol("with-meta"), valueValue, metaValue})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("with-meta"), valueValue, metaValue})
 	else if currentToken = "@" then
 		tokenQueue's nextToken()
-		return my makeMALList({my makeMALSymbol("deref"), readForm(tokenQueue)})
+		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("deref"), readForm(tokenQueue)})
 	else
 		return readAtom(tokenQueue)
 	end if
@@ -89,7 +96,7 @@ on readList(tokenQueue, endChar)
 		error "expected '" & endChar & "', got EOF"
 	end if
 
-	return my makeMALList(lst)
+	return my typesLib's Types's makeMALList(lst)
 end readList
 
 on readVector(tokenQueue, endChar)
@@ -104,7 +111,7 @@ on readVector(tokenQueue, endChar)
 		error "expected '" & endChar & "', got EOF"
 	end if
 
-	return my makeMALVector(lst)
+	return my typesLib's Types's makeMALVector(lst)
 end readVector
 
 on readMap(tokenQueue, endChar)
@@ -124,7 +131,7 @@ on readMap(tokenQueue, endChar)
 		error "expected '" & endChar & "', got EOF"
 	end if
 
-	return my makeMALMap(lst)
+	return my typesLib's Types's makeMALMap(lst)
 end readMap
 
 on readAtom(tokenQueue)
@@ -133,7 +140,7 @@ on readAtom(tokenQueue)
 	-- Check if it's a string
 	if character 1 of token = "\"" then
 		if isClosedString(token) then
-			return my makeMALString(token)
+			return my typesLib's Types's makeMALString(unescapeString(token))
 		else
 			error "expected '\"', got EOF"
 		end if
@@ -143,7 +150,7 @@ on readAtom(tokenQueue)
 	try
 		set num to token as number
 		if (num as text) = token then
-			return my makeMALNumber(num)
+			return my typesLib's Types's makeMALNumber(num)
 		end if
 	on error
 		-- Not a number
@@ -151,20 +158,20 @@ on readAtom(tokenQueue)
 
 	-- Check for keywords
 	if (count of token) > 1 and character 1 of token = ":" then
-		return my makeMALKeyword(token)
+		return my typesLib's Types's makeMALKeyword(token)
 	end if
 
 	-- Check for boolean values
 	if token = "true" then
-		return my makeMALTrue()
+		return my typesLib's Types's makeMALTrue()
 	else if token = "false" then
-		return my makeMALFalse()
+		return my typesLib's Types's makeMALFalse()
 	else if token = "nil" then
-		return my makeMALNil()
+		return my typesLib's Types's makeMALNil()
 	end if
 
 	-- It's a symbol
-	return my makeMALSymbol(token)
+	return my typesLib's Types's makeMALSymbol(token)
 end readAtom
 
 on tokenizeInput(inputString)
@@ -196,95 +203,6 @@ on tokenizeInput(inputString)
 	return extractedSubstrings
 end tokenizeInput
 
--- Helper functions for type creation
-on makeMALAtom(inputValue)
-	script MALAtom
-		prop typeName : "atom"
-		prop valueData : inputValue
-	end script
-	return MALAtom
-end makeMALAtom
-
-on makeMALNumber(inputValue)
-	script MALNumber
-		prop typeName : "number"
-		prop valueData : inputValue
-	end script
-	return MALNumber
-end makeMALNumber
-
-on makeMALSymbol(inputValue)
-	script MALSymbol
-		prop typeName : "symbol"
-		prop valueData : inputValue
-	end script
-	return MALSymbol
-	end makeMALSymbol
-
-on makeMALKeyword(inputValue)
-	script MALKeyword
-		prop typeName : "keyword"
-		prop valueData : inputValue
-	end script
-	return MALKeyword
-end makeMALKeyword
-
-on makeMALList(inputValue)
-	script MALList
-		prop typeName : "list"
-		prop valueData : inputValue
-	end script
-	return MALList
-end makeMALList
-
-on makeMALVector(inputValue)
-	script MALVector
-		prop typeName : "vector"
-		prop valueData : inputValue
-	end script
-	return MALVector
-end makeMALVector
-
-on makeMALMap(inputValue)
-	script MALMap
-		prop typeName : "map"
-		prop valueData : inputValue
-	end script
-	return MALMap
-end makeMALMap
-
-on makeMALString(inputValue)
-	script MALString
-		prop typeName : "string"
-		prop valueData : inputValue
-	end script
-	return MALString
-end makeMALString
-
-on makeMALNil()
-	script MALNil
-		prop typeName : "nil"
-		prop valueData : "nil"
-	end script
-	return MALNil
-end makeMALNil
-
-on makeMALTrue()
-	script MALTrue
-		prop typeName : "true"
-		prop valueData : "true"
-	end script
-	return MALTrue
-end makeMALTrue
-
-on makeMALFalse()
-	script MALFalse
-		prop typeName : "false"
-		prop valueData : "false"
-	end script
-	return MALFalse
-end makeMALFalse
-
 on isClosedString(token)
 	set tokenLength to length of token
 	if tokenLength < 2 then return false
@@ -298,6 +216,34 @@ on isClosedString(token)
 	end repeat
 	return (backslashCount mod 2 = 0)
 end isClosedString
+
+-- 去掉首尾引号并解析转义序列,返回字符串内容
+on unescapeString(token)
+	set tokenLength to length of token
+	if tokenLength < 2 then return ""
+	set out to ""
+	set i to 2
+	repeat while i ≤ (tokenLength - 1)
+		set ch to character i of token
+		if ch = "\\" and i < (tokenLength - 1) then
+			set nextCh to character (i + 1) of token
+			if nextCh = "n" then
+				set out to out & linefeed
+			else if nextCh = "t" then
+				set out to out & tab
+			else if nextCh = "r" then
+				set out to out & return
+			else
+				set out to out & nextCh
+			end if
+			set i to i + 2
+		else
+			set out to out & ch
+			set i to i + 1
+		end if
+	end repeat
+	return out
+end unescapeString
 
 -- Helper functions for string conversion
 to convertTextToNSString(inputText)
