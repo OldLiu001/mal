@@ -217,7 +217,7 @@ emit_token() {
 get_tok() { eval "r=\$_TK_$1"; }
 
 TOKENIZE() {
-  local s="$1" c nxt tok c2 closed
+  local s="$1" c nxt tok c2 closed rest
   _TK_N=0
   while [ -n "$s" ]; do
     c=${s%"${s#?}"}
@@ -227,7 +227,10 @@ TOKENIZE() {
         continue
         ;;
       ';')
-        s=""
+        # 注释到行尾为止。load-file 会把整个文件当作一次输入喂进来，
+        # 所以这里绝不能像单行 REPL 那样直接清空 s —— 那会吞掉后面所有行。
+        rest=${s#*"$NL"}
+        if [ "$rest" = "$s" ]; then s=""; else s="$rest"; fi
         continue
         ;;
       '"')
@@ -902,6 +905,60 @@ fn_str()    { _join_args 0 ''  "$@"; mal_str "$r_join"; }
 fn_prn()    { _join_args 1 ' ' "$@"; printf '%s\n' "$r_join"; r=Z; }
 fn_println(){ _join_args 0 ' ' "$@"; printf '%s\n' "$r_join"; r=Z; }
 
+# -------- step6：文件与求值 --------
+fn_read_string() {
+  local s
+  mal_val "$1"
+  s="$r"
+  READ "$s"
+  # 整串都是注释/空白时 READ 置 MAL_BLANK，按 nil 处理而不是报错
+  if [ "$MAL_BLANK" = 1 ]; then r=Z; fi
+}
+
+fn_slurp() {
+  local path content line
+  mal_val "$1"
+  path="$r"
+  if [ ! -f "$path" ]; then mal_error "slurp: cannot open '$path'"; return; fi
+  content=""
+  line=""
+  # 重定向不 fork。read 每次剥掉换行符，所以要手工补回去。
+  while IFS= read -r line; do
+    content="$content$line$NL"
+  done < "$path"
+  # 最后一行没有换行符时 read 返回非零，但 line 里已有内容
+  if [ -n "$line" ]; then content="$content$line"; fi
+  mal_str "$content"
+}
+
+fn_eval() { EVAL "$1" "$REPL_ENV"; }   # 一律在根环境求值，不看调用点的局部环境
+
+# -------- step6：atom --------
+fn_atom()   { mal_atom "$1"; }
+fn_atom_p() { case "$1" in A*) r=Y ;; *) r=F ;; esac; }
+fn_deref()  {
+  mal_type "$1"
+  if [ "$r" != __atom ]; then mal_error "deref: not an atom"; return; fi
+  mal_val "$1"
+}
+fn_reset()  {
+  mal_type "$1"
+  if [ "$r" != __atom ]; then mal_error "reset!: not an atom"; return; fi
+  _set_stored "$1" "$2"
+  r="$2"
+}
+fn_swap() {
+  local a="$1" f="$2" cur
+  shift 2
+  mal_type "$a"
+  if [ "$r" != __atom ]; then mal_error "swap!: not an atom"; return; fi
+  mal_val "$a"
+  cur="$r"
+  APPLY "$f" "$cur" "$@"
+  if [ "$MAL_ERR" = 1 ]; then return; fi
+  _set_stored "$a" "$r"
+}
+
 # ================= REPL 环境 =================
 init_repl_env() {
   local e
@@ -927,6 +984,20 @@ init_repl_env() {
     mal_closure_native fn_prn;     env_set "$e" 'prn' "$r"
     mal_closure_native fn_println; env_set "$e" 'println' "$r"
     rep_silent '(def! not (fn* (a) (if a false true)))'
+  fi
+  if [ "$STEPNUM" -ge 6 ]; then
+    mal_closure_native fn_read_string; env_set "$e" 'read-string' "$r"
+    mal_closure_native fn_slurp;       env_set "$e" 'slurp' "$r"
+    mal_closure_native fn_eval;        env_set "$e" 'eval' "$r"
+    mal_closure_native fn_atom;        env_set "$e" 'atom' "$r"
+    mal_closure_native fn_atom_p;      env_set "$e" 'atom?' "$r"
+    mal_closure_native fn_deref;       env_set "$e" 'deref' "$r"
+    mal_closure_native fn_reset;       env_set "$e" 'reset!' "$r"
+    mal_closure_native fn_swap;        env_set "$e" 'swap!' "$r"
+    mal_list
+    env_set "$e" '*ARGV*' "$r"
+    # 尾部的 \nnil 有两个作用：让最后一行的注释不吞掉收尾括号，以及让返回值恒为 nil
+    rep_silent '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
   fi
 }
 
