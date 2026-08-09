@@ -22,6 +22,8 @@ MAL_ERR_MSG=""
 _TK_N=0
 _TOK_POS=1
 _MAL_NEXT=0
+_MAL_NCLOS=0
+_MAL_DBG_SEEN=0
 REPL_ENV=""
 STEPNUM=${STEPNUM:-0}
 TAB='	'
@@ -122,6 +124,8 @@ mal_closure_mal() {  # $1=形参名串 $2=body ref $3=闭包env -> r=C<id>
   local id
   new_id
   id=$r
+  # 环境回收的依据：env 只可能经由闭包的 _CE_ 字段逃逸，这里是唯一的捕获点。
+  _MAL_NCLOS=$((_MAL_NCLOS+1))
   eval "_CK_C$id=mal ; _CP_C$id=\$1 ; _CB_C$id=\$2 ; _CE_C$id=\$3"
   r="C$id"
 }
@@ -130,14 +134,19 @@ closure_get() {  # $1=C<id> -> r_kind r_fn r_params r_body r_env
 }
 
 # ================= 环境 =================
-# _EK_<env> = "名1 名2 ..."（新绑定前插，查首个命中即最新）
-# _EV_<env> = "值1 值2 ..."（与 _EK_ 平行）
+# _EB_<env> = " =名1 值1 =名2 值2 ... "（始终以空格开头结尾，新绑定前插）
 # _EO_<env> = 外层 env ref（空串表示到顶，遍历必然终止，不会成环）
+#
+# 键带 '=' 前缀是关键：值一律是 ref，而 ref 的首字符必然属于 ZYFNSKGLVHCAE，
+# 绝不会是 '='。于是子串 " =名 " 只可能匹配到键的位置，不会误命中某个值。
+# 查找因此退化成一次 ${kv#*" =名 "} —— C 层的单趟扫描，比 shell 循环逐个
+# 剥离键快一到两个数量级（这是 TCO 之后最主要的热点）。
+# 前插 + `#` 最短匹配 => 命中的必然是最新绑定，shadowing 自动成立。
 env_new() {  # $1=外层env ref -> r=E<id>
   local id
   new_id
   id=$r
-  eval "_EK_E$id='' ; _EV_E$id='' ; _EO_E$id=\$1"
+  eval "_EB_E$id=' ' ; _EO_E$id=\$1"
   r="E$id"
 }
 env_set() {  # $1=env $2=名 $3=值ref
@@ -145,19 +154,15 @@ env_set() {  # $1=env $2=名 $3=值ref
   _es_v="$3"
   # 只有真的绑过 DEBUG-EVAL 才让 EVAL 每轮去查环境链，避免常态下的性能损耗
   if [ "$_es_k" = 'DEBUG-EVAL' ]; then _MAL_DBG_SEEN=1; fi
-  eval "_EK_$1=\"\$_es_k \$_EK_$1\" ; _EV_$1=\"\$_es_v \$_EV_$1\""
+  eval "_EB_$1=\" =\$_es_k \$_es_v\$_EB_$1\""
 }
 env_get() {  # $1=env $2=名 -> r=值ref（空串=未找到）
-  local e="$1" name="$2" ks vs k v
+  local e="$1" name=" =$2 " kv rest
   while [ -n "$e" ]; do
-    eval "ks=\$_EK_$e ; vs=\$_EV_$e"
-    while [ -n "$ks" ]; do
-      k=${ks%% *}
-      if [ "$k" = "$ks" ]; then ks=""; else ks=${ks#* }; fi
-      v=${vs%% *}
-      if [ "$v" = "$vs" ]; then vs=""; else vs=${vs#* }; fi
-      if [ "$k" = "$name" ]; then r="$v"; return; fi
-    done
+    eval "kv=\$_EB_$e"
+    # "$name" 必须加引号：符号名可以是 * ? [，不引会被当模式
+    rest=${kv#*"$name"}
+    if [ "$rest" != "$kv" ]; then r=${rest%% *}; return; fi
     eval "e=\$_EO_$e"
   done
   r=""
@@ -517,10 +522,42 @@ pr_str() {  # $1=ref $2=readable(0/1) -> r_str
 PRINT() { pr_str "$1" 1; }
 
 # ================= EVAL =================
+# 叶子快速求值。
+#
+# 存在的理由纯粹是性能：EVAL 顶部有 20+ 个 local 声明，而 dash 的变量表是
+# 固定桶数的哈希表 —— 解释器跑起来之后表里塞满了 _V_/_EB_/_EO_，每个 local
+# 都要在退化的桶链表里线性查找。实测 20000 次「25 个 local 的函数调用」，
+# 变量表干净时 0.7s，表里有 20000 个残留变量时 85s。
+#
+# 而真实程序里绝大多数求值对象是符号和字面量（(+ n acc) 的三个子项全是叶子）。
+# 本函数只用位置参数、零 local，把这些叶子挡在 EVAL 之外，只把容器转交过去。
+# DEBUG-EVAL 打开时一律退回完整 EVAL，保证追踪输出不缺项。
+_ev1() {  # $1=ast $2=env -> r
+  case "$1" in
+    L*|V*|H*) EVAL "$1" "$2"; return ;;
+    S*)
+      if [ "$_MAL_DBG_SEEN" = 1 ]; then EVAL "$1" "$2"; return; fi
+      env_get "$2" "${1#S}"
+      if [ -z "$r" ]; then mal_error "'${1#S}' not found"; fi
+      return ;;
+    *)
+      if [ "$_MAL_DBG_SEEN" = 1 ]; then EVAL "$1" "$2"; return; fi
+      r="$1"
+      return ;;
+  esac
+}
+
+# 尾调用优化（TCO）：本函数是一个 while 循环，不是递归。
+# 处于尾位置的求值（let*/do 的最后一个表达式、if 选中的分支、mal 闭包的 body）
+# 不递归调用自己，而是改写 ast/env 后 continue。这样 (sum2 10000 0) 这类
+# 尾递归只占一个 shell 栈帧。非尾位置（参数、绑定值、条件）仍然递归。
 EVAL() {  # $1=ast ref $2=env -> r
   local ast="$1" env="$2"
   local t first elems e evaled f fname kname val nenv
-  local bindrefs kref vref cond p params pnames last pairs k v kk vv
+  local bindrefs kref vref cond p params pnames pairs k v kk vv
+  local kind fnname clparams clbody clenv
+  local pend="" pendclos=$_MAL_NCLOS
+  while true; do
   if [ "$MAL_ERR" = 1 ]; then return; fi
   if [ "$STEPNUM" -le 1 ]; then r="$ast"; return; fi
 
@@ -548,7 +585,7 @@ EVAL() {  # $1=ast ref $2=env -> r
       elems="$r"
       evaled=""
       for e in $elems; do
-        EVAL "$e" "$env"
+        _ev1 "$e" "$env"
         if [ "$MAL_ERR" = 1 ]; then return; fi
         evaled="$evaled $r"
       done
@@ -564,10 +601,10 @@ EVAL() {  # $1=ast ref $2=env -> r
         if [ "$k" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
         v=${pairs%% *}
         if [ "$v" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
-        EVAL "$k" "$env"
+        _ev1 "$k" "$env"
         if [ "$MAL_ERR" = 1 ]; then return; fi
         kk="$r"
-        EVAL "$v" "$env"
+        _ev1 "$v" "$env"
         if [ "$MAL_ERR" = 1 ]; then return; fi
         vv="$r"
         evaled="$evaled $kk $vv"
@@ -585,98 +622,133 @@ EVAL() {  # $1=ast ref $2=env -> r
   if [ -z "$elems" ]; then r="$ast"; return; fi
   first=${elems%% *}
 
+  fname=""
   mal_type "$first"
   if [ "$r" = __sym ]; then
     mal_val "$first"
     fname="$r"
-
-    if [ "$STEPNUM" -ge 3 ]; then
-      case "$fname" in
-        'def!')
-          set -- $elems
-          mal_type "$2"
-          if [ "$r" != __sym ]; then mal_error "def! requires a symbol"; return; fi
-          mal_val "$2"
-          kname="$r"
-          EVAL "$3" "$env"
-          if [ "$MAL_ERR" = 1 ]; then return; fi
-          val="$r"
-          env_set "$env" "$kname" "$val"
-          r="$val"
-          return ;;
-        'let*')
-          set -- $elems
-          env_new "$env"
-          nenv="$r"
-          mal_val "$2"
-          bindrefs="$r"
-          while [ -n "$bindrefs" ]; do
-            kref=${bindrefs%% *}
-            if [ "$kref" = "$bindrefs" ]; then bindrefs=""; else bindrefs=${bindrefs#* }; fi
-            vref=${bindrefs%% *}
-            if [ "$vref" = "$bindrefs" ]; then bindrefs=""; else bindrefs=${bindrefs#* }; fi
-            mal_val "$kref"
-            kname="$r"
-            EVAL "$vref" "$nenv"
-            if [ "$MAL_ERR" = 1 ]; then return; fi
-            env_set "$nenv" "$kname" "$r"
-          done
-          EVAL "$3" "$nenv"
-          return ;;
-      esac
-    fi
-
-    if [ "$STEPNUM" -ge 4 ]; then
-      case "$fname" in
-        'if')
-          set -- $elems
-          EVAL "$2" "$env"
-          if [ "$MAL_ERR" = 1 ]; then return; fi
-          cond="$r"
-          if [ "$cond" = Z ] || [ "$cond" = F ]; then
-            if [ -n "$4" ]; then EVAL "$4" "$env"; else r=Z; fi
-          else
-            EVAL "$3" "$env"
-          fi
-          return ;;
-        'fn*')
-          set -- $elems
-          mal_val "$2"
-          params="$r"
-          pnames=""
-          for p in $params; do
-            mal_val "$p"
-            pnames="$pnames $r"
-          done
-          pnames=${pnames# }
-          mal_closure_mal "$pnames" "$3" "$env"
-          return ;;
-        'do')
-          set -- $elems
-          shift
-          last=Z
-          for p in "$@"; do
-            EVAL "$p" "$env"
-            if [ "$MAL_ERR" = 1 ]; then return; fi
-            last="$r"
-          done
-          r="$last"
-          return ;;
-      esac
-    fi
   fi
+  if [ "$STEPNUM" -lt 3 ]; then fname=""; fi
+
+  case "$fname" in
+    'def!')
+      set -- $elems
+      mal_type "$2"
+      if [ "$r" != __sym ]; then mal_error "def! requires a symbol"; return; fi
+      mal_val "$2"
+      kname="$r"
+      _ev1 "$3" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      val="$r"
+      env_set "$env" "$kname" "$val"
+      r="$val"
+      return ;;
+
+    'let*')
+      set -- $elems
+      env_new "$env"
+      nenv="$r"
+      mal_val "$2"
+      bindrefs="$r"
+      while [ -n "$bindrefs" ]; do
+        kref=${bindrefs%% *}
+        if [ "$kref" = "$bindrefs" ]; then bindrefs=""; else bindrefs=${bindrefs#* }; fi
+        vref=${bindrefs%% *}
+        if [ "$vref" = "$bindrefs" ]; then bindrefs=""; else bindrefs=${bindrefs#* }; fi
+        mal_val "$kref"
+        kname="$r"
+        _ev1 "$vref" "$nenv"
+        if [ "$MAL_ERR" = 1 ]; then return; fi
+        env_set "$nenv" "$kname" "$r"
+      done
+      ast="$3"
+      env="$nenv"
+      pend="$pend $nenv"                            # 外链指向当前 env，只能随当前链一起回收
+      continue ;;                                   # TCO：body 在尾位置
+  esac
+
+  if [ "$STEPNUM" -lt 4 ]; then fname=""; fi
+
+  case "$fname" in
+    'if')
+      set -- $elems
+      _ev1 "$2" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      cond="$r"
+      if [ "$cond" = Z ] || [ "$cond" = F ]; then
+        if [ -n "$4" ]; then ast="$4"; else r=Z; return; fi
+      else
+        ast="$3"
+      fi
+      continue ;;                                   # TCO：选中的分支在尾位置
+
+    'fn*')
+      set -- $elems
+      mal_val "$2"
+      params="$r"
+      pnames=""
+      for p in $params; do
+        mal_val "$p"
+        pnames="$pnames $r"
+      done
+      pnames=${pnames# }
+      mal_closure_mal "$pnames" "$3" "$env"
+      return ;;
+
+    'do')
+      set -- $elems
+      shift
+      if [ $# -eq 0 ]; then r=Z; return; fi
+      while [ $# -gt 1 ]; do
+        _ev1 "$1" "$env"
+        if [ "$MAL_ERR" = 1 ]; then return; fi
+        shift
+      done
+      ast="$1"
+      continue ;;                                   # TCO：最后一个表达式在尾位置
+  esac
 
   # ---- 通用调用 ----
   evaled=""
   for e in $elems; do
-    EVAL "$e" "$env"
+    _ev1 "$e" "$env"
     if [ "$MAL_ERR" = 1 ]; then return; fi
     evaled="$evaled $r"
   done
   set -- $evaled
   f="$1"
   shift
-  APPLY "$f" "$@"
+  mal_type "$f"
+  if [ "$r" != __fn ]; then mal_error "not a function"; return; fi
+  closure_get "$f"
+  kind="$r_kind"
+  fnname="$r_fn"
+  clparams="$r_params"
+  clbody="$r_body"
+  clenv="$r_env"
+  if [ "$kind" = native ]; then
+    "$fnname" "$@"
+    return
+  fi
+  env_new "$clenv"
+  nenv="$r"
+  bind_params "$clparams" "$nenv" "$@"
+  if [ "$MAL_ERR" = 1 ]; then return; fi
+  # 环境回收：新环境的外链是闭包捕获的 clenv，与当前这条链无关，所以本轮循环
+  # 自己造出来的那些 env 到此都成了垃圾 —— 前提是期间没有闭包把它们捕获走。
+  # mal_closure_mal 是 env 唯一的逃逸出口，比一下计数即可判定。
+  # 不回收的话，深递归会把 dash 那张定长哈希表撑爆，每个 local 都退化成线性搜索。
+  if [ -n "$pend" ] && [ "$_MAL_NCLOS" = "$pendclos" ]; then
+    for e in $pend; do
+      eval "unset _EB_$e _EO_$e"
+    done
+  fi
+  pend="$nenv"
+  pendclos=$_MAL_NCLOS
+  ast="$clbody"
+  env="$nenv"
+  continue                                          # TCO：闭包 body 在尾位置
+  done
 }
 
 APPLY() {  # $1=函数ref 其余=实参ref
