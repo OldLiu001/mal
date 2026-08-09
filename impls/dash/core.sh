@@ -709,6 +709,26 @@ EVAL() {  # $1=ast ref $2=env -> r
       done
       ast="$1"
       continue ;;                                   # TCO：最后一个表达式在尾位置
+
+    'quote')
+      set -- $elems
+      r="$2"
+      return ;;
+
+    'quasiquote')
+      set -- $elems
+      _quasiquote "$2" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      ast="$r"
+      continue ;;                                   # 展开结果在尾位置求值
+  esac
+
+  if [ "$STEPNUM" -lt 7 ]; then fname=""; fi
+
+  case "$fname" in
+    'unquote'|'splice-unquote')
+      mal_error "unquote outside of quasiquote"
+      return ;;
   esac
 
   # ---- 通用调用 ----
@@ -777,6 +797,89 @@ APPLY() {  # $1=函数ref 其余=实参ref
   bind_params "$params" "$nenv" "$@"
   if [ "$MAL_ERR" = 1 ]; then return; fi
   EVAL "$body" "$nenv"
+}
+
+# -------- step7：quasiquote 展开 --------
+# 与参考实现一致：返回一段“代码”（cons 链 + quote 包装），由调用方 eval。
+# dash 没有动态作用域，env 必须显式传递。
+_quasiquote() {  # $1=ast ref $2=env -> r=展开后的代码 AST（由调用方 eval）
+  local ast="$1" env="$2"
+  local t elems first rest fname arg
+  # 中间值全部 local 化：dash 的 local 在函数退出时恢复外层值，
+  # 所以递归层之间同名也不会互相污染。
+  local qq_sym qq_rest_ref qq_head qq_tail
+  mal_type "$ast"
+  t="$r"
+  case "$t" in
+    __list|__vec)
+      mal_val "$ast"
+      elems="$r"
+      if [ -z "$elems" ]; then
+        # 空序列：包 (quote ()) / (quote [])
+        mal_sym quote; qq_sym="$r"
+        mal_list "$qq_sym" "$ast"
+        return
+      fi
+      # 拆 head / tail（tail 重新包成 list ref 递归）
+      first=${elems%% *}
+      if [ "$elems" = "$first" ]; then rest=""; else rest=${elems#* }; fi
+      if [ -n "$rest" ]; then mal_list $rest; else mal_list; fi
+      qq_rest_ref="$r"
+      # head 是否为 unquote / splice-unquote（符号形式，整个列表就是 (unquote x)）
+      # 或列表形式 ((unquote x) ...)（元素级，由递归处理）
+      fname=""; arg=""; qq_whole=""
+      mal_type "$first"
+      if [ "$r" = __sym ]; then
+        mal_val "$first"; fname="$r"
+        # (unquote x) 整个：fname=unquote，arg 是 $2，且列表只有两个元素
+        set -- $elems
+        arg="$2"
+        if [ $# -eq 2 ]; then qq_whole=1; fi
+      elif [ "$r" = __list ]; then
+        mal_val "$first"
+        if [ -n "$r" ]; then
+          set -- $r
+          mal_type "$1"
+          if [ "$r" = __sym ]; then
+            mal_val "$1"; fname="$r"
+          fi
+          arg="$2"
+        fi
+      fi
+      if [ "$fname" = unquote ] && [ -n "$qq_whole" ]; then
+        r="$arg"
+        return
+      fi
+      if [ "$fname" = splice-unquote ]; then
+        # (concat x (quasiquote tail))
+        _quasiquote "$qq_rest_ref" "$env"
+        if [ "$MAL_ERR" = 1 ]; then return; fi
+        qq_tail="$r"
+        mal_sym concat; qq_sym="$r"
+        mal_list "$qq_sym" "$arg" "$qq_tail"
+        return
+      fi
+      # 普通： (cons (quasiquote head) (quasiquote tail))
+      _quasiquote "$first" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      qq_head="$r"
+      _quasiquote "$qq_rest_ref" "$env"
+      if [ "$MAL_ERR" = 1 ]; then return; fi
+      qq_tail="$r"
+      mal_sym cons; qq_sym="$r"
+      mal_list "$qq_sym" "$qq_head" "$qq_tail"
+      if [ "$t" = __vec ]; then
+        # 向量整体包 (vec ...)
+        mal_sym vec; qq_sym="$r"
+        mal_list "$qq_sym" "$r"
+      fi
+      return ;;
+    *)
+      # 非序列：包 (quote ast) 防止被外层 eval
+      mal_sym quote; qq_sym="$r"
+      mal_list "$qq_sym" "$ast"
+      return ;;
+  esac
 }
 
 bind_params() {  # $1=形参名串 $2=env 其余=实参ref
@@ -853,6 +956,27 @@ fn_count() {
       mal_num "$n" ;;
     *) mal_error "count: not a sequence"; r=Z ;;
   esac
+}
+
+fn_cons() {  # $1=元素 $2=list/vector -> 新 list
+  local l
+  mal_val "$2"
+  l="$r"
+  mal_list "$1" $l
+}
+
+fn_vec() {  # 参数为元素 -> 新 vector（不改原 list）
+  mal_vec "$@"
+}
+
+fn_concat() {  # 参数均为 list/vector，按顺序拼接
+  local out="" a
+  for a in "$@"; do
+    mal_val "$a"
+    out="$out $r"
+  done
+  out=${out# }
+  mal_list $out
 }
 fn_equal() {
   local a="$1" b="$2" ta tb ae be ax bx
@@ -984,6 +1108,11 @@ init_repl_env() {
     mal_closure_native fn_prn;     env_set "$e" 'prn' "$r"
     mal_closure_native fn_println; env_set "$e" 'println' "$r"
     rep_silent '(def! not (fn* (a) (if a false true)))'
+  fi
+  if [ "$STEPNUM" -ge 7 ]; then
+    mal_closure_native fn_cons;   env_set "$e" 'cons' "$r"
+    mal_closure_native fn_concat; env_set "$e" 'concat' "$r"
+    mal_closure_native fn_vec;    env_set "$e" 'vec' "$r"
   fi
   if [ "$STEPNUM" -ge 6 ]; then
     mal_closure_native fn_read_string; env_set "$e" 'read-string' "$r"
