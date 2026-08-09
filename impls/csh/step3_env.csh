@@ -80,7 +80,7 @@ REPL_START:
     # ---------- READER ----------
     set rtmp = "/tmp/mal_csh_$$"
     echo "$line" | awk -f "$tokprog" > "$rtmp"
-    set ntok = `awk -f $countprog "$rtmp"`
+    set ntok = `awk -f $countprog $rtmp`
     if ($ntok == 0) goto REPL_START
 
     set d = 0
@@ -89,7 +89,7 @@ REPL_START:
 
     @ i = 1
     while ($i <= $ntok)
-        set tok = "`awk -v n=$i -f $nthprog "$rtmp"`"
+        set tok = "`awk -v n=$i -f $nthprog $rtmp`"
         if ("$tok" == "__MAL_STRERR__") then
             set rerr = "Error: end of input in string"
             break
@@ -220,7 +220,7 @@ REPL_EXIT:
 #        evaluation is aborted to $ERRTARGET.
 EVAL:
     echo "$E_AST" > "/tmp/mal_evalast_$$"
-    set TCLASS = "`awk -f $classifyprog "/tmp/mal_evalast_$$"`"
+    set TCLASS = "`awk -f $classifyprog /tmp/mal_evalast_$$`"
 
 # Same as EVAL but the caller already knows the class (avoids a second
 # classify pass when a collection element is dispatched).
@@ -293,7 +293,7 @@ EVAL_COLL:
     endif
     echo -n "" > "/tmp/mal_elv_$$_$D"
     echo "$E_AST" | awk -f "$splitprog" > "/tmp/mal_split_$$_$D"
-    set EL_N[$D] = `awk -f $countprog "/tmp/mal_split_$$_$D"`
+    set EL_N[$D] = `awk -f $countprog /tmp/mal_split_$$_$D`
     if ($EL_N[$D] == 0) then
         set E_RESULT = "$EOPEN[$D]$ECLOSE[$D]"
         set cc = "$COLL_CALLER[$D]"
@@ -301,7 +301,7 @@ EVAL_COLL:
         goto $cc
     endif
     if ("$EOPEN[$D]" != "(") goto EVAL_COLL_ELEMS
-    set FIRST = "`awk -v n=1 -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set FIRST = "`awk -v n=1 -f $nthprog /tmp/mal_split_$$_$D`"
     if ("$FIRST" == "def!") goto EVAL_DEF
     if ("$FIRST" == "let*") goto EVAL_LET
 
@@ -311,9 +311,9 @@ EVAL_COLL_ELEMS:
 EVAL_COLL_LOOP:
     @ EL_I[$D]++
     if ($EL_I[$D] > $EL_N[$D]) goto EVAL_COLL_BUILD
-    set ELEM = "`awk -v n=$EL_I[$D] -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set ELEM = "`awk -v n=$EL_I[$D] -f $nthprog /tmp/mal_split_$$_$D`"
     echo "$ELEM" > "/tmp/mal_evalast_$$"
-    set ec = "`awk -f $classifyprog "/tmp/mal_evalast_$$"`"
+    set ec = "`awk -f $classifyprog /tmp/mal_evalast_$$`"
     if ("$ec" == "number" || "$ec" == "string" || "$ec" == "keyword") then
         set E_RESULT = "$ELEM"
         goto EVAL_COLL_STORE
@@ -335,7 +335,7 @@ EVAL_COLL_BUILD:
     set s = ""
     @ k = 1
     while ($k <= $EL_N[$D])
-        set ev = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ev = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         if ("$s" == "") then
             set s = "$ev"
         else
@@ -351,8 +351,8 @@ EVAL_COLL_BUILD:
 
 # ---- special form: def! ----
 EVAL_DEF:
-    set DEFKEY[$D] = "`awk -v n=2 -f $nthprog "/tmp/mal_split_$$_$D"`"
-    set E_AST = "`awk -v n=3 -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set DEFKEY[$D] = "`awk -v n=2 -f $nthprog /tmp/mal_split_$$_$D`"
+    set E_AST = "`awk -v n=3 -f $nthprog /tmp/mal_split_$$_$D`"
     set E_ENV = "$COLL_ENV[$D]"
     set CALLER = EVAL_DEF_DONE
     goto EVAL
@@ -393,17 +393,17 @@ EVAL_LET:
     @ ENVN++
     set LETENV[$D] = $ENVN
     set ENV_OUTER[$ENVN] = "$COLL_ENV[$D]"
-    set bl = "`awk -v n=2 -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set bl = "`awk -v n=2 -f $nthprog /tmp/mal_split_$$_$D`"
     echo "$bl" | awk -f "$splitprog" > "/tmp/mal_lb_$$_$D"
-    set LB_N[$D] = `awk -f $countprog "/tmp/mal_lb_$$_$D"`
+    set LB_N[$D] = `awk -f $countprog /tmp/mal_lb_$$_$D`
     set LB_I[$D] = 0
 
 EVAL_LET_LOOP:
     @ LB_I[$D]++
     if ($LB_I[$D] > $LB_N[$D]) goto EVAL_LET_BODY
-    set LETK[$D] = "`awk -v n=$LB_I[$D] -f $nthprog "/tmp/mal_lb_$$_$D"`"
+    set LETK[$D] = "`awk -v n=$LB_I[$D] -f $nthprog /tmp/mal_lb_$$_$D`"
     @ LB_I[$D]++
-    set E_AST = "`awk -v n=$LB_I[$D] -f $nthprog "/tmp/mal_lb_$$_$D"`"
+    set E_AST = "`awk -v n=$LB_I[$D] -f $nthprog /tmp/mal_lb_$$_$D`"
     set E_ENV = "$LETENV[$D]"
     set CALLER = EVAL_LET_STORE
     goto EVAL
@@ -436,7 +436,7 @@ EVAL_LET_STORE:
     goto EVAL_LET_LOOP
 
 EVAL_LET_BODY:
-    set E_AST = "`awk -v n=3 -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set E_AST = "`awk -v n=3 -f $nthprog /tmp/mal_split_$$_$D`"
     set E_ENV = "$LETENV[$D]"
     set CALLER = EVAL_LET_DONE
     goto EVAL
@@ -450,7 +450,7 @@ EVAL_LET_DONE:
 
 # ---- apply ----
 EVAL_APPLY:
-    set FN = "`awk -v n=1 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set FN = "`awk -v n=1 -f $nthprog /tmp/mal_elv_$$_$D`"
     if ("$FN" == "__FN_PLUS__") goto APPLY_PLUS
     if ("$FN" == "__FN_MINUS__") goto APPLY_MINUS
     if ("$FN" == "__FN_MUL__") goto APPLY_MUL
@@ -461,11 +461,11 @@ EVAL_APPLY:
 
 APPLY_PLUS:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r + $ak
         @ k++
     end
@@ -473,11 +473,11 @@ APPLY_PLUS:
 
 APPLY_MINUS:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r - $ak
         @ k++
     end
@@ -485,11 +485,11 @@ APPLY_MINUS:
 
 APPLY_MUL:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r * $ak
         @ k++
     end
@@ -497,11 +497,11 @@ APPLY_MUL:
 
 APPLY_DIV:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r / $ak
         @ k++
     end

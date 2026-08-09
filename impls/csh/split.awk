@@ -7,27 +7,27 @@
 # Bracket-matching is required because elements may themselves be nested
 # collections; classic csh cannot do this, so it lives here.
 
-function split_toplevel(s,    i, depth, cur, n, ch, j, len, depth2, c2) {
-    n = 0; depth = 0; cur = ""; len = length(s); i = 1
+function split_toplevel(s,    i, depth, cur, n, ch, len, c3, nx, instr) {
+    n = 0; depth = 0; cur = ""; len = length(s); i = 1; instr = 0
     while (i <= len) {
+        c3 = substr(s, i, 3)
+        # inside a string literal nothing is structural
+        if (instr) {
+            if (c3 == "ZZB") {
+                nx = substr(s, i + 3, 3)
+                if (nx == "ZZQ" || nx == "ZZB") { cur = cur c3 nx; i += 6 }
+                else { cur = cur c3 substr(s, i + 3, 1); i += 4 }
+                continue
+            }
+            if (c3 == "ZZQ") { cur = cur c3; instr = 0; i += 3; continue }
+            cur = cur substr(s, i, 1); i++
+            continue
+        }
+        if (c3 == "ZZQ") { cur = cur c3; instr = 1; i += 3; continue }
         ch = substr(s, i, 1)
         if (depth == 0 && (ch == " " || ch == "\t")) {
             if (cur != "") { TOK[++n] = cur; cur = "" }
             i++; continue
-        }
-        if (depth == 0 && (ch == "(" || ch == "[" || ch == "{")) {
-            # a nested collection starting at this top-level position
-            depth2 = 1; j = i + 1
-            while (j <= len && depth2 > 0) {
-                c2 = substr(s, j, 1)
-                if (c2 == "(" || c2 == "[" || c2 == "{") depth2++
-                else if (c2 == ")" || c2 == "]" || c2 == "}") depth2--
-                j++
-            }
-            TOK[++n] = substr(s, i, j - i)
-            i = j
-            cur = ""
-            continue
         }
         if (ch == "(" || ch == "[" || ch == "{") depth++
         else if (ch == ")" || ch == "]" || ch == "}") depth--

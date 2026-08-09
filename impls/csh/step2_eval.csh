@@ -61,7 +61,7 @@ REPL_START:
     # ---------- READER ----------
     set rtmp = "/tmp/mal_csh_$$"
     echo "$line" | awk -f "$tokprog" > "$rtmp"
-    set ntok = `awk -f $countprog "$rtmp"`
+    set ntok = `awk -f $countprog $rtmp`
     if ($ntok == 0) goto REPL_START
 
     set d = 0
@@ -70,7 +70,7 @@ REPL_START:
 
     @ i = 1
     while ($i <= $ntok)
-        set tok = "`awk -v n=$i -f $nthprog "$rtmp"`"
+        set tok = "`awk -v n=$i -f $nthprog $rtmp`"
         if ("$tok" == "__MAL_STRERR__") then
             set rerr = "Error: end of input in string"
             break
@@ -198,7 +198,7 @@ REPL_EXIT:
 # Exit:  E_RESULT holds the value; jumps to $CALLER.
 EVAL:
     echo "$E_AST" > "/tmp/mal_evalast_$$"
-    set tclass = "`awk -f $classifyprog "/tmp/mal_evalast_$$"`"
+    set tclass = "`awk -f $classifyprog /tmp/mal_evalast_$$`"
     set TCLASS = "$tclass"
     if ("$tclass" == "list" || "$tclass" == "vector" || "$tclass" == "hash") goto EVAL_COLL
     if ("$tclass" == "string" || "$tclass" == "keyword" || "$tclass" == "number") goto EVAL_SELF
@@ -241,7 +241,7 @@ EVAL_COLL:
     endif
     echo -n "" > "/tmp/mal_elv_$$_$D"
     echo "$E_AST" | awk -f "$splitprog" > "/tmp/mal_split_$$_$D"
-    set EL_N[$D] = `awk -f $countprog "/tmp/mal_split_$$_$D"`
+    set EL_N[$D] = `awk -f $countprog /tmp/mal_split_$$_$D`
     if ($EL_N[$D] == 0) then
         set E_RESULT = "$EOPEN[$D]$ECLOSE[$D]"
         set cc = "$COLL_CALLER[$D]"
@@ -253,7 +253,7 @@ EVAL_COLL:
 EVAL_COLL_LOOP:
     @ EL_I[$D]++
     if ($EL_I[$D] > $EL_N[$D]) goto EVAL_COLL_BUILD
-    set ELEM = "`awk -v n=$EL_I[$D] -f $nthprog "/tmp/mal_split_$$_$D"`"
+    set ELEM = "`awk -v n=$EL_I[$D] -f $nthprog /tmp/mal_split_$$_$D`"
     set E_AST = "$ELEM"
     set CALLER = EVAL_COLL_STORE
     goto EVAL
@@ -267,7 +267,7 @@ EVAL_COLL_BUILD:
     set s = ""
     @ k = 1
     while ($k <= $EL_N[$D])
-        set ev = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ev = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         if ("$s" == "") then
             set s = "$ev"
         else
@@ -281,7 +281,7 @@ EVAL_COLL_BUILD:
     goto $cc
 
 EVAL_APPLY:
-    set FN = "`awk -v n=1 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set FN = "`awk -v n=1 -f $nthprog /tmp/mal_elv_$$_$D`"
     if ("$FN" == "__FN_PLUS__") goto APPLY_PLUS
     if ("$FN" == "__FN_MINUS__") goto APPLY_MINUS
     if ("$FN" == "__FN_MUL__") goto APPLY_MUL
@@ -293,11 +293,11 @@ EVAL_APPLY:
 
 APPLY_PLUS:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r + $ak
         @ k++
     end
@@ -308,11 +308,11 @@ APPLY_PLUS:
 
 APPLY_MINUS:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r - $ak
         @ k++
     end
@@ -323,11 +323,11 @@ APPLY_MINUS:
 
 APPLY_MUL:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r * $ak
         @ k++
     end
@@ -338,11 +338,11 @@ APPLY_MUL:
 
 APPLY_DIV:
     @ cnt = $EL_N[$D]
-    set a1 = "`awk -v n=2 -f $nthprog "/tmp/mal_elv_$$_$D"`"
+    set a1 = "`awk -v n=2 -f $nthprog /tmp/mal_elv_$$_$D`"
     @ r = $a1
     @ k = 3
     while ($k <= $cnt)
-        set ak = "`awk -v n=$k -f $nthprog "/tmp/mal_elv_$$_$D"`"
+        set ak = "`awk -v n=$k -f $nthprog /tmp/mal_elv_$$_$D`"
         @ r = $r / $ak
         @ k++
     end
