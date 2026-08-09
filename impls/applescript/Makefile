@@ -10,6 +10,8 @@ step3_env.scpt: step3_env.applescript reader.scpt printer.scpt types.scpt
 
 step4_if_fn_do.scpt: step4_if_fn_do.applescript reader.scpt printer.scpt types.scpt
 
+step5_tco.scpt: step5_tco.applescript reader.scpt printer.scpt types.scpt
+
 reader.scpt: reader.applescript types.scpt
 
 printer.scpt: printer.applescript
