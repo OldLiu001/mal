@@ -4,4 +4,4 @@ STEPNUM=3
 d=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$d/core.sh"
 init_repl_env
-mal_repl
+mal_repl "$@"

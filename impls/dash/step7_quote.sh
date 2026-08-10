@@ -3,4 +3,4 @@
 STEPNUM=7
 . "$(dirname "$0")/core.sh"
 init_repl_env
-mal_repl
+mal_repl "$@"

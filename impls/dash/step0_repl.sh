@@ -3,4 +3,4 @@
 STEPNUM=0
 d=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$d/core.sh"
-mal_repl
+mal_repl "$@"

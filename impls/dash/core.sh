@@ -1509,6 +1509,13 @@ fn_with_meta() {  # $1=对象 $2=meta -> 新对象（不突变）
       if [ "$ismacro" = 1 ]; then eval "_CM_$r=1"; fi
       eval "_MM_$r=$meta"
       ;;
+    __atom)
+      # atom：复制内容 + 设 meta
+      local aval
+      mal_val "$obj"; aval="$r"
+      mal_atom "$aval"
+      eval "_MM_$r=$meta"
+      ;;
     *) r="$obj" ;;
   esac
 }
@@ -1806,6 +1813,26 @@ rep_silent() {
 # ================= REPL 主循环 =================
 mal_repl() {
   local line
+  # 文件参数（官方 step6 要求）：有参数时加载第一个文件并退出；
+  # *ARGV* = 其余参数。加载的文件本身可启动自己的 REPL 循环
+  # （自托管时 mal 写的解释器文件最后会进入 repl-loop 从 stdin 读）。
+  if [ $# -ge 1 ] && [ "$STEPNUM" -ge 6 ]; then
+    local argrefs="" a file="$1"
+    shift
+    for a in "$@"; do
+      mal_str "$a"
+      argrefs="$argrefs $r"
+    done
+    if [ -n "$argrefs" ]; then
+      mal_list $argrefs
+    else
+      mal_list
+    fi
+    env_set "$REPL_ENV" '*ARGV*' "$r"
+    MAL_ERR=0; MAL_ERR_MSG=""; MAL_BLANK=0
+    rep_silent "(load-file \"$file\")"
+    exit 0
+  fi
   while true; do
     printf 'user> '
     IFS= read -r line || break
