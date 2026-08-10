@@ -12,7 +12,7 @@ Make-A-Lisp 的 AppleScript 实现，step0 → stepA 全部通过官方测试。
    ```sh
    osascript step9_try.applescript
    ```
-   每个 step 的 `on run` 通过 `loadMod` 助手加载 `types/reader/printer`：
+   每个 step 的 `on run` 通过 `loadMod` 助手加载 `types/reader/printer`（step4+ 另加载 `core`，并调用 `coreLib's inject(...)` 注入依赖）：
    优先 `load script` 已编译的 `.scpt`，缺失时自动 `osacompile` 对应 `.applescript` 再加载。
    因此改完源码直接运行即可，不必先 `make`。
 
@@ -27,7 +27,7 @@ Make-A-Lisp 的 AppleScript 实现，step0 → stepA 全部通过官方测试。
    make standalone     # 生成 stepN.standalone.applescript + stepN.standalone.scpt
    osascript step9_try.standalone.applescript   # 或 .standalone.scpt
    ```
-   standalone 把三个模块扁平内联进 step，零外部依赖，可单独拷贝分发。
+   standalone 把 types/reader/printer/core 四个模块扁平内联进 step，零外部依赖，可单独拷贝分发。
 
 4. **交互式 REPL**
    ```sh
@@ -44,7 +44,7 @@ Make-A-Lisp 的 AppleScript 实现，step0 → stepA 全部通过官方测试。
 
 | 目标 | 作用 |
 |------|------|
-| `make` / `make all` | 构建所有 step 依赖版 `.scpt`（需先有 `types.scpt reader.scpt printer.scpt`） |
+| `make` / `make all` | 构建所有 step 依赖版 `.scpt`（需先有 `types.scpt reader.scpt printer.scpt core.scpt`） |
 | `make standalone` | 构建所有 step 单文件版 `.standalone.applescript` + `.standalone.scpt` |
 | `make standalone-src` | 仅生成合并后的 `.standalone.applescript` 源（不编译） |
 | `make clean` | 删除全部 `.scpt` 与 `.standalone.*` 产物 |
@@ -76,7 +76,7 @@ osascript merge.applescript <stepName>    # 生成 <stepName>.standalone.applesc
 2b. **core 须通过 `inject(types, reader, printer, replEnv)` 注入依赖**：core 内部用 property `typesLib` / `readerLib` / `printerLib` / `replEnvGlobal` 引用四个模块（合并时重命名为 `core*Lib` 前缀），并通过 `coreLib's inject(...)` 注入；step 加载 core 后必须调用 `coreLib's inject(typesLib, readerLib, printerLib, replEnv)`。不要在 core 里定义与 step 顶层同名的 handler（如 `readLine` 这类从 step 移入 core 的名字会被合并脚本从 core 中删除，若 step 仍定义同名 handler 会导致 standalone 编译失败）。
 3. **step 必须用 `loadMod` 加载模块**，不要自己写 `load script` 路径。合并脚本会删除 `loadMod` / `fileExists`，并把 `set X to my loadMod("X", dir)` 改成 `set X to me`；用别的加载方式会导致合并后缺依赖。
 4. **文件顶部连续 `use` 行**：`stripUse` 会删掉各模块顶部所有 `use ` 开头行，最后统一由唯一 header 提供。模块顶部不要写会被误删的非 `use` 代码；`use` 必须连续放在最前。
-5. **顶层 handler 勿与模块同名**：合并会删除 reader 中与 step 重名的 handler。反之，若 step 定义了与模块顶层助手（如 `setTypesLib`、`readStr`、`printStr`）同名的 handler，会被当成"模块的重复 handler"误删。命名请避开这些名字。
+5. **顶层 handler 勿与模块同名**：合并会删除 reader/core 中与 step 重名、以及 core 中与 reader 重名的 handler。反之，若 step 定义了与模块顶层助手（如 `setTypesLib`、`inject`、`readStr`、`printStr`）同名的 handler，会被当成"模块的重复 handler"误删。命名请避开这些名字。
 6. **保留字禁忌**：`rest` 是 AppleScript 保留字，不能作变量名（历史踩坑：错误栈 / 合并提取均会受影响）。变量名避开 `rest`、`first`、`second`、`return`、`while` 等关键字。
 7. **过程定义用 `on name(...)`**：`removeTopLevelHandler` 仅识别 `on NAME(` / `to NAME(`（含带空格两种）前缀；模块 / step 顶层过程推荐 `on name(...)` 形式，避免无括号的 `on name` 块。
 8. **`on run` 签名自由**：`on run()` 或 `on run(argv)` 均可，合并脚本不依赖 run 签名。
@@ -95,17 +95,17 @@ osascript merge.applescript <stepName>    # 生成 <stepName>.standalone.applesc
 
 ```sh
 # 跑单个 step 的官方测试（依赖版 / 单文件版 / 直接源码 三种 target 均可）
-python3 runtest.py --rundir impls/applescript tests/step9.mal \
+python3 runtest.py --rundir impls/applescript tests/step9_try.mal \
   -- osascript -l AppleScript step9_try.scpt
-python3 runtest.py --rundir impls/applescript tests/stepA.mal \
+python3 runtest.py --rundir impls/applescript tests/stepA_mal.mal \
   -- osascript -l AppleScript stepA_mal.standalone.applescript
 
-# step5 (TCO) 较慢，默认 20s 可能超时，按需加大：
-python3 runtest.py --rundir impls/applescript tests/step5.mal \
-  --timeout 120 -- osascript -l AppleScript step5_tco.scpt
+# step5 (TCO) 较慢，默认 20s 可能超时，按需加大(注意 --test-timeout 在 -- 之前):
+python3 runtest.py --rundir impls/applescript --test-timeout 60 tests/step5_tco.mal \
+  -- osascript -l AppleScript step5_tco.scpt
 ```
 
-当前进度：`step0–step9` 与 `stepA` 全部通过（step9: 158/158，stepA: 113/113）。step5 TCO 为循环实现，速度慢，仅作正确性验证，不建议用于大输入。
+当前进度：`step0–step9` 与 `stepA` 全部通过（step9: 158/158，stepA: 113/113）；依赖版 / standalone 单文件两种形态均已回归（step4: 199/199，step6: 71/71，step7: 122/122，step8: 61/61）。step5 TCO 为循环实现，速度慢，仅作正确性验证，不建议用于大输入。
 
 ## 六、工作流
 
