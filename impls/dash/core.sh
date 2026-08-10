@@ -1513,12 +1513,14 @@ fn_seq() {  # $1=字符串/list/vec/nil -> list 或 nil
       mal_val "$1"; v="$r"
       if [ -z "$v" ]; then r=Z; else
         # 每个字符转字符串，特殊字符也要（字符串可含任意内容）
-        local acc="" i=1 c
-        while [ $i -le ${#v} ]; do
-          c=$(printf '%s' "$v" | cut -c$i)
+        # ${v#?} 剥首字符、${v%"${v#?}"} 取首字符，纯内建零 fork。
+        # 注意：按字节取，多字节 UTF-8 字符会被截断（mal 无多字节保证）
+        local acc="" c
+        while [ -n "$v" ]; do
+          c="${v%"${v#?}"}"
           mal_str "$c"
           acc="$acc $r"
-          i=$((i+1))
+          v="${v#?}"
         done
         mal_list $acc
       fi ;;
