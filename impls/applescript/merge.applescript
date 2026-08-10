@@ -67,11 +67,28 @@ on run(argv)
 	set stepBody to my removeTopLevelHandler(stepBody, "loadMod")
 	set stepBody to my removeTopLevelHandler(stepBody, "fileExists")
 
-	-- core 模块去重: 删除 core 中与 step 同名定义的顶层 handler
+	-- core 内部依赖重命名: typesLib/readerLib/printerLib/replEnvGlobal -> core*Lib
+	-- (step 顶层已有同名 property, 内联后必须唯一)
+	set coreBody to my replaceStr(coreBody, "property typesLib", "property coreTypesLib")
+	set coreBody to my replaceStr(coreBody, "property readerLib", "property coreReaderLib")
+	set coreBody to my replaceStr(coreBody, "property printerLib", "property corePrinterLib")
+	set coreBody to my replaceStr(coreBody, "property replEnvGlobal", "property coreReplEnvGlobal")
+	set coreBody to my replaceStr(coreBody, "set typesLib to types", "set coreTypesLib to types")
+	set coreBody to my replaceStr(coreBody, "set readerLib to reader", "set coreReaderLib to reader")
+	set coreBody to my replaceStr(coreBody, "set printerLib to printer", "set corePrinterLib to printer")
+	set coreBody to my replaceStr(coreBody, "set replEnvGlobal to replEnv", "set coreReplEnvGlobal to replEnv")
+	set coreBody to my replaceStr(coreBody, "set typesLib to", "set coreTypesLib to")
+	set coreBody to my replaceStr(coreBody, "my typesLib", "my coreTypesLib")
+	set coreBody to my replaceStr(coreBody, "printerLib's Printer", "corePrinterLib's Printer")
+	set coreBody to my replaceStr(coreBody, "readerLib's", "coreReaderLib's")
+	set coreBody to my replaceStr(coreBody, "my replEnvGlobal", "my coreReplEnvGlobal")
+
+	-- core 模块去重: 删除 core 中与 step/reader 同名定义的顶层 handler
 	set coreNames to my topLevelHandlerNames(coreBody)
+	set readerNames2 to my topLevelHandlerNames(readerBody)
 	repeat with nm in coreNames
 		set nmStr to nm as text
-		if stepNames contains nmStr then
+		if stepNames contains nmStr or readerNames2 contains nmStr then
 			set coreBody to my removeTopLevelHandler(coreBody, nmStr)
 		end if
 	end repeat

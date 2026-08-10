@@ -64,7 +64,8 @@ osascript merge.applescript <stepName>    # 生成 <stepName>.standalone.applesc
 合并策略（扁平化，顶层仅保留唯一 `use framework "Foundation"`）：
 - `types` / `printer` 作为 script 对象整体内联到顶层；
 - `reader` 平铺到顶层，其内部对 `types` 的引用 `typesLib` 被精确重命名为 `readerTypesLib`（注入入口名 `setTypesLib` 保留）；
-- 删除 `reader` 中与 step 同名的顶层 handler（避免重复定义）；
+- `core` 平铺到顶层，其内部 property `typesLib`/`readerLib`/`printerLib`/`replEnvGlobal` 重命名为 `coreTypesLib`/`coreReaderLib`/`corePrinterLib`/`coreReplEnvGlobal`（避免与 step 顶层同名 property 冲突），`inject` 入口名保留；
+- 删除 `reader` / `core` 中与 step 同名的顶层 handler（避免重复定义）；
 - step 的 loader 块 `set X to my loadMod("X", scriptDir)` 改写为 `set X to me`；
 - 删除 step 中仅用于外部加载的 `loadMod` / `fileExists` 助手。
 
@@ -72,6 +73,7 @@ osascript merge.applescript <stepName>    # 生成 <stepName>.standalone.applesc
 
 1. **模块名 = 文件名**：`loadMod("types", …)` 期望存在 `types.applescript` / `types.scpt`。新增模块必须文件名与模块名一致。
 2. **reader 须通过固定名字引用 types**：reader 内部一律用 property `typesLib` 引用 types（如 `my typesLib's Types's makeMALNil()`），并通过 `setTypesLib(lib)` 注入；合并脚本只替换 `property typesLib` / `set typesLib` / `my typesLib` 三个精确串。改名（如 `tlib`、`theTypes`）会导致合并后引用断裂。
+2b. **core 须通过 `inject(types, reader, printer, replEnv)` 注入依赖**：core 内部用 property `typesLib` / `readerLib` / `printerLib` / `replEnvGlobal` 引用四个模块（合并时重命名为 `core*Lib` 前缀），并通过 `coreLib's inject(...)` 注入；step 加载 core 后必须调用 `coreLib's inject(typesLib, readerLib, printerLib, replEnv)`。不要在 core 里定义与 step 顶层同名的 handler（如 `readLine` 这类从 step 移入 core 的名字会被合并脚本从 core 中删除，若 step 仍定义同名 handler 会导致 standalone 编译失败）。
 3. **step 必须用 `loadMod` 加载模块**，不要自己写 `load script` 路径。合并脚本会删除 `loadMod` / `fileExists`，并把 `set X to my loadMod("X", dir)` 改成 `set X to me`；用别的加载方式会导致合并后缺依赖。
 4. **文件顶部连续 `use` 行**：`stripUse` 会删掉各模块顶部所有 `use ` 开头行，最后统一由唯一 header 提供。模块顶部不要写会被误删的非 `use` 代码；`use` 必须连续放在最前。
 5. **顶层 handler 勿与模块同名**：合并会删除 reader 中与 step 重名的 handler。反之，若 step 定义了与模块顶层助手（如 `setTypesLib`、`readStr`、`printStr`）同名的 handler，会被当成"模块的重复 handler"误删。命名请避开这些名字。
