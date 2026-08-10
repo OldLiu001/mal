@@ -19,6 +19,7 @@ set -f
 # ---------------- 全局状态 ----------------
 MAL_ERR=0
 MAL_ERR_MSG=""
+MAL_ERR_VAL=""        # throw 时保存被抛的值 ref；非 throw 错误为空
 _TK_N=0
 _TOK_POS=1
 _MAL_NEXT=0
@@ -727,6 +728,45 @@ EVAL() {  # $1=ast ref $2=env -> r
       ast="$1"
       continue ;;                                   # TCO：最后一个表达式在尾位置
 
+    'try*')
+      # $2=try体 $3=catch*子句
+      set -- $elems
+      shift
+      if [ $# -lt 1 ]; then mal_error "try*: missing body"; return; fi
+      if [ $# -lt 2 ]; then mal_error "try*: missing catch*"; return; fi
+      EVAL "$1" "$env"
+      if [ "$MAL_ERR" = 1 ]; then
+        # 捕获：恢复错误标志，绑定 catch 变量
+        local cv_elems cv_first cv_sym
+        MAL_ERR=0
+        mal_val "$2"
+        cv_elems="$r"
+        set -- $cv_elems
+        shift                                       # $1=catch变量 $2..=catch体
+        if [ $# -lt 2 ]; then mal_error "try*: malformed catch*"; return; fi
+        cv_first="$1"
+        mal_type "$cv_first"
+        if [ "$r" != __sym ]; then mal_error "try*: catch requires a symbol"; return; fi
+        mal_val "$cv_first"
+        cv_sym="$r"
+        if [ -n "$MAL_ERR_VAL" ]; then
+          env_set "$env" "$cv_sym" "$MAL_ERR_VAL"
+          MAL_ERR_VAL=""
+        else
+          mal_str "$MAL_ERR_MSG"
+          env_set "$env" "$cv_sym" "$r"
+        fi
+        shift                                       # $1..=catch体
+        if [ $# -gt 1 ]; then
+          mal_list "$@"
+          EVAL "$r" "$env"
+        else
+          EVAL "$1" "$env"
+        fi
+        if [ "$MAL_ERR" = 1 ]; then return; fi
+      fi
+      return ;;
+
     'quote')
       set -- $elems
       r="$2"
@@ -741,6 +781,7 @@ EVAL() {  # $1=ast ref $2=env -> r
   esac
 
   if [ "$STEPNUM" -lt 7 ]; then fname=""; fi
+  if [ "$STEPNUM" -lt 9 ] && [ "$fname" = 'try*' ]; then fname=""; fi
 
   case "$fname" in
     'unquote'|'splice-unquote')
@@ -971,6 +1012,169 @@ fn_div() {
 
 fn_list() { mal_list "$@"; }
 fn_list_p() { mal_type "$1"; if [ "$r" = __list ]; then r=Y; else r=F; fi; }
+fn_vector_p() { mal_type "$1"; if [ "$r" = __vec ]; then r=Y; else r=F; fi; }
+fn_map_p() { mal_type "$1"; if [ "$r" = __map ]; then r=Y; else r=F; fi; }
+fn_nil_p()  { mal_type "$1"; if [ "$r" = __nil ]; then r=Y; else r=F; fi; }
+fn_true_p() { mal_type "$1"; if [ "$r" = __true ]; then r=Y; else r=F; fi; }
+fn_false_p(){ mal_type "$1"; if [ "$r" = __false ]; then r=Y; else r=F; fi; }
+
+# ---- hash-map 核心操作（键按值相等比较） ----
+# map 载荷："k1 v1 k2 v2 ..."，k/v 都是 ref（无空格）
+key_equal() {  # $1=键1 ref $2=键2 ref -> r=Y/F
+  local t1 t2 v1 v2
+  mal_type "$1"; t1="$r"
+  mal_type "$2"; t2="$r"
+  if [ "$t1" != "$t2" ]; then r=F; return; fi
+  case "$t1" in
+    __num|__sym|__kw|__str)
+      mal_val "$1"; v1="$r"
+      mal_val "$2"; v2="$r"
+      if [ "$v1" = "$v2" ]; then r=Y; else r=F; fi ;;
+    *) if [ "$1" = "$2" ]; then r=Y; else r=F; fi ;;
+  esac
+}
+
+fn_hash_map() {  # 偶数个参数 -> H<id>
+  mal_map "$@"
+}
+
+fn_assoc() {  # $1=map $2=键 $3=值 ... -> 新 map（不修改原 map）
+  local m="$1" pairs k v found kk vv out=""
+  shift
+  mal_type "$m"
+  if [ "$r" = __nil ]; then m=""; else
+    mal_val "$m"; pairs="$r"
+  fi
+  # 先复制原键值对
+  while [ -n "$pairs" ]; do
+    k=${pairs%% *}
+    if [ "$k" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    v=${pairs%% *}
+    if [ "$v" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    out="$out $k $v"
+  done
+  # 逐个 assoc（新键追加，已存在键覆盖：先删旧再追加）
+  while [ $# -ge 2 ]; do
+    kk="$1"; vv="$2"; shift 2
+    found=""
+    # 重建 out，跳过与 kk 相等的旧键（out 前可能有前导空格，解析前先剥离）
+    newout=""; k2=""; v2=""
+    while [ -n "$out" ]; do
+      out=${out# }
+      k2=${out%% *}
+      if [ "$k2" = "$out" ]; then out=""; else out=${out#* }; fi
+      v2=${out%% *}
+      if [ "$v2" = "$out" ]; then out=""; else out=${out#* }; fi
+      key_equal "$k2" "$kk"
+      if [ "$r" != Y ]; then newout="$newout $k2 $v2"; fi
+    done
+    out="$newout $kk $vv"
+  done
+  mal_map ${out# }
+}
+
+fn_get() {  # $1=map/vector/nil $2=键/索引
+  local m="$1" k="$2" t pairs kk vv
+  mal_type "$m"
+  t="$r"
+  case "$t" in
+    __nil) r=Z; return ;;
+    __map)
+      mal_val "$m"; pairs="$r"
+      while [ -n "$pairs" ]; do
+        kk=${pairs%% *}
+        if [ "$kk" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+        vv=${pairs%% *}
+        if [ "$vv" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+        key_equal "$kk" "$k"
+        if [ "$r" = Y ]; then r="$vv"; return; fi
+      done
+      r=Z ;;
+    __vec)
+      mal_val "$m"; pairs="$r"
+      mal_val "$k"; kk="$r"
+      local i=1 e
+      for e in $pairs; do
+        if [ $i -eq $kk ]; then r="$e"; return; fi
+        i=$((i+1))
+      done
+      r=Z ;;
+    *) r=Z ;;
+  esac
+}
+
+fn_contains_p() {  # $1=map $2=键 -> true/false
+  local m="$1" k="$2" t pairs kk vv
+  mal_type "$m"
+  t="$r"
+  case "$t" in
+    __nil) r=F; return ;;
+    __map)
+      mal_val "$m"; pairs="$r"
+      while [ -n "$pairs" ]; do
+        kk=${pairs%% *}
+        if [ "$kk" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+        vv=${pairs%% *}
+        if [ "$vv" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+        key_equal "$kk" "$k"
+        if [ "$r" = Y ]; then r=Y; return; fi
+      done
+      r=F ;;
+    *) r=F ;;
+  esac
+}
+
+fn_keys() {  # $1=map -> list of keys
+  local m="$1" pairs k v out=""
+  mal_type "$m"
+  if [ "$r" = __nil ]; then mal_list; return; fi
+  mal_val "$m"; pairs="$r"
+  while [ -n "$pairs" ]; do
+    k=${pairs%% *}
+    if [ "$k" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    v=${pairs%% *}
+    if [ "$v" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    out="$out $k"
+  done
+  mal_list ${out# }
+}
+
+fn_vals() {  # $1=map -> list of values
+  local m="$1" pairs k v out=""
+  mal_type "$m"
+  if [ "$r" = __nil ]; then mal_list; return; fi
+  mal_val "$m"; pairs="$r"
+  while [ -n "$pairs" ]; do
+    k=${pairs%% *}
+    if [ "$k" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    v=${pairs%% *}
+    if [ "$v" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    out="$out $v"
+  done
+  mal_list ${out# }
+}
+
+fn_dissoc() {  # $1=map $2=键... -> 新 map
+  local m="$1" pairs k v out="" kk
+  shift
+  mal_type "$m"
+  if [ "$r" = __nil ]; then mal_map; return; fi
+  mal_val "$m"; pairs="$r"
+  while [ -n "$pairs" ]; do
+    k=${pairs%% *}
+    if [ "$k" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    v=${pairs%% *}
+    if [ "$v" = "$pairs" ]; then pairs=""; else pairs=${pairs#* }; fi
+    # 检查 k 是否在删除列表里
+    local drop="" kk
+    for kk in "$@"; do
+      key_equal "$k" "$kk"
+      if [ "$r" = Y ]; then drop=1; break; fi
+    done
+    if [ -z "$drop" ]; then out="$out $k $v"; fi
+  done
+  mal_map ${out# }
+}
 fn_empty_p() {
   local t
   mal_type "$1"
@@ -1146,6 +1350,34 @@ fn_equal() {
         if [ "$r" = F ]; then return; fi
       done
       if [ -n "$ae" ] || [ -n "$be" ]; then r=F; else r=Y; fi ;;
+    __map)
+      # 键值对集合相等（顺序无关）：a 的每个键在 b 中能找到且值相等
+      mal_val "$a"; ae="$r"
+      mal_val "$b"; be="$r"
+      if [ -z "$ae" ] && [ -z "$be" ]; then r=Y; return; fi
+      # 逐键检查
+      while [ -n "$ae" ]; do
+        ax=${ae%% *}
+        if [ "$ax" = "$ae" ]; then ae=""; else ae=${ae#* }; fi
+        local av bscan bk bv found=""
+        av=${ae%% *}
+        if [ "$av" = "$ae" ]; then ae=""; else ae=${ae#* }; fi
+        bscan="$be"
+        while [ -n "$bscan" ]; do
+          bk=${bscan%% *}
+          if [ "$bk" = "$bscan" ]; then bscan=""; else bscan=${bscan#* }; fi
+          bv=${bscan%% *}
+          if [ "$bv" = "$bscan" ]; then bscan=""; else bscan=${bscan#* }; fi
+          key_equal "$ax" "$bk"
+          if [ "$r" = Y ]; then
+            fn_equal "$av" "$bv"
+            if [ "$r" = Y ]; then found=1; else r=F; return; fi
+            break
+          fi
+        done
+        if [ -z "$found" ]; then r=F; return; fi
+      done
+      r=Y ;;
     *)
       if [ "$a" = "$b" ]; then r=Y; else r=F; fi ;;
   esac
@@ -1226,6 +1458,61 @@ fn_swap() {
   _set_stored "$a" "$r"
 }
 
+# -------- step9：throw / 类型谓词 / apply / map --------
+fn_throw() { MAL_ERR=1; MAL_ERR_MSG=""; MAL_ERR_VAL="$1"; r=Z; }
+
+fn_symbol_p() { mal_type "$1"; if [ "$r" = __sym ]; then r=Y; else r=F; fi; }
+fn_symbol()   { mal_val "$1"; mal_sym "$r"; }
+fn_keyword_p(){ mal_type "$1"; if [ "$r" = __kw ]; then r=Y; else r=F; fi; }
+fn_keyword()  { mal_val "$1"; mal_kw "$r"; }
+fn_sequential_p() { mal_type "$1"; if [ "$r" = __list ] || [ "$r" = __vec ]; then r=Y; else r=F; fi; }
+
+fn_apply() {  # $1=函数 中间参数... 最后一个=list/vector
+  local f="$1" last t elems a
+  shift
+  for last in "$@"; do :; done              # last = 最后一个实参 ref
+  mal_type "$last"
+  t="$r"
+  if [ "$t" != __list ] && [ "$t" != __vec ]; then
+    mal_error "apply: last argument must be a sequence"; return
+  fi
+  mal_val "$last"
+  elems="$r"
+  # 重建：f + 前 $#-1 个中间参数 + 展开的序列元素（ref 均无空格，空格拼接安全）
+  local args="$f" i=1 n=$(( $# - 1 ))
+  while [ $i -le $n ]; do
+    eval 'args="$args $'$i'"'
+    i=$((i+1))
+  done
+  for a in $elems; do
+    args="$args $a"
+  done
+  # 一次性重建位置参数再 APPLY
+  set --
+  for a in $args; do
+    set -- "$@" "$a"
+  done
+  APPLY "$@"
+}
+
+fn_map() {  # $1=函数 $2=list/vector -> 结果 list
+  local f="$1" seq="$2" t elems e result=""
+  mal_type "$seq"
+  t="$r"
+  if [ "$t" != __list ] && [ "$t" != __vec ]; then
+    mal_error "map: second argument must be a sequence"; return
+  fi
+  mal_val "$seq"
+  elems="$r"
+  for e in $elems; do
+    APPLY "$f" "$e"
+    if [ "$MAL_ERR" = 1 ]; then return; fi
+    result="$result $r"
+  done
+  result=${result# }
+  mal_list $result
+}
+
 # ================= REPL 环境 =================
 init_repl_env() {
   local e
@@ -1239,6 +1526,7 @@ init_repl_env() {
   if [ "$STEPNUM" -ge 4 ]; then
     mal_closure_native fn_list;    env_set "$e" 'list' "$r"
     mal_closure_native fn_list_p;  env_set "$e" 'list?' "$r"
+    mal_closure_native fn_vector_p;env_set "$e" 'vector?' "$r"
     mal_closure_native fn_empty_p; env_set "$e" 'empty?' "$r"
     mal_closure_native fn_count;   env_set "$e" 'count' "$r"
     mal_closure_native fn_equal;   env_set "$e" '=' "$r"
@@ -1250,12 +1538,24 @@ init_repl_env() {
     mal_closure_native fn_str;     env_set "$e" 'str' "$r"
     mal_closure_native fn_prn;     env_set "$e" 'prn' "$r"
     mal_closure_native fn_println; env_set "$e" 'println' "$r"
+    mal_closure_native fn_nil_p;   env_set "$e" 'nil?' "$r"
+    mal_closure_native fn_true_p;  env_set "$e" 'true?' "$r"
+    mal_closure_native fn_false_p; env_set "$e" 'false?' "$r"
+    mal_closure_native fn_hash_map; env_set "$e" 'hash-map' "$r"
+    mal_closure_native fn_assoc;    env_set "$e" 'assoc' "$r"
+    mal_closure_native fn_get;      env_set "$e" 'get' "$r"
+    mal_closure_native fn_contains_p; env_set "$e" 'contains?' "$r"
+    mal_closure_native fn_keys;     env_set "$e" 'keys' "$r"
+    mal_closure_native fn_vals;     env_set "$e" 'vals' "$r"
+    mal_closure_native fn_dissoc;   env_set "$e" 'dissoc' "$r"
+    mal_closure_native fn_map_p;    env_set "$e" 'map?' "$r"
     rep_silent '(def! not (fn* (a) (if a false true)))'
   fi
   if [ "$STEPNUM" -ge 7 ]; then
     mal_closure_native fn_cons;   env_set "$e" 'cons' "$r"
     mal_closure_native fn_concat; env_set "$e" 'concat' "$r"
     mal_closure_native fn_vec;    env_set "$e" 'vec' "$r"
+    mal_closure_native fn_vec;    env_set "$e" 'vector' "$r"
   fi
   if [ "$STEPNUM" -ge 8 ]; then
     mal_closure_native fn_nth;        env_set "$e" 'nth' "$r"
@@ -1278,6 +1578,16 @@ init_repl_env() {
     env_set "$e" '*ARGV*' "$r"
     # 尾部的 \nnil 有两个作用：让最后一行的注释不吞掉收尾括号，以及让返回值恒为 nil
     rep_silent '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
+  fi
+  if [ "$STEPNUM" -ge 9 ]; then
+    mal_closure_native fn_throw;        env_set "$e" 'throw' "$r"
+    mal_closure_native fn_symbol_p;     env_set "$e" 'symbol?' "$r"
+    mal_closure_native fn_symbol;       env_set "$e" 'symbol' "$r"
+    mal_closure_native fn_keyword_p;    env_set "$e" 'keyword?' "$r"
+    mal_closure_native fn_keyword;      env_set "$e" 'keyword' "$r"
+    mal_closure_native fn_sequential_p; env_set "$e" 'sequential?' "$r"
+    mal_closure_native fn_apply;        env_set "$e" 'apply' "$r"
+    mal_closure_native fn_map;          env_set "$e" 'map' "$r"
   fi
 }
 
@@ -1310,7 +1620,13 @@ mal_repl() {
     if [ "$MAL_BLANK" = 1 ]; then continue; fi
     EVAL "$r" "$REPL_ENV"
     if [ "$MAL_ERR" = 1 ]; then
-      printf '%s\n' "$MAL_ERR_MSG"
+      if [ -n "$MAL_ERR_VAL" ]; then
+        pr_str "$MAL_ERR_VAL" 1
+        printf 'Error: %s\n' "$r_str"
+        MAL_ERR_VAL=""
+      else
+        printf '%s\n' "$MAL_ERR_MSG"
+      fi
       continue
     fi
     PRINT "$r"
