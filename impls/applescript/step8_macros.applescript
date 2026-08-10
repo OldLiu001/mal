@@ -18,7 +18,7 @@ on loadMod(modName, scriptDir)
 	if my fileExists(scptPath) then
 		return load script (scptPath as POSIX file)
 	else if my fileExists(srcPath) then
-		set tmpPath to (do shell script "mktemp -t mal") & ".scpt"
+		set tmpPath to (current application's NSTemporaryDirectory() as text) & "mal_" & (current application's NSUUID's UUID()'s UUIDString()) & ".scpt"
 		do shell script "osacompile -l AppleScript -o " & quoted form of tmpPath & " " & quoted form of srcPath
 		return load script (tmpPath as POSIX file)
 	else
@@ -27,16 +27,12 @@ on loadMod(modName, scriptDir)
 end loadMod
 
 on fileExists(p)
-	try
-		do shell script "test -f " & quoted form of p
-		return true
-	on error
-		return false
-	end try
+	set fm to current application's NSFileManager's defaultManager()
+	return (fm's fileExistsAtPath:p) as boolean
 end fileExists
 
 on run(argv)
-	set scriptDir to do shell script "dirname " & quoted form of (POSIX path of (path to me))
+	set scriptDir to (current application's NSString's stringWithString:(POSIX path of (path to me)))'s stringByDeletingLastPathComponent() as text
 	set typesLib to my loadMod("types", scriptDir)
 	set readerLib to my loadMod("reader", scriptDir)
 	set printerLib to my loadMod("printer", scriptDir)
