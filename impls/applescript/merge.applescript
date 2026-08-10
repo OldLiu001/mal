@@ -11,6 +11,7 @@
  * 合并策略(扁平化, 顶层唯一 use framework):
  *   - types / printer 模块整体内联到顶层(它们是 script 对象)
  *   - reader 模块平铺到顶层, 内部 typesLib 重命名为 readerTypesLib
+ *   - core 模块平铺到顶层(零冲突, 通过 inject 注入依赖)
  *   - 去掉 reader 中与 step 重复定义的顶层 handler(避免重复定义报错)
  *   - step 的 loader 块改为 set ... to me (模块已在当前脚本内)
  *   - 删除 step 中仅用于外部加载的 loadMod / fileExists 助手
@@ -31,12 +32,14 @@ on run(argv)
 	set typesSrc to my readFile(baseDir & "/types.applescript")
 	set readerSrc to my readFile(baseDir & "/reader.applescript")
 	set printerSrc to my readFile(baseDir & "/printer.applescript")
+	set coreSrc to my readFile(baseDir & "/core.applescript")
 	set stepSrc to my readFile(baseDir & "/" & stepName & ".applescript")
 
 	-- 去掉各文件顶部的 use 行(合并后由唯一 header 提供)
 	set typesBody to my stripUse(typesSrc)
 	set readerBody to my stripUse(readerSrc)
 	set printerBody to my stripUse(printerSrc)
+	set coreBody to my stripUse(coreSrc)
 	set stepBody to my stripUse(stepSrc)
 
 	-- reader 内部依赖 typesLib -> 重命名为 readerTypesLib (保留 setTypesLib 助手名)
@@ -58,10 +61,20 @@ on run(argv)
 	set stepBody to my replaceStr(stepBody, "set typesLib to my loadMod(\"types\", scriptDir)", "set typesLib to me")
 	set stepBody to my replaceStr(stepBody, "set readerLib to my loadMod(\"reader\", scriptDir)", "set readerLib to me")
 	set stepBody to my replaceStr(stepBody, "set printerLib to my loadMod(\"printer\", scriptDir)", "set printerLib to me")
+	set stepBody to my replaceStr(stepBody, "set coreLib to my loadMod(\"core\", scriptDir)", "set coreLib to me")
 
 	-- 删除仅用于外部加载的助手(standalone 不再需要)
 	set stepBody to my removeTopLevelHandler(stepBody, "loadMod")
 	set stepBody to my removeTopLevelHandler(stepBody, "fileExists")
+
+	-- core 模块去重: 删除 core 中与 step 同名定义的顶层 handler
+	set coreNames to my topLevelHandlerNames(coreBody)
+	repeat with nm in coreNames
+		set nmStr to nm as text
+		if stepNames contains nmStr then
+			set coreBody to my removeTopLevelHandler(coreBody, nmStr)
+		end if
+	end repeat
 
 	-- 组装
 	set header to "use AppleScript version \"2.8\"" & linefeed & "use scripting additions" & linefeed & "use framework \"Foundation\"" & linefeed & linefeed
@@ -70,6 +83,7 @@ on run(argv)
 	set out to out & "-- ----- module: types -----" & linefeed & typesBody & linefeed
 	set out to out & "-- ----- module: reader -----" & linefeed & readerBody & linefeed
 	set out to out & "-- ----- module: printer -----" & linefeed & printerBody & linefeed
+	set out to out & "-- ----- module: core -----" & linefeed & coreBody & linefeed
 	set out to out & "-- ----- step body -----" & linefeed & stepBody
 
 	set outPath to baseDir & "/" & stepName & ".standalone.applescript"
