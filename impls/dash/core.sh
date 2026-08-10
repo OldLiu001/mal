@@ -660,7 +660,17 @@ EVAL() {  # $1=ast ref $2=env -> r
       val="$r"
       mal_type "$val"
       if [ "$r" != __fn ]; then mal_error "defmacro!: not a function"; return; fi
-      eval "_CM_$val=1"      # 打上宏标志
+      # 复制闭包再置宏标志，不突变原函数
+      local ck cf cp cb ce cm
+      closure_get "$val"
+      ck="$r_kind"; cf="$r_fn"; cp="$r_params"; cb="$r_body"; ce="$r_env"; cm="$r_ismacro"
+      if [ "$ck" = mal ]; then
+        mal_closure_mal "$cp" "$cb" "$ce"
+      else
+        mal_closure_native "$cf"
+      fi
+      eval "_CM_$r=1"
+      val="$r"
       env_set "$env" "$kname" "$val"
       r="$val"
       return ;;
@@ -1404,6 +1414,122 @@ fn_str()    { _join_args 0 ''  "$@"; mal_str "$r_join"; }
 fn_prn()    { _join_args 1 ' ' "$@"; printf '%s\n' "$r_join"; r=Z; }
 fn_println(){ _join_args 0 ' ' "$@"; printf '%s\n' "$r_join"; r=Z; }
 
+# -------- stepA：metadata --------
+fn_meta() {  # $1=对象 -> meta（无则 nil）
+  local ref="$1" v
+  if eval "[ \"\$_MM_$ref\" ]"; then
+    eval "v=\$_MM_$ref"
+    r="$v"
+  else
+    r=Z
+  fi
+}
+
+fn_with_meta() {  # $1=对象 $2=meta -> 新对象（不突变）
+  local obj="$1" meta="$2" t v
+  mal_type "$obj"
+  t="$r"
+  case "$t" in
+    __list)
+      mal_val "$obj"; v="$r"
+      mal_list $v
+      eval "_MM_$r=$meta"
+      ;;
+    __vec)
+      mal_val "$obj"; v="$r"
+      mal_vec $v
+      eval "_MM_$r=$meta"
+      ;;
+    __map)
+      mal_val "$obj"; v="$r"
+      mal_map $v
+      eval "_MM_$r=$meta"
+      ;;
+    __fn)
+      # 闭包：复制字段 + 设 meta
+      local kind fn params body env ismacro
+      closure_get "$obj"
+      kind="$r_kind"; fn="$r_fn"; params="$r_params"; body="$r_body"; env="$r_env"; ismacro="$r_ismacro"
+      if [ "$kind" = mal ]; then
+        mal_closure_mal "$params" "$body" "$env"
+      else
+        mal_closure_native "$fn"
+      fi
+      if [ "$ismacro" = 1 ]; then eval "_CM_$r=1"; fi
+      eval "_MM_$r=$meta"
+      ;;
+    *) r="$obj" ;;
+  esac
+}
+
+fn_string_p()  { mal_type "$1"; if [ "$r" = __str ]; then r=Y; else r=F; fi; }
+fn_number_p()  { mal_type "$1"; if [ "$r" = __num ]; then r=Y; else r=F; fi; }
+fn_fn_p()      { mal_type "$1"; if [ "$r" = __fn ]; then
+                    closure_get "$1"; if [ "$r_ismacro" = 1 ]; then r=F; else r=Y; fi
+                  else r=F; fi; }
+fn_macro_p()   { mal_type "$1"; if [ "$r" = __fn ]; then
+                    closure_get "$1"; if [ "$r_ismacro" = 1 ]; then r=Y; else r=F; fi
+                  else r=F; fi; }
+
+fn_conj() {  # $1=list/vec 其余=元素
+  local t v new
+  mal_type "$1"
+  t="$r"
+  mal_val "$1"
+  v="$r"
+  shift
+  if [ "$t" = __list ]; then
+    # list：元素逐个前插
+    local acc="$v" x
+    while [ $# -gt 0 ]; do
+      x="$1"; shift
+      acc="$x $acc"
+    done
+    mal_list $acc
+  else
+    # vec：元素按序后插
+    local acc="$v" x
+    while [ $# -gt 0 ]; do
+      x="$1"; shift
+      acc="$acc $x"
+    done
+    mal_vec $acc
+  fi
+}
+
+fn_seq() {  # $1=字符串/list/vec/nil -> list 或 nil
+  local t v
+  mal_type "$1"
+  t="$r"
+  case "$t" in
+    __nil|__false) r=Z ;;
+    __list)
+      mal_val "$1"; v="$r"
+      if [ -z "$v" ]; then r=Z; else r="$1"; fi ;;
+    __vec)
+      mal_val "$1"; v="$r"
+      if [ -z "$v" ]; then r=Z; else mal_list $v; fi ;;
+    __str)
+      mal_val "$1"; v="$r"
+      if [ -z "$v" ]; then r=Z; else
+        # 每个字符转字符串，特殊字符也要（字符串可含任意内容）
+        local acc="" i=1 c
+        while [ $i -le ${#v} ]; do
+          c=$(printf '%s' "$v" | cut -c$i)
+          mal_str "$c"
+          acc="$acc $r"
+          i=$((i+1))
+        done
+        mal_list $acc
+      fi ;;
+    *) mal_error "seq: unsupported type"; return ;;
+  esac
+}
+
+fn_time_ms() {  # 毫秒时间戳（macOS date 无 %N，用 python）
+  mal_num "$(python3 -c 'import time; print(int(time.time()*1000))')"
+}
+
 # -------- step6：文件与求值 --------
 fn_read_string() {
   local s
@@ -1412,6 +1538,18 @@ fn_read_string() {
   READ "$s"
   # 整串都是注释/空白时 READ 置 MAL_BLANK，按 nil 处理而不是报错
   if [ "$MAL_BLANK" = 1 ]; then r=Z; fi
+}
+
+fn_readline() {  # $1=prompt 字符串 -> 读一行（EOF 返回 nil）
+  local prompt line
+  mal_val "$1"
+  prompt="$r"
+  printf '%s' "$prompt"
+  if IFS= read -r line; then
+    mal_str "$line"
+  else
+    r=Z
+  fi
 }
 
 fn_slurp() {
@@ -1577,7 +1715,20 @@ init_repl_env() {
     mal_list
     env_set "$e" '*ARGV*' "$r"
     # 尾部的 \nnil 有两个作用：让最后一行的注释不吞掉收尾括号，以及让返回值恒为 nil
-    rep_silent '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
+    if [ "$STEPNUM" -ge 10 ]; then
+    mal_closure_native fn_readline; env_set "$e" 'readline' "$r"
+    mal_str 'dash'
+    env_set "$e" '*host-language*' "$r"
+    mal_closure_native fn_meta;       env_set "$e" 'meta' "$r"
+    mal_closure_native fn_with_meta;  env_set "$e" 'with-meta' "$r"
+    mal_closure_native fn_string_p;   env_set "$e" 'string?' "$r"
+    mal_closure_native fn_number_p;   env_set "$e" 'number?' "$r"
+    mal_closure_native fn_fn_p;       env_set "$e" 'fn?' "$r"
+    mal_closure_native fn_conj;       env_set "$e" 'conj' "$r"
+    mal_closure_native fn_seq;        env_set "$e" 'seq' "$r"
+    mal_closure_native fn_time_ms;    env_set "$e" 'time-ms' "$r"
+  fi
+  rep_silent '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
   fi
   if [ "$STEPNUM" -ge 9 ]; then
     mal_closure_native fn_throw;        env_set "$e" 'throw' "$r"
