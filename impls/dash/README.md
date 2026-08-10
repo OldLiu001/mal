@@ -14,7 +14,13 @@ step0_repl.sh      \
 step1_read_print.sh |
 step2_eval.sh       > 每个 6~7 行：设 STEPNUM，source core.sh，起 REPL
 step3_env.sh        |
-step4_if_fn_do.sh  /
+step4_if_fn_do.sh   /
+step5_tco.sh        尾调用优化
+step6_file.sh       文件 / 求值 / atom
+step7_quote.sh      quote / quasiquote / cons / concat
+step8_macros.sh     宏
+step9_try.sh        try / catch / throw
+stepA_mal.sh        metadata / readline / time-ms / seq / conj
 run                exec dash "$dir/${STEP:-stepA_mal}.sh"
 Makefile           make test^dash^stepN 的胶水
 ```
@@ -63,7 +69,8 @@ fn_list_p "$x" && ...           # 错，恒真
 | `r` | 所有函数的默认返回值 |
 | `r_str` | `pr_str` / `PRINT` |
 | `r_join` | `_join_args` |
-| `r_kind` `r_fn` `r_params` `r_body` `r_env` | `closure_get` 一次返回 5 个字段 |
+| `r_kind` `r_fn` `r_params` `r_body` `r_env` `r_ismacro` | `closure_get` 一次返回 6 个字段（step8 起含 ismacro） |
+| `_MM_<ref>` | stepA 起，对象的 meta（无 meta 则不设） |
 
 `pr_str` 用 `r_str` 是因为它内部递归时会调 `mal_val`（写 `$r`），如果它自己也用 `$r` 就会自我覆盖。
 
@@ -285,6 +292,187 @@ dash 的变量哈希表是**定长**的。变量一多，每个桶就退化成�
 ```sh
 STEP=step5_tco python3 runtest.py --test-timeout 600 tests/step5_tco.mal -- impls/dash/run
 ```
+
+---
+
+# 踩过的坑（step5 之后新增）
+
+这部分记录 step5（TCO）完成之后，step6~stepA 调试过程中踩到的坑。按时间顺序，不是按严重程度。
+
+## E1. TOKENIZE 注释剥离不完整导致 load-file 吞掉整个文件
+
+**现象**：`load-file` 加载 mal 文件时，后续所有行全消失，只处理了第一行。
+
+**根因**：tokenizer 里 `;` 注释处理用 `s="${s#*;}"` 剥离到 `;` 为止，但没有继续剥到换行：
+
+```sh
+# 错：剥到 ; 但没剥到 NL，s 含 "\n(def! a 1)" 整个剩余内容
+s="${s#*;}"
+```
+
+**后果**：READER 继续处理 `s` 时，`"\n(def! a 1)"` 的开头的 `"` 被当作未闭合字符串开始，一直读到文件末尾都没有找到闭合的 `"`，报错或静默截断。
+
+**修复**：
+
+```sh
+# 对：; 到下一个 NL（换行符本身留在 s 里）
+rest=${s#*"$NL"}
+```
+
+**教训**：任何剥离操作都要确认边界——`;` 的边界是换行，不是字符串末尾。
+
+## E2. dash 的 eval 里 `$` 二次展开时机导致 `not found`
+
+**现象**：`with-meta` 处理闭包时，
+
+```sh
+r="C109"; meta="H108"
+eval "_MM_\$r=\$meta"
+# → dash: eval: _MM_C109=H108: not found
+```
+
+**根因**：`\$r` 让 `$r` 不在外层展开，eval 收到字面 `_MM_$r=$meta`。eval **二次展开**后得到 `_MM_C109=H108`，但 dash 的 eval 在**含 `$` 的展开结果**上不把 `name=value` 当赋值处理（即使字面上它在开头），而是当命令执行 → `not found`。
+
+**修复**：凡是在 eval 外层已经拿到最终值的变量，一律**直接展开**，不需要也不应该转义：
+
+```sh
+eval "_MM_$r=$meta"   # $r/$meta 在外层展开为 C109/H108，eval 收到纯字面 _MM_C109=H108，OK
+eval "_MM_\$r=\$meta"  # 错：eval 二次展开后含 $ 的结果被 dash 当命令执行
+```
+
+**注意**：需要延迟展开的典型场景是**函数形参**（`_ss_tmp` 是 `eval "_V_$1=\$_ss_tmp"` 里的 `\$_ss_tmp`），因为 `$1` 是当前调用者的实参。外层函数局部变量的展开不需要延迟。
+
+## E3. quasiquote 里 dash 的 `local` 无动态作用域
+
+**现象**：`_quasiquote` 函数里读 `$env` 拿到空值，但调用它的 `EVAL` 里明明 `local env="$env"`。
+
+**根因**：dash 的 `local` **不是动态作用域**。函数内声明 `local env=...` 只在该函数内部有效，不会被调用的子函数继承。`_quasiquote` 读自己的 `$env`（未声明则为空），不是调用者 EVAL 的那个。
+
+**修复**：显式把 env 当参数传进去，递归也要传：
+
+```sh
+_quasiquote() {
+  local ast="$1" env="$2" ...
+  # 递归也传 env
+  _quasiquote "$sub" "$env" "$env"
+}
+```
+
+**教训**：dash 里函数调用**不**继承父函数的局部变量，靠参数传递。`_ev1` 能零 local 是因为它只读全局（存储里的 ref）和传进来的参数，不读父函数局部。
+
+## E4. fn_apply 里复杂 eval 转义导致 `Unterminated quoted string`
+
+**现象**：`(apply + 4 (list 5))` 超时或报语法错误。
+
+**根因**：
+
+```sh
+# 错：eval "args=\"\$args \$$i\"" 拼接引号
+# eval 里双引号需要配对，但 \$$i（$i 在双引号里）被提前展开导致错位
+eval "args=\"\$args \$$i\""
+```
+
+**修复**：**单引号拼接**，`$i` 在单引号外拼进去：
+
+```sh
+eval 'args="$args '$i'"'  # 引号部分进单引号，变量名拼接进双引号
+```
+
+或者更保守的做法：**先收集所有 ref 到一个不含空格的字符串**（所有 ref 都是无空格短串），直接拼接，**不需要任何 eval 引号处理**：
+
+```sh
+args="$args $i"   # 安全：ref 无空格，空格是分隔符
+```
+
+然后一次 `APPLY "$f" $args`。
+
+## E5. `defmacro!` 原地修改闭包的 ismacro 标志
+
+**现象**：
+
+```mal
+(def! f (fn* [x] (number? x)))   ; f 是普通函数
+(defmacro! m f)                    ; 把 f 变成宏创建 m
+(f (+ 1 1))                        ; 期望 true → Got false
+```
+
+**根因**：原来的 `defmacro!` 实现直接
+
+```sh
+eval "_CM_$val=1"   # 原地把 f 的 ismacro 标志改成 1，f 自己也变成宏了！
+```
+
+宏展开时不 eval 实参，`(+ 1 1)` 作为列表传给 x，`(number? (+ 1 1))` → false。
+
+**修复**：`defmacro!` 创建**新的闭包**（复制原闭包字段），在新闭包上置 ismacro，原函数不变：
+
+```sh
+# 读取原闭包字段
+closure_get "$val"
+# 按 kind 重建闭包（mal 或 native）
+mal_closure_mal "$cp" "$cb" "$ce"
+# 新闭包上置宏标志
+mal_closure_native "$cf"
+fi
+mal_closure_native "$cf"
+eval "_CM_$r=1"    # 只改新的
+val="$r"
+env_set "$env" "$kname" "$val"
+```
+
+**教训**：mal 的 `defmacro!` 应该产生新对象，不是原地修改。
+
+## E6. `(readline ...)` 测试衔接依赖 REPL 输入流
+
+**现象**：`stepA_mal.mal` 里测试顺序是：
+
+```mal
+(readline "mal-user> ")   ; 打印提示符，从 stdin 读下一行
+"hello"                    ; 期望输出 `"\"hello\""`
+```
+
+单独跑 `"hello"` 测试失败（runtest 捕获了回显行导致正则不匹配），但放在 readline 测试**后面**就通过了——因为 readline 把 `"hello"` 当用户输入读走了，REPL 内部处理并输出，`runtest` 的 prompt 匹配也刚好衔接上。
+
+**教训**：REPL 里的 `readline` 函数不只是给用户交互用的——它会影响后续 form 的输入流。实现 `readline` 时，要确保它从 **stdin** 读一行（而不是跳过已打印的提示符），并正确处理 EOF（返回 nil）。
+
+## E7. `map` 前导空格 bug（`pr_str` 的 map 分支）
+
+**现象**：hash-map 打印时键值错位，第一个键被吞。
+
+**根因**：`pr_str` 的 map 分支累积输出 `out="$out $k $v"`，产生前导空格（`" K1 V1 K2 V2"`）。然后 `${out# }` 剥离前导空格，但如果输出以空格开头，parse 回去时 `${kv%% *}` 匹配到空 token，导致第一个键变成空。
+
+**修复**：解析前**显式剥离**前导空格：
+
+```sh
+out=${out# }              # 先去前导空格
+mal_map ${out# }          # 再传给 mal_map
+```
+
+**教训**：`pr_str` 里涉及字符串拼接的地方，要警惕前导/尾随空格。空格的来源通常是 `out="$out $x"` 的第一次赋值。
+
+## 19. 元数据：平行数组 `_MM_<ref>`，with-meta 克隆不突变
+
+mal 的 `meta`/`with-meta` 要求元数据**不可变附着**：`with-meta` 返回新对象，原对象不变。实现用平行数组 `_MM_<ref>` 存 meta（没有 meta 就不设这个变量，`fn_meta` 读到未设置返回 nil）。
+
+```sh
+fn_with_meta() {
+  # 对 list/vec/map：重建对象（mal_list $v 等），再 eval "_MM_$r=$meta"
+  # 对闭包：closure_get 复制字段，按 kind 重建（mal_closure_mal / mal_closure_native），
+  #          ismacro=1 时在新闭包上 eval "_CM_$r=1"，再设 meta
+}
+```
+
+**闭包的 meta 重建必须复制 ismacro 标志**：`with-meta` 一个宏闭包，新对象仍应是宏。
+
+**注意**：`_MM_` 只有被 `with-meta` 显式设置过才存在。`fn_meta` 用 `if eval "[ \"\$_MM_$ref\" ]"` 判断存在性——未设置的变量在 `set -f` 下展开为空，`[ "" ]` 为 false，走 else 返回 nil。
+
+## 20. `time-ms` 需要毫秒精度，macOS 的 `date` 不支持 `%N`
+
+mal 规范要求 `time-ms` 返回毫秒时间戳。macOS 的 `date +%s%3N` 会原样输出 `%3N`（BSD date 不支持）。`stepA` 测试里 `(> (time-ms) start-time)` 在秒级精度下恒 false（两次调用间隔不足 1 秒）。
+
+**修复**：用 `python3 -c 'import time; print(int(time.time()*1000))'`。
+
+**矛盾点**：这违反「零外部进程」约束，但 `time-ms` 本来就只能是外部时钟（dash 无内置时钟）。唯一的额外 fork 仅发生在调用 `time-ms` 时，不影响解释器主循环。
 
 ---
 
