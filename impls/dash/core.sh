@@ -99,10 +99,30 @@ mal_vec() {
   r="V$id"
 }
 mal_map() {
-  local id
+  local id input_kv k v pairs="" o k2 v2 newpairs
+  input_kv="$*"
+  # 去重：重复的 key 保留最后一个
+  while [ -n "$input_kv" ]; do
+    input_kv=${input_kv# }
+    k=${input_kv%% *}
+    if [ "$k" = "$input_kv" ]; then input_kv=""; else input_kv=${input_kv#* }; fi
+    v=${input_kv%% *}
+    if [ "$v" = "$input_kv" ]; then input_kv=""; else input_kv=${input_kv#* }; fi
+    # 在已收集的 pairs 中移除旧 k
+    o="$pairs"; newpairs=""
+    while [ -n "$o" ]; do
+      o=${o# }
+      k2=${o%% *}; if [ "$k2" = "$o" ]; then o=""; else o=${o#* }; fi
+      v2=${o%% *}; if [ "$v2" = "$o" ]; then o=""; else o=${o#* }; fi
+      key_equal "$k2" "$k"
+      if [ "$r" != Y ]; then newpairs="$newpairs $k2 $v2"; fi
+    done
+    pairs="${newpairs# } $k $v"
+  done
+  pairs=${pairs# }
   new_id
   id=$r
-  _set_stored "H$id" "$*"
+  _set_stored "H$id" "$pairs"
   r="H$id"
 }
 mal_atom() {
@@ -739,11 +759,24 @@ EVAL() {  # $1=ast ref $2=env -> r
       continue ;;                                   # TCO：最后一个表达式在尾位置
 
     'try*')
-      # $2=try体 $3=catch*子句
+      # $2=try体 $3..=可选的 catch* 子句
       set -- $elems
       shift
       if [ $# -lt 1 ]; then mal_error "try*: missing body"; return; fi
-      if [ $# -lt 2 ]; then mal_error "try*: missing catch*"; return; fi
+      if [ $# -lt 2 ]; then
+        # 无 catch*：执行 body，错误以字符串形式返回
+        EVAL "$1" "$env"
+        if [ "$MAL_ERR" = 1 ]; then
+          MAL_ERR=0
+          if [ -n "$MAL_ERR_VAL" ]; then
+            r="$MAL_ERR_VAL"
+            MAL_ERR_VAL=""
+          else
+            mal_str "$MAL_ERR_MSG"
+          fi
+        fi
+        return
+      fi
       EVAL "$1" "$env"
       if [ "$MAL_ERR" = 1 ]; then
         # 捕获：恢复错误标志，绑定 catch 变量
@@ -899,11 +932,11 @@ APPLY() {  # $1=函数ref 其余=实参ref
 # 与参考实现一致：返回一段“代码”（cons 链 + quote 包装），由调用方 eval。
 # dash 没有动态作用域，env 必须显式传递。
 _quasiquote() {  # $1=ast ref $2=env -> r=展开后的代码 AST（由调用方 eval）
+  # 按 mal 指南的参考算法：元素逆序迭代，逐个处理；不把 tail 打包成新 list 递归
+  # （那样会把 (0 unquote 1) 的 tail 误判成 (unquote 1) 而错误展开）。
   local ast="$1" env="$2"
-  local t elems first rest fname arg
-  # 中间值全部 local 化：dash 的 local 在函数退出时恢复外层值，
-  # 所以递归层之间同名也不会互相污染。
-  local qq_sym qq_rest_ref qq_head qq_tail
+  local t elems first elt lv fname
+  local qq_sym qq_head qq_tail
   mal_type "$ast"
   t="$r"
   case "$t" in
@@ -911,67 +944,78 @@ _quasiquote() {  # $1=ast ref $2=env -> r=展开后的代码 AST（由调用方 
       mal_val "$ast"
       elems="$r"
       if [ -z "$elems" ]; then
-        # 空序列：包 (quote ()) / (quote [])
-        mal_sym quote; qq_sym="$r"
-        mal_list "$qq_sym" "$ast"
+        # 空列表原样返回；空向量包 (vec ())
+        if [ "$t" = __vec ]; then
+          mal_sym vec; qq_sym="$r"
+          mal_list; qq_tail="$r"
+          mal_list "$qq_sym" "$qq_tail"
+        else
+          r="$ast"
+        fi
         return
       fi
-      # 拆 head / tail（tail 重新包成 list ref 递归）
-      first=${elems%% *}
-      if [ "$elems" = "$first" ]; then rest=""; else rest=${elems#* }; fi
-      if [ -n "$rest" ]; then mal_list $rest; else mal_list; fi
-      qq_rest_ref="$r"
-      # head 是否为 unquote / splice-unquote（符号形式，整个列表就是 (unquote x)）
-      # 或列表形式 ((unquote x) ...)（元素级，由递归处理）
-      fname=""; arg=""; qq_whole=""
-      mal_type "$first"
-      if [ "$r" = __sym ]; then
-        mal_val "$first"; fname="$r"
-        # (unquote x) 整个：fname=unquote，arg 是 $2，且列表只有两个元素
-        set -- $elems
-        arg="$2"
-        if [ $# -eq 2 ]; then qq_whole=1; fi
-      elif [ "$r" = __list ]; then
-        mal_val "$first"
-        if [ -n "$r" ]; then
-          set -- $r
-          mal_type "$1"
-          if [ "$r" = __sym ]; then
-            mal_val "$1"; fname="$r"
+      # 整个 ast 是 (unquote X) 且只有两个元素（仅列表上下文）→ 返回第二个元素
+      if [ "$t" = __list ]; then
+        first=${elems%% *}
+        mal_type "$first"
+        if [ "$r" = __sym ]; then
+          mal_val "$first"; fname="$r"
+          if [ "$fname" = unquote ]; then
+            set -- $elems
+            if [ $# -eq 2 ]; then
+              r="$2"
+              return
+            fi
           fi
-          arg="$2"
         fi
       fi
-      if [ "$fname" = unquote ] && [ -n "$qq_whole" ]; then
-        r="$arg"
-        return
-      fi
-      if [ "$fname" = splice-unquote ]; then
-        # (concat x (quasiquote tail))
-        _quasiquote "$qq_rest_ref" "$env"
-        if [ "$MAL_ERR" = 1 ]; then return; fi
-        qq_tail="$r"
-        mal_sym concat; qq_sym="$r"
-        mal_list "$qq_sym" "$arg" "$qq_tail"
-        return
-      fi
-      # 普通： (cons (quasiquote head) (quasiquote tail))
-      _quasiquote "$first" "$env"
-      if [ "$MAL_ERR" = 1 ]; then return; fi
-      qq_head="$r"
-      _quasiquote "$qq_rest_ref" "$env"
-      if [ "$MAL_ERR" = 1 ]; then return; fi
+      # 元素逆序迭代：结果初始为空列表，从最后一个元素往前逐个处理
+      mal_list
       qq_tail="$r"
-      mal_sym cons; qq_sym="$r"
-      mal_list "$qq_sym" "$qq_head" "$qq_tail"
+      while [ -n "$elems" ]; do
+        elt=${elems##* }
+        if [ "$elt" = "$elems" ]; then elems=""; else elems=${elems% *}; fi
+        # elt 是 (splice-unquote X) 列表 → (concat X prev)
+        mal_type "$elt"
+        if [ "$r" = __list ]; then
+          mal_val "$elt"
+          lv="$r"
+          if [ -n "$lv" ]; then
+            set -- $lv
+            mal_type "$1"
+            if [ "$r" = __sym ]; then
+              mal_val "$1"
+              if [ "$r" = splice-unquote ]; then
+                mal_sym concat; qq_sym="$r"
+                mal_list "$qq_sym" "$2" "$qq_tail"
+                qq_tail="$r"
+                continue
+              fi
+            fi
+          fi
+        fi
+        # 普通元素 → (cons (quasiquote elt) prev)
+        _quasiquote "$elt" "$env"
+        if [ "$MAL_ERR" = 1 ]; then return; fi
+        qq_head="$r"
+        mal_sym cons; qq_sym="$r"
+        mal_list "$qq_sym" "$qq_head" "$qq_tail"
+        qq_tail="$r"
+      done
+      r="$qq_tail"
       if [ "$t" = __vec ]; then
-        # 向量整体包 (vec ...)
+        # 向量整体包 (vec ...)，先保存再创建符号
+        qq_tail="$r"
         mal_sym vec; qq_sym="$r"
-        mal_list "$qq_sym" "$r"
+        mal_list "$qq_sym" "$qq_tail"
       fi
       return ;;
     *)
-      # 非序列：包 (quote ast) 防止被外层 eval
+      # 自求值（nil/true/false/数字/字符串/keyword）原样返回
+      case "$t" in
+        __nil|__true|__false|__num|__str|__kw) r="$ast"; return ;;
+      esac
+      # 符号等需要包 (quote ast) 防止被外层 eval
       mal_sym quote; qq_sym="$r"
       mal_list "$qq_sym" "$ast"
       return ;;
@@ -1224,7 +1268,14 @@ fn_cons() {  # $1=元素 $2=list/vector -> 新 list
   mal_list "$1" $l
 }
 
-fn_vec() {  # 参数为元素 -> 新 vector（不改原 list）
+fn_vec() {  # $1=序列 -> 提取元素组装为新 vector
+  local ref="$1" elems
+  mal_val "$ref"
+  elems="$r"
+  mal_vec $elems
+}
+
+fn_vector() {  # 可变参数 -> 新 vector
   mal_vec "$@"
 }
 
@@ -1695,7 +1746,7 @@ init_repl_env() {
     mal_closure_native fn_cons;   env_set "$e" 'cons' "$r"
     mal_closure_native fn_concat; env_set "$e" 'concat' "$r"
     mal_closure_native fn_vec;    env_set "$e" 'vec' "$r"
-    mal_closure_native fn_vec;    env_set "$e" 'vector' "$r"
+    mal_closure_native fn_vector; env_set "$e" 'vector' "$r"
   fi
   if [ "$STEPNUM" -ge 8 ]; then
     mal_closure_native fn_nth;        env_set "$e" 'nth' "$r"
