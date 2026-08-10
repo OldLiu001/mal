@@ -22,65 +22,32 @@ step8_macros.sh     宏
 step9_try.sh        try / catch / throw
 stepA_mal.sh        metadata / readline / time-ms / seq / conj
 run                exec dash "$dir/${STEP:-stepA_mal}.sh" [file.mal ...]
-Makefile           make test^dash^stepN 的胶水
+Makefile           构建单文件 mal（cat core.sh + stepA wrapper）
 ```
 
-跑测试：
+# 启动与用法
 
 ```sh
+# 跑官方测试（STEP 选择 step 包装脚本）
 STEP=step4_if_fn_do python3 runtest.py tests/step4_if_fn_do.mal -- impls/dash/run
-```
 
-# 测试与自托管
+# 直接启动 REPL
+STEP=stepA_mal ./run
 
-## 测试状态（当前全绿）
+# step6 起支持文件参数：加载文件后退出，其余参数进 *ARGV*
+STEP=stepA_mal ./run somefile.mal
 
-常规测试 11 个 step 全部通过，**soft fail 与 hard fail 均为 0**（此前 step7 有 34 个、step9 有 5 个 soft fail，已全部修复）：
-
-| step | 测试数 | 结果 |
-|---|---|---|
-| step0_repl | 24 | ✅ |
-| step1_read_print | 121 | ✅ |
-| step2_eval | 15 | ✅ |
-| step3_env | 38 | ✅ |
-| step4_if_fn_do | 199 | ✅ |
-| step5_tco | 8 | ✅（TCO 实装） |
-| step6_file | 71 | ✅ |
-| step7_quote | 124 | ✅ |
-| step8_macros | 61 | ✅ |
-| step9_try | 173 | ✅ |
-| stepA_mal | 113 | ✅ |
-| **合计** | **947** | **全绿** |
-
-回归测试（官方 `REGRESS=1` 语义，step2 起累计）：stepA 跑 step2~A 的全部测试文件同样全绿。
-
-## 文件参数与自托管
-
-step6 起支持官方要求的命令行文件参数：
-
-```sh
-STEP=stepA_mal ./run somefile.mal      # 加载文件后退出；其余参数进 *ARGV*
-STEP=stepA_mal ./run                   # 无参数：进入 REPL
-```
-
-`*ARGV*` 绑定为文件参数之外的剩余参数（mal 列表）。
-
-自托管（self-host）可用：dash 的 stepA 能加载并执行 `impls/mal/` 下用 mal 语言写的解释器（`MAL_IMPL=dash`），即 **dash 跑 mal 写的 mal**：
-
-```sh
+# 自托管：dash 的 stepA 执行 impls/mal/ 下用 mal 语言写的解释器
 MAL_IMPL=dash STEP=stepA_mal ../../impls/mal/run
+
+# 构建单文件解释器（core.sh + stepA 合成可执行文件 mal）
+make
 ```
 
-实测自托管矩阵：step0~3 完整测试全过（24/121/15/38），step4~A 代表性用例全过（完整矩阵受性能限制——mal 写的解释器在 dash 上每步执行都 fork awk/sed，step4 的 199 个用例需 30 分钟以上）。
-
-## 修过的 soft fail（step7/step9）
-
-- **vec/vector 拆分**：`vec` 是序列转换（提取元素），`vector` 是可变参数构造器。原实现共用一个函数导致 `(vec (list))` 返回 `[()]`。
-- **hash-map 去重**：`mal_map` 对重复 key 保留最后一个（`{:a 1 :a 2}` → `{:a 2}`）。
-- **quasiquote 重写**：按 mal 指南参考算法改为**元素逆序迭代**，不再把 tail 打包成新 list 递归——修复 `(0 unquote 1)` 等 misplaced 用例被误展开。空向量包 `(vec ())`，空列表原样返回，自求值类型不包 quote。
-- **try\* 无 catch**：`(try* xyz)` 把错误作为字符串返回，不再报 "missing catch*"。
+`*ARGV*` 绑定为文件参数之外的剩余参数（mal 列表）。无文件参数时 `run` 进入 REPL。
 
 ---
+
 
 # 隐含规则
 
