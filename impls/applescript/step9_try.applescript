@@ -6,6 +6,7 @@ use framework "Foundation"
 property typesLib : missing value
 property readerLib : missing value
 property printerLib : missing value
+property coreLib : missing value
 property replEnvGlobal : missing value
 property malErrorStack : {}
 
@@ -19,8 +20,6 @@ on popMalErrorStack()
 		end if
 	end if
 end popMalErrorStack
-
-
 
 -- 动态加载模块: 优先已编译的 .scpt, 缺失时临时编译 .applescript 再加载
 -- 这样 `osascript stepXxx.applescript` 可不经 make 直接运行
@@ -49,10 +48,12 @@ on run(argv)
 	set readerLib to my loadMod("reader", scriptDir)
 	set printerLib to my loadMod("printer", scriptDir)
 	readerLib's setTypesLib(typesLib)
+	set coreLib to my loadMod("core", scriptDir)
 
 	-- 初始化全局环境: core 函数 + 语言定义函数
 	set replEnv to makeReplEnv()
 	set replEnvGlobal to replEnv
+	coreLib's inject(typesLib, readerLib, printerLib, replEnv)
 	-- (def! not (fn* (a) (if a false true)))
 	rep("(def! not (fn* (a) (if a false true)))", replEnv)
 	-- (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
@@ -73,7 +74,7 @@ on run(argv)
 	end if
 
 	repeat
-		set inputText to readLine("user> ")
+		set inputText to coreLib's readLine("user> ")
 		if inputText is "" then exit repeat
 
 		try
@@ -218,15 +219,15 @@ end setMacroFlag
 -- core 函数分发
 on dispatchCore(fnName, args)
 	if fnName = "+" or fnName = "-" or fnName = "*" or fnName = "/" then
-		return my coreArith(fnName, args)
+		return coreLib's coreArith(fnName, args)
 	else if fnName = "=" then
-		if my malEqual(item 1 of args, item 2 of args) then
+		if coreLib's malEqual(item 1 of args, item 2 of args) then
 			return my typesLib's Types's makeMALTrue()
 		else
 			return my typesLib's Types's makeMALFalse()
 		end if
 	else if fnName = "<" or fnName = "<=" or fnName = ">" or fnName = ">=" then
-		return my coreCompare(fnName, args)
+		return coreLib's coreCompare(fnName, args)
 	else if fnName = "list" then
 		return my typesLib's Types's makeMALList(args)
 	else if fnName = "list?" then
@@ -256,14 +257,14 @@ on dispatchCore(fnName, args)
 			return my typesLib's Types's makeMALNumber(0)
 		end if
 	else if fnName = "pr-str" then
-		return my typesLib's Types's makeMALString(my corePrStr(args))
+		return my typesLib's Types's makeMALString(coreLib's corePrStr(args))
 	else if fnName = "str" then
-		return my typesLib's Types's makeMALString(my coreStr(args))
+		return my typesLib's Types's makeMALString(coreLib's coreStr(args))
 	else if fnName = "prn" then
-		log my corePrStr(args)
+		log coreLib's corePrStr(args)
 		return my typesLib's Types's makeMALNil()
 	else if fnName = "println" then
-		log my corePrintlnStr(args)
+		log coreLib's corePrintlnStr(args)
 		return my typesLib's Types's makeMALNil()
 	else if fnName = "read-string" then
 		return readerLib's readString((item 1 of args)'s valueData)
@@ -379,22 +380,22 @@ on dispatchCore(fnName, args)
 			error (printerLib's Printer's pr_str(throwVal, true)) number 5001
 		end if
 	else if fnName = "nil?" then
-		return my boolResult((item 1 of args)'s typeName = "nil")
+		return coreLib's boolResult((item 1 of args)'s typeName = "nil")
 	else if fnName = "true?" then
-		return my boolResult((item 1 of args)'s typeName = "true")
+		return coreLib's boolResult((item 1 of args)'s typeName = "true")
 	else if fnName = "false?" then
-		return my boolResult((item 1 of args)'s typeName = "false")
+		return coreLib's boolResult((item 1 of args)'s typeName = "false")
 	else if fnName = "symbol?" then
-		return my boolResult((item 1 of args)'s typeName = "symbol")
+		return coreLib's boolResult((item 1 of args)'s typeName = "symbol")
 	else if fnName = "keyword?" then
-		return my boolResult((item 1 of args)'s typeName = "keyword")
+		return coreLib's boolResult((item 1 of args)'s typeName = "keyword")
 	else if fnName = "vector?" then
-		return my boolResult((item 1 of args)'s typeName = "vector")
+		return coreLib's boolResult((item 1 of args)'s typeName = "vector")
 	else if fnName = "map?" then
-		return my boolResult((item 1 of args)'s typeName = "map")
+		return coreLib's boolResult((item 1 of args)'s typeName = "map")
 	else if fnName = "sequential?" then
 		set seqType to (item 1 of args)'s typeName
-		return my boolResult(seqType = "list" or seqType = "vector")
+		return coreLib's boolResult(seqType = "list" or seqType = "vector")
 	else if fnName = "symbol" then
 		set symText to (item 1 of args)'s valueData
 		if character 1 of symText = "\"" then
@@ -418,14 +419,14 @@ on dispatchCore(fnName, args)
 		set mapData to (item 1 of args)'s valueData
 		set newMap to mapData
 		repeat with i from 2 to (count of args) by 2
-			set newMap to my mapSet(newMap, item i of args, item (i + 1) of args)
+			set newMap to coreLib's mapSet(newMap, item i of args, item (i + 1) of args)
 		end repeat
 		return my typesLib's Types's makeMALMap(newMap)
 	else if fnName = "dissoc" then
 		set mapData to (item 1 of args)'s valueData
 		set newMap to mapData
 		repeat with i from 2 to (count of args)
-			set newMap to my mapRemove(newMap, item i of args)
+			set newMap to coreLib's mapRemove(newMap, item i of args)
 		end repeat
 		return my typesLib's Types's makeMALMap(newMap)
 	else if fnName = "get" then
@@ -436,7 +437,7 @@ on dispatchCore(fnName, args)
 		set mapData to getTarget's valueData
 		set keyObj to item 2 of args
 		repeat with i from 1 to (count of mapData) by 2
-			if my malEqual(item i of mapData, keyObj) then
+			if coreLib's malEqual(item i of mapData, keyObj) then
 				return item (i + 1) of mapData
 			end if
 		end repeat
@@ -445,7 +446,7 @@ on dispatchCore(fnName, args)
 		set mapData to (item 1 of args)'s valueData
 		set keyObj to item 2 of args
 		repeat with i from 1 to (count of mapData) by 2
-			if my malEqual(item i of mapData, keyObj) then
+			if coreLib's malEqual(item i of mapData, keyObj) then
 				return my typesLib's Types's makeMALTrue()
 			end if
 		end repeat
@@ -473,46 +474,10 @@ on dispatchCore(fnName, args)
 end dispatchCore
 
 -- 布尔结果辅助
-on boolResult(flag)
-	if flag then
-		return my typesLib's Types's makeMALTrue()
-	else
-		return my typesLib's Types's makeMALFalse()
-	end if
-end boolResult
 
 -- map 键值更新(键相等则替换,否则追加)
-on mapSet(mapData, keyObj, valObj)
-	set outData to {}
-	set replaced to false
-	repeat with i from 1 to (count of mapData) by 2
-		if my malEqual(item i of mapData, keyObj) then
-			set end of outData to keyObj
-			set end of outData to valObj
-			set replaced to true
-		else
-			set end of outData to item i of mapData
-			set end of outData to item (i + 1) of mapData
-		end if
-	end repeat
-	if not replaced then
-		set end of outData to keyObj
-		set end of outData to valObj
-	end if
-	return outData
-end mapSet
 
 -- map 键删除
-on mapRemove(mapData, keyObj)
-	set outData to {}
-	repeat with i from 1 to (count of mapData) by 2
-		if not my malEqual(item i of mapData, keyObj) then
-			set end of outData to item i of mapData
-			set end of outData to item (i + 1) of mapData
-		end if
-	end repeat
-	return outData
-end mapRemove
 
 -- apply: (apply f a b (list c d)) -> 调用 f(a b c d)
 on coreApply(args)
@@ -558,149 +523,13 @@ on callFunction(fnObj, callArgs)
 	end if
 end callFunction
 
-on coreArith(fnName, args)
-	set firstVal to (item 1 of args)'s valueData
-	set secondVal to (item 2 of args)'s valueData
-	if fnName = "+" then
-		set out to my typesLib's Types's makeMALNumber(firstVal + secondVal)
-	else if fnName = "-" then
-		set out to my typesLib's Types's makeMALNumber(firstVal - secondVal)
-	else if fnName = "*" then
-		set out to my typesLib's Types's makeMALNumber(firstVal * secondVal)
-	else if fnName = "/" then
-		set out to my typesLib's Types's makeMALNumber(firstVal div secondVal)
-	end if
-	return out
-end coreArith
-
-on coreCompare(fnName, args)
-	set firstVal to (item 1 of args)'s valueData
-	set secondVal to (item 2 of args)'s valueData
-	if fnName = "<" then
-		if firstVal < secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = "<=" then
-		if firstVal ≤ secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = ">" then
-		if firstVal > secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = ">=" then
-		if firstVal ≥ secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	end if
-	return my typesLib's Types's makeMALFalse()
-end coreCompare
-
 -- pr-str: 每个参数用 readably 打印,空格连接
-on corePrStr(args)
-	set out to ""
-	set isFirst to true
-	repeat with argObj in args
-		if not isFirst then
-			set out to out & " "
-		end if
-		set out to out & printerLib's Printer's pr_str(argObj, true)
-		set isFirst to false
-	end repeat
-	return out
-end corePrStr
 
 -- str: 每个参数非 readably 打印,直接连接
-on coreStr(args)
-	set out to ""
-	repeat with argObj in args
-		set out to out & printerLib's Printer's pr_str(argObj, false)
-	end repeat
-	return out
-end coreStr
 
 -- println: 每个参数非 readably 打印,空格连接
-on corePrintlnStr(args)
-	set out to ""
-	set isFirst to true
-	repeat with argObj in args
-		if not isFirst then
-			set out to out & " "
-		end if
-		set out to out & printerLib's Printer's pr_str(argObj, false)
-		set isFirst to false
-	end repeat
-	return out
-end corePrintlnStr
 
 -- 深度相等(用于 = )
-on malEqual(a, b)
-	if a is missing value or b is missing value then
-		return (a is missing value and b is missing value)
-	end if
-	set ta to a's typeName
-	set tb to b's typeName
-	if ta = "number" and tb = "number" then
-		return (a's valueData = b's valueData)
-	end if
-	if ta = "string" and tb = "string" then
-		considering case
-			return (a's valueData = b's valueData)
-		end considering
-	end if
-	if ta = "symbol" and tb = "symbol" then
-		considering case
-			return (a's valueData = b's valueData)
-		end considering
-	end if
-	if ta = "keyword" and tb = "keyword" then
-		considering case
-			return (a's valueData = b's valueData)
-		end considering
-	end if
-	if (ta = "nil" and tb = "nil") or (ta = "true" and tb = "true") or (ta = "false" and tb = "false") then
-		return true
-	end if
-	-- list 与 vector 互比: 元素逐项比较
-	if (ta = "list" or ta = "vector") and (tb = "list" or tb = "vector") then
-		set la to a's valueData
-		set lb to b's valueData
-		if (count of la) ≠ (count of lb) then return false
-		repeat with i from 1 to count of la
-			if not my malEqual(item i of la, item i of lb) then
-				return false
-			end if
-		end repeat
-		return true
-	end if
-	-- map 比较: 键值对逐项
-	if ta = "map" and tb = "map" then
-		set la to a's valueData
-		set lb to b's valueData
-		if (count of la) ≠ (count of lb) then return false
-		-- 无序比较: la 的每个键值对都必须在 lb 中找到
-		repeat with i from 1 to (count of la) by 2
-			set foundPair to false
-			repeat with j from 1 to (count of lb) by 2
-				if my malEqual(item i of la, item j of lb) and my malEqual(item (i + 1) of la, item (j + 1) of lb) then
-					set foundPair to true
-					exit repeat
-				end if
-			end repeat
-			if not foundPair then return false
-		end repeat
-		return true
-	end if
-	return false
-end malEqual
 
 -- 特殊形式判断: 符号且区分大小写等于 name
 on isSpecialForm(firstForm, name)
@@ -793,7 +622,7 @@ on evalMAL(ast, env)
 						return item 2 of lstData
 					else if firstSym = "quasiquote" then
 						set isSpecial to true
-						set ast to quasiquote(item 2 of lstData)
+						set ast to coreLib's quasiquote(item 2 of lstData)
 						-- continue 循环
 					else if firstSym = "try*" then
 						set isSpecial to true
@@ -900,90 +729,8 @@ on evalMAL(ast, env)
 end evalMAL
 
 -- 判断是否是指定符号的列表(大小写敏感)
-on isSymList(obj, symName)
-	if obj's typeName ≠ "list" then return false
-	set objData to obj's valueData
-	if (count of objData) < 1 then return false
-	set firstObj to item 1 of objData
-	if (firstObj's typeName) ≠ "symbol" then return false
-	if (firstObj's valueData) = symName then
-		return true
-	else
-		return false
-	end if
-end isSymList
 
 -- quasiquote: 展开为用 cons/concat/vec/quote 构建的表达式
-on quasiquote(ast)
-	if ast's typeName = "map" or ast's typeName = "symbol" then
-		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("quote"), ast})
-	else if ast's typeName = "vector" then
-		return my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("vec"), qqFoldr(ast's valueData)})
-	else if ast's typeName = "list" then
-		if isSymList(ast, "unquote") then
-			return item 2 of (ast's valueData)
-		end if
-		return qqFoldr(ast's valueData)
-	else
-		return ast
-	end if
-end quasiquote
 
 -- qqFoldr: 从右向左折叠
-on qqFoldr(forms)
-	set acc to my typesLib's Types's makeMALList({})
-	set formCount to count of forms
-	repeat with i from formCount to 1 by -1
-		set elt to item i of forms
-		if isSymList(elt, "splice-unquote") then
-			set acc to my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("concat"), item 2 of (elt's valueData), acc})
-		else
-			set acc to my typesLib's Types's makeMALList({my typesLib's Types's makeMALSymbol("cons"), quasiquote(elt), acc})
-		end if
-	end repeat
-	return acc
-end qqFoldr
 
-on readLine(prompt)
-	local standardInput, standardOutput, inputText
-
-	tell NSFileHandle of current application
-		copy its fileHandleWithStandardInput to standardInput
-		copy its fileHandleWithStandardOutput to standardOutput
-	end tell
-
-	standardOutput's writeData:(convertTextToNSData(prompt))
-	set inputText to convertNSDataToText(standardInput's availableData())
-
-	if length of inputText > 0 and character (length of inputText) of inputText is linefeed then
-		set inputText to text 1 thru -2 of inputText
-	end if
-
-	return inputText
-end readLine
-
-to convertTextToNSString(inputText)
-	return current application's NSString's stringWithString:inputText
-end convertTextToNSString
-
-to convertNSStringToText(inputNSString)
-	return inputNSString as text
-end convertNSStringToText
-
-to convertNSStringToNSData(inputNSString)
-	return inputNSString's dataUsingEncoding:(current application's NSUTF8StringEncoding)
-end convertNSStringToNSData
-
-to convertNSDataToNSString(inputNSData)
-	tell current application
-		return its NSString's alloc's initWithData:inputNSData encoding:its NSUTF8StringEncoding
-	end
-end convertNSDataToNSString
-
-to convertTextToNSData(inputText)
-	return convertNSStringToNSData(convertTextToNSString(inputText))
-end convertTextToNSData
-
-to convertNSDataToText(inputNSData)
-	return convertNSStringToText(convertNSDataToNSString(inputNSData))
-end convertNSDataToText

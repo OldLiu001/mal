@@ -6,8 +6,7 @@ use framework "Foundation"
 property typesLib : missing value
 property readerLib : missing value
 property printerLib : missing value
-
-
+property coreLib : missing value
 
 -- 动态加载模块: 优先已编译的 .scpt, 缺失时临时编译 .applescript 再加载
 -- 这样 `osascript stepXxx.applescript` 可不经 make 直接运行
@@ -36,13 +35,15 @@ on run()
 	set readerLib to my loadMod("reader", scriptDir)
 	set printerLib to my loadMod("printer", scriptDir)
 	readerLib's setTypesLib(typesLib)
+	set coreLib to my loadMod("core", scriptDir)
 
 	-- 初始化全局环境: core 函数 + 语言定义的 not
 	set replEnv to makeReplEnv()
+	coreLib's inject(typesLib, readerLib, printerLib, replEnv)
 	-- (def! not (fn* (a) (if a false true)))
 	rep("(def! not (fn* (a) (if a false true)))", replEnv)
 	repeat
-		set inputText to readLine("user> ")
+		set inputText to coreLib's readLine("user> ")
 		if inputText is "" then exit repeat
 
 		try
@@ -176,15 +177,15 @@ end makeMALUserFunction
 -- core 函数分发
 on dispatchCore(fnName, args)
 	if fnName = "+" or fnName = "-" or fnName = "*" or fnName = "/" then
-		return my coreArith(fnName, args)
+		return coreLib's coreArith(fnName, args)
 	else if fnName = "=" then
-		if my malEqual(item 1 of args, item 2 of args) then
+		if coreLib's malEqual(item 1 of args, item 2 of args) then
 			return my typesLib's Types's makeMALTrue()
 		else
 			return my typesLib's Types's makeMALFalse()
 		end if
 	else if fnName = "<" or fnName = "<=" or fnName = ">" or fnName = ">=" then
-		return my coreCompare(fnName, args)
+		return coreLib's coreCompare(fnName, args)
 	else if fnName = "list" then
 		return my typesLib's Types's makeMALList(args)
 	else if fnName = "list?" then
@@ -214,101 +215,24 @@ on dispatchCore(fnName, args)
 			return my typesLib's Types's makeMALNumber(0)
 		end if
 	else if fnName = "pr-str" then
-		return my typesLib's Types's makeMALString(my corePrStr(args))
+		return my typesLib's Types's makeMALString(coreLib's corePrStr(args))
 	else if fnName = "str" then
-		return my typesLib's Types's makeMALString(my coreStr(args))
+		return my typesLib's Types's makeMALString(coreLib's coreStr(args))
 	else if fnName = "prn" then
-		log my corePrStr(args)
+		log coreLib's corePrStr(args)
 		return my typesLib's Types's makeMALNil()
 	else if fnName = "println" then
-		log my corePrintlnStr(args)
+		log coreLib's corePrintlnStr(args)
 		return my typesLib's Types's makeMALNil()
 	end if
 	error "'" & fnName & "' not found"
 end dispatchCore
 
-on coreArith(fnName, args)
-	set firstVal to (item 1 of args)'s valueData
-	set secondVal to (item 2 of args)'s valueData
-	if fnName = "+" then
-		set out to my typesLib's Types's makeMALNumber(firstVal + secondVal)
-	else if fnName = "-" then
-		set out to my typesLib's Types's makeMALNumber(firstVal - secondVal)
-	else if fnName = "*" then
-		set out to my typesLib's Types's makeMALNumber(firstVal * secondVal)
-	else if fnName = "/" then
-		set out to my typesLib's Types's makeMALNumber(firstVal div secondVal)
-	end if
-	return out
-end coreArith
-
-on coreCompare(fnName, args)
-	set firstVal to (item 1 of args)'s valueData
-	set secondVal to (item 2 of args)'s valueData
-	if fnName = "<" then
-		if firstVal < secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = "<=" then
-		if firstVal ≤ secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = ">" then
-		if firstVal > secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	else if fnName = ">=" then
-		if firstVal ≥ secondVal then
-			return my typesLib's Types's makeMALTrue()
-		else
-			return my typesLib's Types's makeMALFalse()
-		end if
-	end if
-	return my typesLib's Types's makeMALFalse()
-end coreCompare
-
 -- pr-str: 每个参数用 readably 打印,空格连接
-on corePrStr(args)
-	set out to ""
-	set isFirst to true
-	repeat with argObj in args
-		if not isFirst then
-			set out to out & " "
-		end if
-		set out to out & printerLib's Printer's pr_str(argObj, true)
-		set isFirst to false
-	end repeat
-	return out
-end corePrStr
 
 -- str: 每个参数非 readably 打印,直接连接
-on coreStr(args)
-	set out to ""
-	repeat with argObj in args
-		set out to out & printerLib's Printer's pr_str(argObj, false)
-	end repeat
-	return out
-end coreStr
 
 -- println: 每个参数非 readably 打印,空格连接
-on corePrintlnStr(args)
-	set out to ""
-	set isFirst to true
-	repeat with argObj in args
-		if not isFirst then
-			set out to out & " "
-		end if
-		set out to out & printerLib's Printer's pr_str(argObj, false)
-		set isFirst to false
-	end repeat
-	return out
-end corePrintlnStr
 
 -- 深度相等(用于 = )
 on malEqual(a, b)
@@ -344,7 +268,7 @@ on malEqual(a, b)
 		set lb to b's valueData
 		if (count of la) ≠ (count of lb) then return false
 		repeat with i from 1 to count of la
-			if not my malEqual(item i of la, item i of lb) then
+			if not coreLib's malEqual(item i of la, item i of lb) then
 				return false
 			end if
 		end repeat
@@ -356,7 +280,7 @@ on malEqual(a, b)
 		set lb to b's valueData
 		if (count of la) ≠ (count of lb) then return false
 		repeat with i from 1 to count of la
-			if not my malEqual(item i of la, item i of lb) then
+			if not coreLib's malEqual(item i of la, item i of lb) then
 				return false
 			end if
 		end repeat
@@ -501,46 +425,3 @@ on evalMAL(ast, env)
 	end repeat
 end evalMAL
 
-on readLine(prompt)
-	local standardInput, standardOutput, inputText
-
-	tell NSFileHandle of current application
-		copy its fileHandleWithStandardInput to standardInput
-		copy its fileHandleWithStandardOutput to standardOutput
-	end tell
-
-	standardOutput's writeData:(convertTextToNSData(prompt))
-	set inputText to convertNSDataToText(standardInput's availableData())
-
-	if length of inputText > 0 and character (length of inputText) of inputText is linefeed then
-		set inputText to text 1 thru -2 of inputText
-	end if
-
-	return inputText
-end readLine
-
-to convertTextToNSString(inputText)
-	return current application's NSString's stringWithString:inputText
-end convertTextToNSString
-
-to convertNSStringToText(inputNSString)
-	return inputNSString as text
-end convertNSStringToText
-
-to convertNSStringToNSData(inputNSString)
-	return inputNSString's dataUsingEncoding:(current application's NSUTF8StringEncoding)
-end convertNSStringToNSData
-
-to convertNSDataToNSString(inputNSData)
-	tell current application
-		return its NSString's alloc's initWithData:inputNSData encoding:its NSUTF8StringEncoding
-	end
-end convertNSDataToNSString
-
-to convertTextToNSData(inputText)
-	return convertNSStringToNSData(convertTextToNSString(inputText))
-end convertTextToNSData
-
-to convertNSDataToText(inputNSData)
-	return convertNSStringToText(convertNSDataToNSString(inputNSData))
-end convertNSDataToText
