@@ -4,6 +4,9 @@
 # 类型标签 ref、构造器、存储、GC、内联小对象、错误机制
 # ============================================================
 set -f
+# zsh 兼容：默认不分词（SH_WORD_SPLIT 未开），与 POSIX sh/dash/bash 的
+# 字段分割行为对齐。实现依赖未加引号 $var 分词（ref 串遍历）。
+if [ -n "$ZSH_VERSION" ]; then setopt SH_WORD_SPLIT; fi
 STEPNUM=10
 # core.sh - dash 原生实现的 mal 核心（覆盖 step0~step4）
 # 由 stepN_*.sh 设置 STEPNUM 后 source。
