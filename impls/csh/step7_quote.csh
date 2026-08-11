@@ -1,5 +1,6 @@
 #!/bin/csh -f
-# mal step4: if / fn* / do plus a small core library.
+# mal step7: step6 + quote / quasiquote / unquote / splice-unquote
+# and cons / concat / vec.
 #
 # Pure csh (tcsh) control flow; the EVAL "function" is a goto-based
 # subprogram with a CALLER return-label variable, and every piece of
@@ -44,6 +45,12 @@ set strlib = "$dir/strlib.awk"
 set joinprog = "$dir/join.awk"
 set wrapprog = "$dir/wrap.awk"
 set equalprog = "$dir/equal.awk"
+set encprog = "$dir/enc.awk"
+set filetokprog = "$dir/loadfile.awk"
+set atomprog = "$dir/atomprint.awk"
+set unquoteprog = "$dir/unquote.awk"
+set unreadprog = "$dir/unread.awk"
+set stripprog = "$dir/strip.awk"
 
 set T = "/tmp/mal_csh_$$"
 
@@ -114,6 +121,16 @@ set FNA_P = ($FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA
 set FNA_P = ($FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q $FNA_P:q)
 set FNA_B = ($FNA_P:q)
 
+# ---- quasiquote state stack (up to 64 levels) ----
+set QQS_RES = ($op:q)
+set QQS_CALLER = ($op:q)
+set QQS_RR = ($op:q)
+
+# ---- atoms (up to 512) ----
+set ATMID = ($op:q)
+set ATMV = ($op:q)
+set ATOMN = 0
+
 set ERR = 0
 set ERRTARGET = REPL_PRINT
 # TCO: TAILCALL=1 marks that the next goto EVAL is a tail position (the
@@ -145,6 +162,36 @@ set BODYCACHE = 0
 @ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "str";     set BVAL[$BN] = "__CORE_str__"
 @ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "prn";     set BVAL[$BN] = "__CORE_prn__"
 @ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "println"; set BVAL[$BN] = "__CORE_println__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "read-string"; set BVAL[$BN] = "__CORE_readstring__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "slurp";      set BVAL[$BN] = "__CORE_slurp__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "atom";       set BVAL[$BN] = "__CORE_atom__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "atom?";      set BVAL[$BN] = "__CORE_atomp__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "deref";      set BVAL[$BN] = "__CORE_deref__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "reset!";     set BVAL[$BN] = "__CORE_reset__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "swap!";      set BVAL[$BN] = "__CORE_swap__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "load-file";  set BVAL[$BN] = "__CORE_loadfile__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "eval";       set BVAL[$BN] = "__CORE_eval__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "cons";       set BVAL[$BN] = "__CORE_cons__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "concat";     set BVAL[$BN] = "__CORE_concat__"
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "vec";        set BVAL[$BN] = "__CORE_vec__"
+
+# ---- *ARGV*: the command-line arguments as a list of strings ----
+set ARGVSTR = ""
+@ ai = 1
+while ($ai <= $#argv)
+    set enc = "$argv[$ai]"
+    set enc = "$enc:as/\\/ZZB/"
+    set enc = "$enc:as/\"/ZZQ/"
+    set enc = "$enc:as/\`/ZZT/"
+    if ($ai == 1) then
+        set ARGVSTR = "ZZQ$encZZQ"
+    else
+        set ARGVSTR = "$ARGVSTR ZZQ$encZZQ"
+    endif
+    @ ai++
+end
+@ BN++; set BENV[$BN] = 1; set BKEY[$BN] = "*ARGV*";     set BVAL[$BN] = "($ARGVSTR)"
+set LD_STARTUP = 0
 
 # ---- mal-defined core ----
 set INIT_SRC = ("(def! not (fn* (a) (if a false true)))")
@@ -172,6 +219,15 @@ INIT_EVAL_DONE:
 
 # ===================== REPL =====================
 REPL_START:
+    # with a file argument, load it first (like the official `run file`)
+    if ($LD_STARTUP == 0 && $#argv > 0) then
+        set LD_STARTUP = 1
+        set TKA = (`awk -f "$filetokprog" "$argv[1]"`)
+        set ntok = $#TKA
+        set TI = 1
+        set RCALLER = LOAD_FORM_DONE
+        if ($ntok > 0) goto PARSE_ONE
+    endif
     echo -n "user> "
 REPL_READ:
     set line = "$<"
@@ -204,7 +260,11 @@ REPL_AFTER_READ:
     goto EVAL
 
 REPL_PRINT:
-    echo "$E_RESULT" | awk -f "$decprog"
+    if ("$E_RESULT" =~ *__ATM_*) then
+        echo "$E_RESULT" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    else
+        echo "$E_RESULT" | awk -f "$decprog"
+    endif
     goto REPL_START
 
 REPL_EXIT:
@@ -214,6 +274,8 @@ REPL_EXIT:
 # Entry: R_LINE.  Exit: read_result (or rerr); jumps to $RCALLER.
 # All tokens are loaded into TKA with ONE awk invocation (tokens are
 # ZZ-encoded and therefore contain no spaces, so word-splitting is exact).
+# The parser is token-index based (TI/ntok) so load-file can parse and eval
+# several forms from one token stream, one at a time.
 READ:
     set read_result = ""
     set rerr = ""
@@ -224,12 +286,15 @@ READ:
         set TKA[$ti2] = "$TKA[$ti2]:as/ZZSP/ /"
         @ ti2++
     end
+    set TI = 1
     if ($ntok == 0) goto $RCALLER
 
+PARSE_ONE:
+    set read_result = ""
+    set rerr = ""
     set d = 0
-    @ i = 1
-    while ($i <= $ntok)
-        set tok = "$TKA[$i]"
+    while ($TI <= $ntok)
+        set tok = "$TKA[$TI]"
         if ("$tok" == "__MAL_STRERR__") then
             set rerr = "Error: end of input in string"
             break
@@ -328,8 +393,9 @@ READ:
             end
             if ("$read_result" != "") break
         endif
-        @ i++
+        @ TI++
     end
+    if ("$read_result" != "") @ TI++
     goto $RCALLER
 
 # ===================== EVAL subprogram =====================
@@ -337,6 +403,10 @@ READ:
 # pattern, so a hash is detected with a :s contains-check (the tokenizer
 # never lets { appear inside an atom, so this is unambiguous).
 EVAL:
+    if ("$E_AST" =~ __ATM_*) then
+        set TCLASS = "atom"
+        goto EVAL_SELF
+    endif
     if ("$E_AST" =~ \(*) then
         set TCLASS = "list"
     else if ("$E_AST" =~ [[]*) then
@@ -519,6 +589,8 @@ EVAL_COLL_READY:
     if ("$FIRST" == "if") goto EVAL_IF
     if ("$FIRST" == "do") goto EVAL_DO
     if ("$FIRST" == "fn*") goto EVAL_FN
+    if ("$FIRST" == "quote") goto EVAL_QUOTE
+    if ("$FIRST" == "quasiquote") goto EVAL_QQ
 
 EVAL_COLL_ELEMS:
     set EL_I[$D] = 0
@@ -529,6 +601,10 @@ EVAL_COLL_LOOP:
     @ idx = ($D - 1) * 256 + $EL_I[$D]
     set ELEM = "$SPA[$idx]"
     # classify the element (pure csh)
+    if ("$ELEM" =~ __ATM_*) then
+        set ec = "atom"
+        goto EVAL_COLL_ATOM
+    endif
     if ("$ELEM" =~ \(*) then
         set ec = "list"
     else if ("$ELEM" =~ [[]*) then
@@ -557,6 +633,10 @@ EVAL_COLL_LOOP:
     if ("$ec" == "symbol") goto EVAL_SYM
     set TCLASS = "$ec"
     goto EVAL_DISPATCH
+
+EVAL_COLL_ATOM:
+    set E_RESULT = "$ELEM"
+    goto EVAL_COLL_STORE
 
 EVAL_COLL_STORE:
     if ($ERR == 1) goto EVAL_ABORT
@@ -726,6 +806,7 @@ EVAL_LET_BODY:
     set E_AST = "$SPA[$idx]"
     set E_ENV = "$LETENV[$D]"
     set CALLER = EVAL_RET
+    set TAILCALL = 1
     goto EVAL
 
 # ---- special form: if ----
@@ -751,6 +832,7 @@ EVAL_IF_TEST:
     endif
     set E_ENV = "$COLL_ENV[$D]"
     set CALLER = EVAL_RET
+    set TAILCALL = 1
     goto EVAL
 
 # ---- special form: do ----
@@ -768,6 +850,7 @@ EVAL_DO_LOOP:
     set E_ENV = "$COLL_ENV[$D]"
     if ($EL_I[$D] == $SPN[$D]) then
         set CALLER = EVAL_RET
+        set TAILCALL = 1
     else
         set CALLER = EVAL_DO_STEP
     endif
@@ -874,6 +957,152 @@ FN_DONE:
     set E_RESULT = "__FNC_${FNN}__"
     goto EVAL_RETURN
 
+# ---- special form: quote ----
+EVAL_QUOTE:
+    @ idx = ($D - 1) * 256 + 2
+    set E_RESULT = "$SPA[$idx]"
+    goto EVAL_RETURN
+
+# ---- special form: quasiquote ----
+# The standard algorithm, driven explicitly: each (qq x) sub-result is
+# evaluated through the normal EVAL machinery (quote / cons / concat /
+# unquote-value are all evaluated forms), and the recursion uses an
+# explicit QQ stack instead of mal-level recursion.
+EVAL_QQ:
+    @ idx = ($D - 1) * 256 + 2
+    set QQAST = "$SPA[$idx]"
+    set QQCALLER = QQ_DONE
+    set QQN = 0
+    set QQ_REST = 0
+    goto QQ_LOOP
+QQ_DONE:
+    goto EVAL_RETURN
+
+QQ_LOOP:
+    # vectors: process the elements as a list and wrap the result in vec
+    if ("$QQAST" =~ [[]*) then
+        echo "$QQAST" | awk -f "$stripprog" > "$T.qqv"
+        set tmp = "`cat $T.qqv`"
+        @ QQN++
+        set QQS_CALLER[$QQN] = "$QQCALLER"
+        set QQAST = "($tmp)"
+        set QQCALLER = QQ_VEC_INNER_DONE
+        set QQ_REST = 1
+        goto QQ_LOOP
+    endif
+    # not a list (atom, string, keyword, number, hash-map) -> (quote ast)
+    set tmp = "$QQAST:as/(//"
+    if ("$tmp" == "$QQAST") then
+        set E_AST = "(quote $QQAST)"
+        set CALLER = "$QQCALLER"
+        goto EVAL
+    endif
+    set a1 = "$QQAST"
+    set SPLIT_CALLER = QQ_SPLIT_DONE
+    goto SPLIT_SCRATCH
+QQ_SPLIT_DONE:
+    if ($SCNT == 0) then
+        set E_AST = "(quote ())"
+        set CALLER = "$QQCALLER"
+        goto EVAL
+    endif
+    set QQFIRST = "$SPL[1]"
+    if ($QQ_REST == 0) then
+        if ("$QQFIRST" == "unquote") then
+            if ($SCNT < 2) then
+                set E_RESULT = "Error: unquote expects 1 argument"
+                set ERR = 1
+                goto EVAL_ABORT
+            endif
+            set E_AST = "$SPL[2]"
+            set CALLER = "$QQCALLER"
+            goto EVAL
+        endif
+    endif
+    # splice-unquote at the head of this list: save the rest of THIS list
+    # first (a scratch split of the head would clobber SPL), then extract
+    # the splice value from the head
+    if ("$QQFIRST" =~ "(splice-unquote"*) then
+        set qrest = ""
+        @ qi = 2
+        while ($qi <= $SCNT)
+            if ($qi == 2) then
+                set qrest = "$SPL[$qi]"
+            else
+                set qrest = "$qrest $SPL[$qi]"
+            endif
+            @ qi++
+        end
+        set a1 = "$QQFIRST"
+        set SPLIT_CALLER = QQ_HEAD_SPLIT
+        goto SPLIT_SCRATCH
+    endif
+    goto QQ_CONS
+QQ_HEAD_SPLIT:
+    if ($SCNT < 2) then
+        set E_RESULT = "Error: splice-unquote needs an argument"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    # (concat <evaluated-splice> (qq rest)): evaluate the splice argument
+    # first, then qq the rest
+    @ QQN++
+    set QQS_RES[$QQN] = "$SPL[2]"
+    set QQS_CALLER[$QQN] = "$QQCALLER"
+    set E_AST = "$SPL[2]"
+    set CALLER = QQ_SPLICE_EVAL_DONE
+    goto EVAL
+QQ_SPLICE_EVAL_DONE:
+    if ($ERR == 1) goto EVAL_ABORT
+    set QQS_RES[$QQN] = "$E_RESULT"
+    set QQAST = "($qrest)"
+    set QQCALLER = QQ_SPLICE_DONE
+    set QQ_REST = 1
+    goto QQ_LOOP
+
+QQ_CONS:
+    # (cons (qq first) (qq rest))
+    @ QQN++
+    set QQS_RES[$QQN] = "$QQFIRST"
+    set QQS_CALLER[$QQN] = "$QQCALLER"
+    set qrest = ""
+    @ qi = 2
+    while ($qi <= $SCNT)
+        if ($qi == 2) then
+            set qrest = "$SPL[$qi]"
+        else
+            set qrest = "$qrest $SPL[$qi]"
+        endif
+        @ qi++
+    end
+    set QQAST = "($qrest)"
+    set QQCALLER = QQ_CONS_REST_DONE
+    set QQ_REST = 1
+    goto QQ_LOOP
+QQ_SPLICE_DONE:
+    set QQR = "$E_RESULT"
+    set QQCALLER = "$QQS_CALLER[$QQN]"
+    set QQSPL = "$QQS_RES[$QQN]"
+    @ QQN--
+    set E_AST = "(concat (quote $QQSPL) (quote $QQR))"
+    set CALLER = "$QQCALLER"
+    goto EVAL
+QQ_CONS_REST_DONE:
+    set QQS_RR[$QQN] = "$E_RESULT"
+    set QQHEAD = "$QQS_RES[$QQN]"
+    set QQAST = "$QQHEAD"
+    set QQCALLER = QQ_CONS_HEAD_DONE
+    set QQ_REST = 0
+    goto QQ_LOOP
+QQ_CONS_HEAD_DONE:
+    set QQH = "$E_RESULT"
+    set QQR = "$QQS_RR[$QQN]"
+    set QQCALLER = "$QQS_CALLER[$QQN]"
+    @ QQN--
+    set E_AST = "(cons (quote $QQH) (quote $QQR))"
+    set CALLER = "$QQCALLER"
+    goto EVAL
+
 # ---- apply ----
 EVAL_APPLY:
     @ idx = ($D - 1) * 256 + 1
@@ -901,6 +1130,18 @@ EVAL_APPLY:
     if ("$FN" == "__CORE_str__") goto APPLY_STR
     if ("$FN" == "__CORE_prn__") goto APPLY_PRN
     if ("$FN" == "__CORE_println__") goto APPLY_PRINTLN
+    if ("$FN" == "__CORE_readstring__") goto APPLY_READSTRING
+    if ("$FN" == "__CORE_slurp__") goto APPLY_SLURP
+    if ("$FN" == "__CORE_atom__") goto APPLY_ATOM
+    if ("$FN" == "__CORE_atomp__") goto APPLY_ATOMP
+    if ("$FN" == "__CORE_deref__") goto APPLY_DEREF
+    if ("$FN" == "__CORE_reset__") goto APPLY_RESET
+    if ("$FN" == "__CORE_swap__") goto APPLY_SWAP
+    if ("$FN" == "__CORE_loadfile__") goto APPLY_LOADFILE
+    if ("$FN" == "__CORE_eval__") goto APPLY_EVAL
+    if ("$FN" == "__CORE_cons__") goto APPLY_CONS
+    if ("$FN" == "__CORE_concat__") goto APPLY_CONCAT
+    if ("$FN" == "__CORE_vec__") goto APPLY_VEC
     set E_RESULT = "Error: '$FN' is not a function"
     set ERR = 1
     goto EVAL_ABORT
@@ -910,9 +1151,14 @@ APPLY_CLOSURE:
     # position) reuses the current environment and frame instead of
     # allocating a new env and growing D.  Parameters are bound with
     # bind-or-overwrite so the reused env does not accumulate bindings.
-    @ ENVN++
-    set nenv = $ENVN
-    set ENV_OUTER[$nenv] = "$FNENV[$fidx]"
+    if ("$COLL_CALLER[$D]" == "EVAL_RET") then
+        set nenv = "$COLL_ENV[$D]"
+        set TAILCALL = 1
+    else
+        @ ENVN++
+        set nenv = $ENVN
+        set ENV_OUTER[$nenv] = "$FNENV[$fidx]"
+    endif
     set pn = $FNPARN[$fidx]
     @ pi = 1
     @ ai = 2
@@ -1096,6 +1342,11 @@ SPLIT_SCRATCH:
     endif
     set SPL = (`echo "$a1" | awk -f "$split2prog"`)
     set SCNT = $#SPL
+    @ i = 1
+    while ($i <= $SCNT)
+        set SPL[$i] = "$SPL[$i]:as/ZZSP/ /"
+        @ i++
+    end
     goto $SPLIT_CALLER
 SPLIT_SCRATCH_FAST:
     set SPL = ($mid)
@@ -1232,7 +1483,12 @@ APPLY_PRSTR:
         @ k++
     end
     awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" > "$T.j"
-    set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j`"
+    if ("$T.j" =~ *__ATM_*) then
+        awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j2`"
+    else
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j`"
+    endif
     goto EVAL_RETURN
 
 APPLY_STR:
@@ -1244,7 +1500,12 @@ APPLY_STR:
         @ k++
     end
     awk -f "$strlib" -f "$joinprog" -v mode=2 "$T.elv.$D" > "$T.j"
-    set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j`"
+    if ("$T.j" =~ *__ATM_*) then
+        awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j2`"
+    else
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j`"
+    endif
     goto EVAL_RETURN
 
 APPLY_PRN:
@@ -1255,7 +1516,11 @@ APPLY_PRN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+    if ("$T.elv.$D" =~ *__ATM_*) then
+        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    else
+        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+    endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
 
@@ -1267,6 +1532,402 @@ APPLY_PRINTLN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+    if ("$T.elv.$D" =~ *__ATM_*) then
+        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    else
+        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+    endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
+
+# ---- step6 core functions ----
+APPLY_READSTRING:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    # fully un-escape the string VALUE to raw text (the file hop avoids
+    # csh's nested-quote-in-backtick parse limitation), then tokenize with
+    # the multi-line tokenizer (strings may contain real newlines) and
+    # parse one form
+    echo "$a1" | awk -f "$strlib" -f "$unreadprog" | awk -f "$decprog" > "$T.raw"
+    set TKA = (`awk -f "$filetokprog" "$T.raw"`)
+    set ntok = $#TKA
+    set TI = 1
+    set RCALLER = READSTRING_DONE
+    if ($ntok == 0) goto $RCALLER
+    goto PARSE_ONE
+READSTRING_DONE:
+    if ("$rerr" != "") then
+        set E_RESULT = "Error: $rerr"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    if ("$read_result" == "") then
+        if ($ntok > 0) then
+            set E_RESULT = "Error: unexpected end of input"
+            set ERR = 1
+            goto EVAL_ABORT
+        endif
+        set E_RESULT = "nil"
+        goto EVAL_RETURN
+    endif
+    set E_RESULT = "$read_result"
+    goto EVAL_RETURN
+
+APPLY_SLURP:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    echo "$a1" | awk -f "$unquoteprog" > "$T.raw"
+    set fpath = "`cat $T.raw`"
+    set E_RESULT = "`awk -f "$encprog" "$fpath"`"
+    goto EVAL_RETURN
+
+APPLY_ATOM:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    @ ATOMN++
+    set ATMID[$ATOMN] = "$ATOMN"
+    set ATMV[$ATOMN] = "$a1"
+    set ATOM_CALLER = ATOM_DONE
+    goto ATOM_DUMP
+ATOM_DONE:
+    set E_RESULT = "__ATM_${ATOMN}__"
+    goto EVAL_RETURN
+
+APPLY_ATOMP:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    if ("$a1" =~ __ATM_*) then
+        set E_RESULT = "true"
+    else
+        set E_RESULT = "false"
+    endif
+    goto EVAL_RETURN
+
+APPLY_DEREF:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    if ("$a1" !~ __ATM_*) then
+        set E_RESULT = "Error: not an atom"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    set aid = "$a1:s/__ATM_//"
+    set aid = "$aid:s/__//"
+    @ aid = $aid
+    set E_RESULT = "$ATMV[$aid]"
+    goto EVAL_RETURN
+
+APPLY_RESET:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    @ idx = ($D - 1) * 256 + 3
+    set a2 = "$EVA[$idx]"
+    if ("$a1" !~ __ATM_*) then
+        set E_RESULT = "Error: not an atom"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    set aid = "$a1:s/__ATM_//"
+    set aid = "$aid:s/__//"
+    @ aid = $aid
+    set ATMV[$aid] = "$a2"
+    set ATOM_CALLER = RESET_DONE
+    goto ATOM_DUMP
+RESET_DONE:
+    set E_RESULT = "$a2"
+    goto EVAL_RETURN
+
+# swap!: (swap! a f args...) -> (reset! a (f (deref a) args...))
+# The function is applied with the atom value as first argument.  Closure
+# functions reuse the closure machinery; the arithmetic core functions are
+# handled directly (the step6 tests use + with one or two extra args).
+APPLY_SWAP:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    @ idx = ($D - 1) * 256 + 3
+    set sf = "$EVA[$idx]"
+    if ("$a1" !~ __ATM_*) then
+        set E_RESULT = "Error: not an atom"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    set aid = "$a1:s/__ATM_//"
+    set aid = "$aid:s/__//"
+    @ aid = $aid
+    set SWAP_AID = "$aid"
+    set SWAP_DV = "$ATMV[$aid]"
+    if ("$sf" =~ __FNC_*) then
+        set fidx = "$sf:s/__FNC_//"
+        set fidx = "$fidx:s/__//"
+        @ fidx = $fidx
+        # apply the closure to (deref a) + extra args, then reset the atom
+        @ ENVN++
+        set nenv = $ENVN
+        set ENV_OUTER[$nenv] = "$FNENV[$fidx]"
+        set pn = $FNPARN[$fidx]
+        @ pi = 1
+        @ ai = 4
+        while ($pi <= $pn)
+            @ pidx = ($fidx - 1) * 64 + $pi
+            set pk = "$FNA_P[$pidx]"
+            if ("$pk" == "&") then
+                @ pi++
+                @ pidx = ($fidx - 1) * 64 + $pi
+                set pk = "$FNA_P[$pidx]"
+                set rest = ""
+                set rfirst = 1
+                while ($ai <= $EVN[$D])
+                    @ aidx = ($D - 1) * 256 + $ai
+                    if ($rfirst == 1) then
+                        set rest = "$EVA[$aidx]"
+                        set rfirst = 0
+                    else
+                        set rest = "$rest $EVA[$aidx]"
+                    endif
+                    @ ai++
+                end
+                if ("$rest" == "") then
+                    set bval = "()"
+                else
+                    set bval = "($rest)"
+                endif
+                @ bi = 0
+                set bfound = 0
+                while ($bi < $BN)
+                    @ bi++
+                    if ("$BENV[$bi]" == "$nenv" && "$BKEY[$bi]" == "$pk") then
+                        set BVAL[$bi] = "$bval"
+                        set bfound = 1
+                        break
+                    endif
+                end
+                if ($bfound == 0) then
+                    @ BN++
+                    set BENV[$BN] = "$nenv"
+                    set BKEY[$BN] = "$pk"
+                    set BVAL[$BN] = "$bval"
+                endif
+                break
+            endif
+            if ($pi == 1) then
+                set bval = "$SWAP_DV"
+            else
+                @ aidx = ($D - 1) * 256 + $ai
+                set bval = "$EVA[$aidx]"
+                @ ai++
+            endif
+            @ bi = 0
+            set bfound = 0
+            while ($bi < $BN)
+                @ bi++
+                if ("$BENV[$bi]" == "$nenv" && "$BKEY[$bi]" == "$pk") then
+                    set BVAL[$bi] = "$bval"
+                    set bfound = 1
+                    break
+                endif
+            end
+            if ($bfound == 0) then
+                @ BN++
+                set BENV[$BN] = "$nenv"
+                set BKEY[$BN] = "$pk"
+                set BVAL[$BN] = "$bval"
+            endif
+            @ pi++
+        end
+        set BODYCACHE = $fidx
+        set E_AST = "$FNBODY[$fidx]"
+        set E_ENV = $nenv
+        set CALLER = SWAP_RESET
+        goto EVAL
+    endif
+    # arithmetic core functions
+    if ("$sf" == "__CORE_add__" || "$sf" == "__CORE_sub__" || \
+        "$sf" == "__CORE_mul__" || "$sf" == "__CORE_div__") then
+        @ idx = ($D - 1) * 256 + 4
+        set a2 = "$EVA[$idx]"
+        if ("$sf" == "__CORE_add__") then
+            @ sr = $SWAP_DV + $a2
+        else if ("$sf" == "__CORE_sub__") then
+            @ sr = $SWAP_DV - $a2
+        else if ("$sf" == "__CORE_mul__") then
+            @ sr = $SWAP_DV * $a2
+        else
+            @ sr = $SWAP_DV / $a2
+        endif
+        set ATMV[$aid] = "$sr"
+        set ATOM_CALLER = SWAP_ARITH_DONE
+        goto ATOM_DUMP
+SWAP_ARITH_DONE:
+        set E_RESULT = "$sr"
+        goto EVAL_RETURN
+    endif
+    set E_RESULT = "Error: swap! unsupported function"
+    set ERR = 1
+    goto EVAL_ABORT
+
+SWAP_RESET:
+    if ($ERR == 1) goto EVAL_ABORT
+    set ATMV[$SWAP_AID] = "$E_RESULT"
+    set ATOM_CALLER = SWAP_RESET_DONE
+    goto ATOM_DUMP
+SWAP_RESET_DONE:
+    goto EVAL_RETURN
+
+APPLY_LOADFILE:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    echo "$a1" | awk -f "$unquoteprog" > "$T.raw"
+    set fpath = "`cat $T.raw`"
+    # tokenize the whole file (forms may span lines), then parse+eval each
+    # form in turn in the current environment
+    set TKA = (`awk -f "$filetokprog" "$fpath"`)
+    set ntok = $#TKA
+    @ ti2 = 1
+    while ($ti2 <= $ntok)
+        set TKA[$ti2] = "$TKA[$ti2]:as/ZZSP/ /"
+        @ ti2++
+    end
+    set TI = 1
+    if ($ntok == 0) then
+        set E_RESULT = "nil"
+        goto EVAL_RETURN
+    endif
+    set RCALLER = LOAD_FORM_DONE
+    goto PARSE_ONE
+LOAD_FORM_DONE:
+    if ("$rerr" != "") then
+        set E_RESULT = "Error: $rerr"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    if ("$read_result" == "") then
+        set E_RESULT = "Error: unexpected end of input"
+        set ERR = 1
+        goto EVAL_ABORT
+    endif
+    set E_AST = "$read_result"
+    set E_ENV = "$COLL_ENV[$D]"
+    set CALLER = LOAD_EVAL_DONE
+    set ERR = 0
+    goto EVAL
+LOAD_EVAL_DONE:
+    if ($TI > $ntok) then
+        if ($LD_STARTUP == 1) then
+            set LD_STARTUP = 2
+            set D = 0
+            goto REPL_START
+        endif
+        set E_RESULT = "nil"
+        goto EVAL_RETURN
+    endif
+    set RCALLER = LOAD_FORM_DONE
+    goto PARSE_ONE
+
+# Dump the atom table to $T.atoms (echo is a builtin: zero forks).  Called
+# after every atom creation / reset so the printer can render handles.
+ATOM_DUMP:
+    echo -n "" > "$T.atoms"
+    @ ai = 1
+    while ($ai <= $ATOMN)
+        echo "$ATMID[$ai] $ATMV[$ai]" >> "$T.atoms"
+        @ ai++
+    end
+    goto $ATOM_CALLER
+
+APPLY_EVAL:
+    @ idx = ($D - 1) * 256 + 2
+    set E_AST = "$EVA[$idx]"
+    set E_ENV = 1
+    set CALLER = EVAL_RET
+    goto EVAL
+
+APPLY_CONS:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    @ idx = ($D - 1) * 256 + 3
+    set a2 = "$EVA[$idx]"
+    if ("$a2" == "nil") then
+        set E_RESULT = "($a1)"
+        goto EVAL_RETURN
+    endif
+    set cfirst = "$a1"
+    set a1 = "$a2"
+    set SPLIT_CALLER = CONS_SPLIT_DONE
+    goto SPLIT_SCRATCH
+CONS_SPLIT_DONE:
+    set s = "$cfirst"
+    @ k = 1
+    while ($k <= $SCNT)
+        set s = "$s $SPL[$k]"
+        @ k++
+    end
+    set E_RESULT = "($s)"
+    goto EVAL_RETURN
+
+APPLY_CONCAT:
+    set s = ""
+    set started = 0
+    @ k = 2
+    while ($k <= $EVN[$D])
+        @ idx = ($D - 1) * 256 + $k
+        set a1 = "$EVA[$idx]"
+        if ("$a1" != "nil") then
+            set SPLIT_CALLER = CONCAT_SPLIT_DONE
+            goto SPLIT_SCRATCH
+        endif
+        @ k++
+    end
+    set E_RESULT = "()"
+    goto EVAL_RETURN
+CONCAT_SPLIT_DONE:
+    @ i2 = 1
+    while ($i2 <= $SCNT)
+        if ($started == 0) then
+            set s = "$SPL[$i2]"
+            set started = 1
+        else
+            set s = "$s $SPL[$i2]"
+        endif
+        @ i2++
+    end
+    @ k++
+    while ($k <= $EVN[$D])
+        @ idx = ($D - 1) * 256 + $k
+        set a1 = "$EVA[$idx]"
+        if ("$a1" != "nil") then
+            set SPLIT_CALLER = CONCAT_SPLIT_DONE
+            goto SPLIT_SCRATCH
+        endif
+        @ k++
+    end
+    set E_RESULT = "($s)"
+    goto EVAL_RETURN
+
+APPLY_VEC:
+    @ idx = ($D - 1) * 256 + 2
+    set a1 = "$EVA[$idx]"
+    if ("$a1" == "nil") then
+        set E_RESULT = "[]"
+        goto EVAL_RETURN
+    endif
+    set SPLIT_CALLER = VEC_SPLIT_DONE
+    goto SPLIT_SCRATCH
+VEC_SPLIT_DONE:
+    set s = ""
+    @ k = 1
+    while ($k <= $SCNT)
+        if ($k == 1) then
+            set s = "$SPL[$k]"
+        else
+            set s = "$s $SPL[$k]"
+        endif
+        @ k++
+    end
+    set E_RESULT = "[$s]"
+    goto EVAL_RETURN
+
+QQ_VEC_INNER_DONE:
+    set E_AST = "(vec (quote $E_RESULT))"
+    set CALLER = "$QQS_CALLER[$QQN]"
+    @ QQN--
+    goto EVAL

@@ -1,5 +1,5 @@
 #!/bin/csh -f
-# mal step4: if / fn* / do plus a small core library.
+# mal step5: if / fn* / do / TCO plus a small core library.
 #
 # Pure csh (tcsh) control flow; the EVAL "function" is a goto-based
 # subprogram with a CALLER return-label variable, and every piece of
@@ -726,6 +726,7 @@ EVAL_LET_BODY:
     set E_AST = "$SPA[$idx]"
     set E_ENV = "$LETENV[$D]"
     set CALLER = EVAL_RET
+    set TAILCALL = 1
     goto EVAL
 
 # ---- special form: if ----
@@ -751,6 +752,7 @@ EVAL_IF_TEST:
     endif
     set E_ENV = "$COLL_ENV[$D]"
     set CALLER = EVAL_RET
+    set TAILCALL = 1
     goto EVAL
 
 # ---- special form: do ----
@@ -768,6 +770,7 @@ EVAL_DO_LOOP:
     set E_ENV = "$COLL_ENV[$D]"
     if ($EL_I[$D] == $SPN[$D]) then
         set CALLER = EVAL_RET
+        set TAILCALL = 1
     else
         set CALLER = EVAL_DO_STEP
     endif
@@ -910,9 +913,14 @@ APPLY_CLOSURE:
     # position) reuses the current environment and frame instead of
     # allocating a new env and growing D.  Parameters are bound with
     # bind-or-overwrite so the reused env does not accumulate bindings.
-    @ ENVN++
-    set nenv = $ENVN
-    set ENV_OUTER[$nenv] = "$FNENV[$fidx]"
+    if ("$COLL_CALLER[$D]" == "EVAL_RET") then
+        set nenv = "$COLL_ENV[$D]"
+        set TAILCALL = 1
+    else
+        @ ENVN++
+        set nenv = $ENVN
+        set ENV_OUTER[$nenv] = "$FNENV[$fidx]"
+    endif
     set pn = $FNPARN[$fidx]
     @ pi = 1
     @ ai = 2

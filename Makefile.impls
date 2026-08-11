@@ -40,6 +40,7 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c c.2 chuck clojure coffee common-lis
 	swift swift3 swift4 swift6 tcl ts vala vb vbs vhdl vimscript wasm wren yorick xslt zig
 
 step5_EXCLUDES += bash        # never completes at 10,000
+step5_EXCLUDES += csh         # tcsh never completes at 10,000
 step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
 step5_EXCLUDES += latex3      # no iteration, limited native stack
 step5_EXCLUDES += make        # no TCO capability (iteration or recursion)
@@ -61,6 +62,7 @@ dist_EXCLUDES += guile io julia matlab swift
 
 # Extra options to pass to runtest.py
 bbc-basic_TEST_OPTS = --test-timeout 60
+csh_TEST_OPTS = --start-timeout 60 --test-timeout 120
 guile_TEST_OPTS = --test-timeout 120
 io_TEST_OPTS = --test-timeout 120
 java-truffle_TEST_OPTS = --start-timeout 30

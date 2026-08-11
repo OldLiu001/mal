@@ -1,15 +1,18 @@
-# mal step2+ helper (awk).
+# mal step5+ helper (awk).  Same as split.awk but every SPACE inside an
+# emitted element is replaced by the placeholder ZZSP, so the csh driver can
+# load the whole element list into an array with a single command
+# substitution (whitespace word-splits the output into exactly one word per
+# element) and then restore the spaces with a pure-csh :as substitution.
+# A literal "ZZSP" written by the user would be corrupted by the restore;
+# this is accepted and documented in the README (no mal test uses it).
+#
 # Reads ONE collection string (list "(...)", vector "[...]", or hash-map
 # "{...}") on a single line and prints its TOP-LEVEL elements, one per line.
-# Nested collections are kept intact as a single element. Empty collections
+# Nested collections are kept intact as a single element.  Empty collections
 # produce no output (zero lines).
 #
 # Bracket-matching is required because elements may themselves be nested
 # collections; classic csh cannot do this, so it lives here.
-#
-# If an output file is given on the command line (outfile=FILE), the elements
-# are written to FILE and the element COUNT is printed to stdout, so the csh
-# driver gets count+split in a single awk invocation.
 
 function split_toplevel(s,    i, depth, cur, n, ch, len, c3, nx, instr) {
     n = 0; depth = 0; cur = ""; len = length(s); i = 1; instr = 0
@@ -48,17 +51,10 @@ function split_toplevel(s,    i, depth, cur, n, ch, len, c3, nx, instr) {
     if (first == "(" || first == "[" || first == "{") {
         inner = substr(s, 2, length(s) - 2)
         n = split_toplevel(inner)
-        if (outfile != "") {
-            for (k = 1; k <= n; k++) print TOK[k] > outfile
-            close(outfile)
-            print n
-        } else {
-            for (k = 1; k <= n; k++) print TOK[k]
-        }
-    } else {
-        if (outfile != "") {
-            close(outfile)
-            print 0
+        for (k = 1; k <= n; k++) {
+            e = TOK[k]
+            gsub(/ /, "ZZSP", e)
+            print e
         }
     }
 }

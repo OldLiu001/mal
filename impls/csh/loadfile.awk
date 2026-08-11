@@ -1,35 +1,26 @@
-# mal step1 tokenizer (awk).
-# Scans a single mal form (one line) and prints one token per line.
-# Tokens: ( ) [ ] { }  "string"  ' ` ~ ~@ @ ^  <atom>
-# Comments (; ...) are skipped. Commas are whitespace.
-# Unterminated string -> emit __MAL_STRERR__ so the csh parser can report it.
-#
-# ENCODING (critical for classic csh):
-#   Classic csh cannot hold a literal double-quote, backslash, or backtick
-#   safely inside a double-quoted assignment, and it treats a backtick as
-#   command substitution even inside double quotes. So every emitted token is
-#   scrubbed of those three characters:
-#       "  -> ZZQ      \  -> ZZB      `  -> ZZT
-#   and the special reader-macro characters are replaced by whole-word
-#   placeholders that are safe to compare in csh (no quotes/backticks):
-#       '  -> ZQ       `  -> ZB       ~@ -> ZS       ~ -> ZU       @ -> ZA       ^ -> ZM
-#   dec.awk restores " \ ` right before printing; the Z* placeholders are
-#   consumed by the csh parser and never appear in output.
+# mal step6 helper (awk): tokenize a whole FILE (multiple lines, comments,
+# strings possibly spanning lines) and print one token per line using the
+# same ZZ* encoding as tok.awk.  The tokenizer is the same as tok.awk but
+# slurps the entire input into one buffer first, so a form may span lines
+# and a comment runs to end-of-line.
 function emit(s) {
     gsub(/`/, "ZZT", s)
     gsub(/\\/, "ZZB", s)
     gsub(/"/, "ZZQ", s)
     gsub(/ /, "ZZSP", s)
+    gsub(/\n/, "ZZBn", s)
     print s
 }
-{
-    line = $0
+function toks(line,    n, i, c, buf, k, ch, ok, start, cc) {
     n = length(line)
     i = 1
     while (i <= n) {
         c = substr(line, i, 1)
         if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == ",") { i++; continue }
-        if (c == ";") { break }   # comment to end of line
+        if (c == ";") {           # comment to end of line
+            while (i <= n && substr(line, i, 1) != "\n") i++
+            continue
+        }
         if (c == "(" || c == ")" || c == "[" || c == "]" || c == "{" || c == "}") {
             emit(c)
             i++
@@ -66,7 +57,6 @@ function emit(s) {
             if (substr(line, i + 1, 1) == "@") { emit("ZS"); i += 2; continue }
             else { emit("ZU"); i++; continue }
         }
-        # atom: gather until a delimiter / whitespace / comment
         start = i
         while (i <= n) {
             cc = substr(line, i, 1)
@@ -78,4 +68,10 @@ function emit(s) {
         }
         emit(substr(line, start, i - start))
     }
+}
+{
+    buf = buf $0 "\n"
+}
+END {
+    toks(buf)
 }
