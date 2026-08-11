@@ -1,0 +1,565 @@
+# mal in sh
+
+用 **POSIX shell** 实现的 [mal](https://github.com/kanaka/mal)（Make a Lisp）。
+
+定位：**强兼容 ksh 与 dash**——目标 shell 是 dash（开发基准），同时规划兼容
+ksh93（当前 ksh93 因 `local` 关键字问题暂不支持，见「Shell 兼容性」）。
+
+约束是自找的，也是这个实现全部有意思的地方：
+
+* 目标 shell 是 `dash`（开发基准），**规划强兼容 ksh93**。没有数组、没有关联数组、没有 `[[ ]]`、没有 `${v:off:len}`、没有 `${v//a/b}`、没有 `local -n`、没有进程替换。
+* **最小外部进程**。除 `time-ms`（毫秒时钟，dash 无内置替代）调用一次 `python3` 外，解释器不 fork 任何子进程：不用 `sed`/`awk`/`tr`/`expr`/`cat`/`base64`，甚至不用 `$( )`。所有字符串处理都靠参数展开逐字符剥离。
+* **官方模块化架构**（guide.md 的 types.qx/reader.qx/printer.qx/env.qx/core.qx + stepN_xxx.qx）：共享模块 + 每 step 一个主文件，模块按官方增量逐步引入（step1 起 types/reader/printer，step2 加 env，step4 加 core）。
+
+```
+types.sh          值模型：ref 类型标签、构造器、存储、GC、内联小对象（官方 types.qx）
+                    （本实现位于 impls/sh/）
+reader.sh         tokenizer + reader，含 READ 入口（官方 reader.qx）
+printer.sh        pr_str / PRINT / 字符串转义（官方 printer.qx）
+env.sh            Env：env_new / env_set / env_get（官方 env.qx）
+core.sh           核心函数库：fn_* 全部 + key_equal / _join_args（官方 core.qx）
+
+step0_repl.sh      REPL 回显（READ/EVAL/PRINT/rep 桩）
+step1_read_print.sh 读取与打印
+step2_eval.sh     eval（符号/算术/容器字面量；fn_add 等内联，官方 step2 尚无 core.qx）
+step3_env.sh      def! / let*
+step4_if_fn_do.sh if / fn* / do + 核心库
+step5_tco.sh      尾调用优化 + DEBUG-EVAL
+step6_file.sh     文件 / 求值 / atom
+step7_quote.sh    quote / quasiquote / cons / concat
+step8_macros.sh   宏
+step9_try.sh      try* / hash-map 全量 / apply / map
+stepA_mal.sh      metadata / readline / time-ms / seq / conj
+
+run                exec dash "$dir/${STEP:-stepA_mal}.sh" [file.mal ...]
+Makefile           构建单文件分发版 mal（stepA 合成）
+```
+
+# 启动与用法
+
+```sh
+# 跑官方测试（STEP 选择 step 包装脚本）
+STEP=step4_if_fn_do python3 runtest.py tests/step4_if_fn_do.mal -- impls/dash/run
+
+# 直接启动 REPL
+STEP=stepA_mal ./run
+
+# step6 起支持文件参数：加载文件后退出，其余参数进 *ARGV*
+STEP=stepA_mal ./run somefile.mal
+
+# 自托管：dash 的 stepA 执行 impls/mal/ 下用 mal 语言写的解释器
+MAL_IMPL=dash STEP=stepA_mal ../../impls/mal/run
+
+# 构建单文件分发版（stepA 合成可执行文件 mal）
+make
+```
+
+`*ARGV*` 绑定为文件参数之外的剩余参数（mal 列表）。无文件参数时 `run` 进入 REPL。
+
+---
+
+# Shell 兼容性
+
+目标 shell 是 **dash**（POSIX），同时兼容 sh / bash / zsh：
+
+| Shell | 状态 | 说明 |
+|-------|------|------|
+| dash | ✅ 目标 | 全部功能验证（939/939 测试） |
+| sh（macOS /bin/sh） | ✅ | 特性矩阵 18/18 |
+| bash | ✅ | 特性矩阵 18/18 |
+| zsh | ✅（内置兼容行） | zsh 默认不分词（SH_WORD_SPLIT 未开），所有模块与 step 文件头部已内置 `if [ -n "$ZSH_VERSION" ]; then setopt SH_WORD_SPLIT; fi`；开启后全量 939/939 |
+| ksh93 | ❌ 不支持 | 见下 |
+
+**ksh93 兼容目标（规划中）**——当前障碍与已实测排除的方案：
+
+1. `local`（dash/bash/zsh 扩展）与 `typeset`（ksh93）无交集关键字——dash 不认 typeset，ksh93 不认 local
+2. 实测 ksh93 的 POSIX 风格函数 `f() { typeset x=1; }` 中 typeset 是**全局**（调用后外部变量被改）；局部变量只在 Korn 风格 `function f { }` 中有效
+3. dash 不支持 `function` 关键字——两个 shell 的"局部变量可用形态"完全不重叠
+
+已实测排除：eval 间接声明（ksh 中 typeset 经 eval 变全局）、local→typeset 构建期替换（ksh93 () 风格无效）、Korn 风格函数（dash 不支持）。
+
+**规划方向（待实施）**：纯 POSIX 重写局部变量管理——移除 `local`，递归函数的关键临时变量改用「独特前缀全局变量 + 函数入口保存/出口恢复」的约定封装，或引入构建期双方言生成（dash 版 local / ksh 版 function 风格）。两条路线均需先解决规则 6 的正确性约束（历史上 `local` 缺失导致参数串味的 bug）。
+
+---
+
+
+# 隐含规则
+
+下面这些是**贯穿全部代码但没有任何一行代码强制**的约定。破坏其中任何一条，代码依然能跑，只是会在某个遥远的地方悄悄错掉。改这份实现之前请先读完。
+
+## 1. 返回值走全局变量，不走 stdout
+
+**所有函数通过全局 `$r` 返回值。函数的 stdout 是留给用户的，不是留给调用者的。**
+
+```sh
+mal_num 42        # 不是 x=$(mal_num 42)
+x="$r"
+```
+
+原因有三个，任何一个都是致命的：
+
+1. `x=$(f)` 在**子 shell**里执行 `f`。我们的对象存储、`_MAL_NEXT` 计数器、环境绑定全是全局变量的副作用，子 shell 一退出全部蒸发。早期版本里 `REPL_ENV=$(env_new "")` 让整个环境系统等于没有实现，而且不报任何错。
+2. 命令替换会**剥掉尾部换行**。mal 的字符串可以以 `\n` 结尾，一路传下去就少字节。
+3. 每次 fork 两个进程。`step4` 的递归调用量级下，这不是"慢一点"，是跑不完。
+
+副产物：**函数不能靠返回值传递布尔**。谓词把 `Y`/`F`（mal 的 true/false ref）放进 `$r`，绝不用 shell 退出码：
+
+```sh
+fn_list_p "$x"
+if [ "$r" = Y ]; then ...      # 对
+fn_list_p "$x" && ...           # 错，恒真
+```
+
+### 有名字的返回槽
+
+`$r` 是通用槽。少数函数需要在自身递归时还持有调用者的 `$r`，于是另开专槽——**这些槽名是全局契约，不能改**：
+
+| 槽 | 归属 |
+|---|---|
+| `r` | 所有函数的默认返回值 |
+| `r_str` | `pr_str` / `PRINT` |
+| `r_join` | `_join_args` |
+| `r_kind` `r_fn` `r_params` `r_body` `r_env` `r_ismacro` | `closure_get` 一次返回 6 个字段（step8 起含 ismacro） |
+| `_MM_<ref>` | stepA 起，对象的 meta（无 meta 则不设） |
+
+`pr_str` 用 `r_str` 是因为它内部递归时会调 `mal_val`（写 `$r`），如果它自己也用 `$r` 就会自我覆盖。
+
+## 2. ref 是带类型标签的短字符串
+
+一切 mal 值都是一个**不含空格的 ASCII 字符串**，首字符即类型：
+
+| 前缀 | 类型 | 载荷位置 |
+|---|---|---|
+| `Z` `Y` `F` | nil / true / false | 无（单例） |
+| `N<数字>` | number | ref 自身 |
+| `S<名字>` | symbol | ref 自身 |
+| `K<名字>` | keyword | ref 自身 |
+| `G<id>` | string | `_V_G<id>` |
+| `L<id>` | list（存储型） | `_V_L<id>` |
+| `V<id>` | vector（存储型） | `_V_V<id>` |
+| `H<id>` | hash-map（存储型） | `_V_H<id>` |
+| `L*<编码>` | list（内联型） | ref 自身 |
+| `V*<编码>` | vector（内联型） | ref 自身 |
+| `H*<编码>` | hash-map（内联型） | ref 自身 |
+| `A<id>` | atom | `_V_A<id>` |
+| `C<id>` | function | `_C?_C<id>` 五件套 |
+| `E<id>` | environment | `_EK_`/`_EV_`/`_EO_` 三件套 |
+
+**不可变的小值内联进 ref，其余进存储。** 这样 `mal_num`/`mal_sym` 是零分配的纯字符串拼接，而 `=` 比较数字/符号只是 `[ "$a" = "$b" ]`。
+
+### 不变量：ref 里永远不能出现空格
+
+容器的载荷就是**空格分隔的 ref 串**（`L3` 存 `"N1 N2 S+"`，`H7` 存 `"key1 val1 key2 val2"` 的扁平对）。整个实现靠 `for e in $elems` 和 `set -- $elems` 做分词。
+
+所以：`S` 后面跟的符号名一旦含空格，容器就散架。mal 的 tokenizer 保证符号不含空白，这条自然成立——但**任何新增的内联类型都必须遵守**。
+
+## 3. `set -f` 是强制的，不是优化
+
+文件顶部的 `set -f` 关掉 pathname 展开。**它是正确性的一部分。**
+
+mal 程序里合法的符号包括 `*`、`?`、`[`，于是 ref 会长成 `S*`、`S?`、`S[`。一旦 `for e in $elems` 遇到未加引号的 `S*`，shell 会拿它去匹配当前目录的文件名。匹配不到就原样返回（碰巧对了），匹配到了就静默替换成文件名——错误发生在几十层递归之外，且**取决于你在哪个目录跑测试**。
+
+`(* 2 3)` 能不能算对，取决于你 `cd` 到了哪里。这是最难查的一类 bug。
+
+## 4. 存储：`eval` 赋值是唯一安全的零 fork 写法
+
+```sh
+_set_stored() { _ss_tmp="$2"; eval "_V_$1=\$_ss_tmp"; }
+_get_stored() { eval "r=\$_V_$1"; }
+```
+
+关键在于 `eval` 展开后得到的是 `_V_L3=$_ss_tmp`——**变量赋值语境不做分词、不做 pathname 展开**，所以 `$_ss_tmp` 里含空格、换行、引号、反斜杠、`*` 全都原样保存，一个字节不差，也不需要任何引用处理。
+
+反过来，`eval "_V_$1=\"$2\""` 会把 `$2` 的内容拼进 eval 的字符串里，内容里的 `"` 和 `$` 会被二次解析——这是注入，也是数据损坏。**永远先把值放进一个中转变量，再在 eval 里引用它。**
+
+同理，动态变量名必须是先算好的字面量（`_V_$1`），值必须走中转变量（`\$_ss_tmp`，注意反斜杠）。
+
+## 5. 命名空间前缀是私有的
+
+| 前缀 | 用途 |
+|---|---|
+| `_V_<ref>` | 容器/字符串/atom 的载荷 |
+| `_EK_<env>` `_EV_<env>` `_EO_<env>` | 环境的键串、值串、外层链接 |
+| `_CK_ _CF_ _CP_ _CB_ _CE_ <fnref>` | 闭包的 kind / native 函数名 / 形参 / body / 定义环境 |
+| `_TK_<n>` `_TK_N` | tokenizer 输出的 token 数组模拟 |
+| `_MAL_*` | 解释器全局状态 |
+| `_xx_*`（如 `_ss_tmp` `_es_k` `_et_t`） | 叶子函数的私有中转变量 |
+
+`_xx_` 那类**故意不加 `local`**：它们要被同函数内的 `eval` 字符串引用，而且只出现在**非递归的叶子函数**里。一旦某个用了 `_xx_` 的函数变成递归的，必须立刻改成 `local`。
+
+## 6. 递归函数的每个临时变量都必须 `local`（ksh93 例外：不兼容）
+
+`EVAL`、`pr_str`、`fn_equal`、`READ_FORM` 全是递归的。dash 的 `local` 是动态作用域：内层声明会遮蔽外层，退出时恢复。**漏掉一个变量，内外层就共用它。**
+
+曾经因为 `evaled` 忘了 `local`，`(+ 5 (* 2 3))` 求值成了 `(* 2 3 6)`——内层把外层攒到一半的参数列表续写了。这类 bug 不崩溃、不报错，只是算错。
+
+所以 `EVAL` 顶部有那三行长得离谱的 `local` 声明。**新增任何局部变量，第一件事是把它加进去。**
+
+### 附带的 dash 陷阱
+
+`local` 和前置命令写在同一行时，`$r` 会在前置命令执行**之前**展开：
+
+```sh
+_first "$x"; local data="$r"     # 错，data 拿到的是旧的 $r
+_first "$x"
+local data="$r"                  # 对
+```
+
+这是 dash 特有的求值顺序（bash 不这样）。规矩很简单：**`local` 单独占一行**。
+
+## 7. 错误靠 `MAL_ERR` 双全局显式传播
+
+没有异常，没有 `set -e`。约定是：
+
+```sh
+mal_error "message"              # 置 MAL_ERR=1 和 MAL_ERR_MSG
+```
+
+**每一个可能失败的调用之后，必须紧跟一行检查：**
+
+```sh
+EVAL "$3" "$env"
+if [ "$MAL_ERR" = 1 ]; then return; fi
+```
+
+漏掉检查不会崩，只会让错误后的代码继续拿着垃圾 `$r` 往下算，最终以一个风马牛不相及的信息报错。`EVAL` 和 `APPLY` 入口处也各有一次检查，作为兜底的"错误已置位就整体空转到顶"机制。
+
+## 8. 官方模块化：共享模块 + step 主文件，`STEPNUM` 仅作注册裁剪
+
+按官方 guide 拆分：5 个共享模块（types/reader/printer/env/core）+ 每 step 一个主文件。主文件 source 所需模块并承载主逻辑：
+
+```sh
+STEPNUM=4
+. "$(dirname "$0")/types.sh"      # 值模型/存储/GC
+. "$(dirname "$0")/reader.sh"
+. "$(dirname "$0")/printer.sh"
+. "$(dirname "$0")/env.sh"
+. "$(dirname "$0")/core.sh"       # step4 起
+init_repl_env
+mal_repl
+```
+
+`STEPNUM` 保留在主文件里，用于 `init_repl_env` 的注册裁剪（哪些核心函数进 repl_env）与 `mal_repl` 的行为分支——模块化时已把注册门控**静态裁剪**进各 step 的 `init_repl_env`（step4 的主文件只注册 step4 函数），因此主文件不再有 `if [ "$STEPNUM" -ge N ]` 条件。**新增核心函数时想清楚它属于哪一步**，否则 step2 会意外通过本该失败的测试（官方测试确实会检查"这一步还不该支持什么"）。
+
+例外：`fn_add`/`fn_sub`/`fn_mul`/`fn_div` 定义在 step2+ 主文件里（官方 step2 尚无 core.qx，算术直接写在 step 主文件），其余 `fn_*` 全部在 core.sh。
+
+## 9. 输出一律 `printf '%s\n'`
+
+dash 的 `echo` **会解释反斜杠转义**（`echo 'a\nb'` 打出两行）。mal 的字符串里反斜杠是一等公民，用 `echo` 会静默改写用户数据。
+
+**代码里不允许出现 `echo`。** 调试也不行——调试用 `printf ... >&2`。
+
+## 10. `case` 模式里的 `*` `?` `[` 必须加引号
+
+```sh
+case "$fname" in
+  'let*') ... ;;      # 对
+  let*)   ... ;;      # 错：letfoo、letx 全部命中
+esac
+```
+
+mal 的特殊形式名字里带 `*`（`let*` `fn*` `try*` `catch*` `defmacro!`），这条踩过一次。
+
+## 11. 单元素剥离必须显式判断
+
+`${s#* }` 在 `s` 不含空格时**原样返回 `s`**，不是返回空。所以遍历空格分隔串的标准写法是：
+
+```sh
+k=${ks%% *}
+if [ "$k" = "$ks" ]; then ks=""; else ks=${ks#* }; fi
+```
+
+省掉那个 `if`，最后一个元素会被无限重复取出——死循环。这段样板在 `env_get`、`pr_str`、`EVAL` 的 map 分支、`fn_equal` 里各出现一次，**照抄，别简化**。
+
+对于确定要按空格切成位置参数的场合，直接 `set -- $elems` 更省事（依赖 `set -f` 的保护）。
+
+## 12. 环境：平行数组 + 显式外链，保证遍历终止
+
+```
+_EK_E7 = "b a x"      新绑定前插 → 查到的第一个即最新，天然实现 shadowing
+_EV_E7 = "N2 N1 N9"   与 _EK_ 逐位对应
+_EO_E7 = "E3"         外层环境；空串表示到顶
+```
+
+**`_EO_` 只能指向已经存在的、更早创建的环境。** 环境 id 单调递增且只在创建时写一次外链，因此链一定是有限的、无环的。早期用过一种"按需回填外链"的方案，结果 `(abc)` 这种未定义符号会让链成环，`env_get` 无限循环——表现为进程被 OOM killer 干掉（exit 137），而不是栈溢出。
+
+前插而非覆盖，意味着**同一环境里重复 `def!` 会留下旧条目**。这是有意的空间换时间：`env_set` 是 O(1)，查找总是命中最新的那个。
+
+## 12.5 垃圾回收：环境走 pend，容器走 Mark-Sweep，小对象根本不进表
+
+三层机制，按成本从低到高：
+
+1. **内联（方案 E）**：list/vector/hash-map 的载荷 ≤40 字符且不含 `\x1f`（`US`）时，直接编码进 ref（`L*`/`V*`/`H*` 前缀，空格换成 `\x1f`），**根本不创建 `_V_` 变量**。quasiquote 展开、参数列表这类临时小对象由此零存储开销——这是最有效的"减负"。
+   - `mal_val` 对 `L*` 解码（IFS 分词重连）；`mal_type` 无需改（`L*` 通配已覆盖）
+   - **内联 ref 不是合法动态变量名**（含 `*`/`\x1f`），所以 `with-meta` 遇到内联对象必须**物化**为存储型（重新分配 id 写 `_V_`）再附 `_MM_`；`fn_meta` 对内联对象直接返回 nil
+   - 内联判断：`${#payload} -le 40` 且 `payload` 不含 `US`（避免歧义）
+2. **环境回收（pend）**：见第 16 条，TCO 尾调用点按闭包计数批量 unset，只回收 `_EB_`/`_EO_`
+3. **Mark-Sweep（方案 C）**：兜底回收存储型对象（`_V_` 与闭包六件套），因为容器逃逸出口众多无法引用计数：
+   - **登记**：`_set_stored` 与闭包构造器按 `id/256` 追加到桶变量 `_GC_B<桶>`（摊还 O(1)）。**`fn_reset`/`fn_swap` 更新 atom 必须走 `_update_stored` 不重新登记**——重复登记会让 sweep 对同一 ref 先清标记再误判死亡
+   - **标记**：从根 `REPL_ENV` 出发 DFS，`_GC_<ref>=1` 防重（容器图可能有环：atom 可被 reset! 指向含自身的 list）；环境链无环（`_EO_` 只指向更早环境）直接展开不设标记；内联对象无标记直接展开子元素
+   - **清扫**：遍历桶，未标记的 unset（`_V_`/`_CK_` 六件套/`_MM_`）
+   - **触发点必须是安全点**：REPL 顶层、load-file 之后——此时调用栈为空，EVAL 局部变量里的中间 ref 不会成为隐藏根。绝不能在 `new_id` 等求值中途触发，否则会误杀 EVAL 栈上的临时对象
+   - 阈值 `_GC_THRESH=30000`（创建量增量触发）
+
+## 13. 数字只有整数
+
+`$(( ))` 是 dash 唯一的算术，只有整数。mal 规范也只要求整数，所以没问题——但 `/` 是截断除法，`(/ 7 2)` = 3。
+
+## 14. `EVAL` 是循环，尾位置只能 `continue`
+
+`EVAL` 外面套着 `while true`。**处于尾位置的求值一律改写 `ast`/`env` 后 `continue`，绝不递归调用自己**：
+
+| 尾位置 | 处理 |
+|---|---|
+| `let*` 的 body | `ast=$3; env=$nenv; continue` |
+| `do` 的最后一个表达式 | `ast=$1; continue` |
+| `if` 选中的那个分支 | `ast=$3`（或 `$4`）`; continue` |
+| mal 闭包的 body | `ast=$clbody; env=$nenv; continue` |
+
+非尾位置（函数实参、`let*` 的绑定值、`if` 的条件、`do` 的前 n-1 项）**必须**真递归，它们的结果要被后续代码使用。
+
+新增特殊形式时先问一句：它的最后一个子表达式是不是尾位置？是就 `continue`，否则 `(sum2 10000 0)` 那种尾递归会在几百层深处把 shell 拖死。
+
+## 15. `_ev1` 必须与 `EVAL` 语义一致
+
+`_ev1` 是叶子快速通道：符号查环境、字面量原样返回、容器转交 `EVAL`。它存在的唯一理由是 `EVAL` 顶部那 20+ 个 `local` 太贵（见下一条），而真实代码里绝大多数被求值的东西是叶子。
+
+**它零 `local`，只用位置参数。** 往里加变量之前想清楚：加了就等于取消了它的全部意义。
+
+改动 `EVAL` 里符号或字面量的求值语义时，**`_ev1` 必须同步改**，否则会出现"同一个表达式在参数位置和尾位置行为不同"这种极难查的 bug。`DEBUG-EVAL` 打开时 `_ev1` 一律退回完整 `EVAL`，就是为了不必在追踪逻辑上维护两份。
+
+## 16. 环境回收的安全前提
+
+深递归会创建海量环境。**必须回收**，理由见下条。
+
+回收的判据只有一条：
+
+> **环境只可能通过 `mal_closure_mal` 的 `_CE_` 字段逃逸。**
+
+`def!`、atom、list/vector/map 存的都是**值 ref**，不是环境。所以只要某段执行期间 `mal_closure_mal` 一次都没被调用（`_MAL_NCLOS` 计数没变），期间创建的所有环境就都是垃圾，可以 `unset`。
+
+`EVAL` 在做尾调用时利用了这一点：新环境的外链是闭包捕获的 `clenv`，与当前这条链无关，于是当前链上本轮攒下的环境全部可回收。
+
+**任何新增的、能把 env 存起来的机制都会打破这个前提。** 真要加，就必须同时递增 `_MAL_NCLOS`。
+
+## 17. 为什么必须回收：dash 变量表会二次退化
+
+dash 的变量哈希表是**定长**的。变量一多，每个桶就退化成长链表，而**每一次 `local` 声明都要在链表里线性查找**。
+
+实测「20000 次调用一个含 25 个 `local` 的函数」：
+
+| 变量表里的残留变量 | 耗时 |
+|---|---|
+| 0 | 0.68 s |
+| 5,000 | 5.3 s |
+| 20,000 | 85.3 s |
+
+125 倍。这不是常数因子，是复杂度问题：**不回收环境，解释器的速度会随已执行的代码量二次衰减**。任何"往全局塞变量且从不清理"的设计都会踩到这个坑。
+
+## 18. 测试要放宽超时
+
+`runtest.py` 默认每条用例 20 秒。step5 的 `(sum2 10000 0)` 一条就要几十秒（shell 跑解释器，慢是本分）。
+
+`Makefile` 里设了 `TEST_OPTS = --test-timeout 600`。手工跑记得带上：
+
+```sh
+STEP=step5_tco python3 runtest.py --test-timeout 600 tests/step5_tco.mal -- impls/dash/run
+```
+
+---
+
+# 踩过的坑（step5 之后新增）
+
+这部分记录 step5（TCO）完成之后，step6~stepA 调试过程中踩到的坑。按时间顺序，不是按严重程度。
+
+## E1. TOKENIZE 注释剥离不完整导致 load-file 吞掉整个文件
+
+**现象**：`load-file` 加载 mal 文件时，后续所有行全消失，只处理了第一行。
+
+**根因**：tokenizer 里 `;` 注释处理用 `s="${s#*;}"` 剥离到 `;` 为止，但没有继续剥到换行：
+
+```sh
+# 错：剥到 ; 但没剥到 NL，s 含 "\n(def! a 1)" 整个剩余内容
+s="${s#*;}"
+```
+
+**后果**：READER 继续处理 `s` 时，`"\n(def! a 1)"` 的开头的 `"` 被当作未闭合字符串开始，一直读到文件末尾都没有找到闭合的 `"`，报错或静默截断。
+
+**修复**：
+
+```sh
+# 对：; 到下一个 NL（换行符本身留在 s 里）
+rest=${s#*"$NL"}
+```
+
+**教训**：任何剥离操作都要确认边界——`;` 的边界是换行，不是字符串末尾。
+
+## E2. dash 的 eval 里 `$` 二次展开时机导致 `not found`
+
+**现象**：`with-meta` 处理闭包时，
+
+```sh
+r="C109"; meta="H108"
+eval "_MM_\$r=\$meta"
+# → dash: eval: _MM_C109=H108: not found
+```
+
+**根因**：`\$r` 让 `$r` 不在外层展开，eval 收到字面 `_MM_$r=$meta`。eval **二次展开**后得到 `_MM_C109=H108`，但 dash 的 eval 在**含 `$` 的展开结果**上不把 `name=value` 当赋值处理（即使字面上它在开头），而是当命令执行 → `not found`。
+
+**修复**：凡是在 eval 外层已经拿到最终值的变量，一律**直接展开**，不需要也不应该转义：
+
+```sh
+eval "_MM_$r=$meta"   # $r/$meta 在外层展开为 C109/H108，eval 收到纯字面 _MM_C109=H108，OK
+eval "_MM_\$r=\$meta"  # 错：eval 二次展开后含 $ 的结果被 dash 当命令执行
+```
+
+**注意**：需要延迟展开的典型场景是**函数形参**（`_ss_tmp` 是 `eval "_V_$1=\$_ss_tmp"` 里的 `\$_ss_tmp`），因为 `$1` 是当前调用者的实参。外层函数局部变量的展开不需要延迟。
+
+## E3. quasiquote 里 dash 的 `local` 无动态作用域
+
+**现象**：`_quasiquote` 函数里读 `$env` 拿到空值，但调用它的 `EVAL` 里明明 `local env="$env"`。
+
+**根因**：dash 的 `local` **不是动态作用域**。函数内声明 `local env=...` 只在该函数内部有效，不会被调用的子函数继承。`_quasiquote` 读自己的 `$env`（未声明则为空），不是调用者 EVAL 的那个。
+
+**修复**：显式把 env 当参数传进去，递归也要传：
+
+```sh
+_quasiquote() {
+  local ast="$1" env="$2" ...
+  # 递归也传 env
+  _quasiquote "$sub" "$env" "$env"
+}
+```
+
+**教训**：dash 里函数调用**不**继承父函数的局部变量，靠参数传递。`_ev1` 能零 local 是因为它只读全局（存储里的 ref）和传进来的参数，不读父函数局部。
+
+## E4. fn_apply 里复杂 eval 转义导致 `Unterminated quoted string`
+
+**现象**：`(apply + 4 (list 5))` 超时或报语法错误。
+
+**根因**：
+
+```sh
+# 错：eval "args=\"\$args \$$i\"" 拼接引号
+# eval 里双引号需要配对，但 \$$i（$i 在双引号里）被提前展开导致错位
+eval "args=\"\$args \$$i\""
+```
+
+**修复**：**单引号拼接**，`$i` 在单引号外拼进去：
+
+```sh
+eval 'args="$args '$i'"'  # 引号部分进单引号，变量名拼接进双引号
+```
+
+或者更保守的做法：**先收集所有 ref 到一个不含空格的字符串**（所有 ref 都是无空格短串），直接拼接，**不需要任何 eval 引号处理**：
+
+```sh
+args="$args $i"   # 安全：ref 无空格，空格是分隔符
+```
+
+然后一次 `APPLY "$f" $args`。
+
+## E5. `defmacro!` 原地修改闭包的 ismacro 标志
+
+**现象**：
+
+```mal
+(def! f (fn* [x] (number? x)))   ; f 是普通函数
+(defmacro! m f)                    ; 把 f 变成宏创建 m
+(f (+ 1 1))                        ; 期望 true → Got false
+```
+
+**根因**：原来的 `defmacro!` 实现直接
+
+```sh
+eval "_CM_$val=1"   # 原地把 f 的 ismacro 标志改成 1，f 自己也变成宏了！
+```
+
+宏展开时不 eval 实参，`(+ 1 1)` 作为列表传给 x，`(number? (+ 1 1))` → false。
+
+**修复**：`defmacro!` 创建**新的闭包**（复制原闭包字段），在新闭包上置 ismacro，原函数不变：
+
+```sh
+# 读取原闭包字段
+closure_get "$val"
+# 按 kind 重建闭包（mal 或 native）
+mal_closure_mal "$cp" "$cb" "$ce"
+# 新闭包上置宏标志
+mal_closure_native "$cf"
+fi
+mal_closure_native "$cf"
+eval "_CM_$r=1"    # 只改新的
+val="$r"
+env_set "$env" "$kname" "$val"
+```
+
+**教训**：mal 的 `defmacro!` 应该产生新对象，不是原地修改。
+
+## E6. `(readline ...)` 测试衔接依赖 REPL 输入流
+
+**现象**：`stepA_mal.mal` 里测试顺序是：
+
+```mal
+(readline "mal-user> ")   ; 打印提示符，从 stdin 读下一行
+"hello"                    ; 期望输出 `"\"hello\""`
+```
+
+单独跑 `"hello"` 测试失败（runtest 捕获了回显行导致正则不匹配），但放在 readline 测试**后面**就通过了——因为 readline 把 `"hello"` 当用户输入读走了，REPL 内部处理并输出，`runtest` 的 prompt 匹配也刚好衔接上。
+
+**教训**：REPL 里的 `readline` 函数不只是给用户交互用的——它会影响后续 form 的输入流。实现 `readline` 时，要确保它从 **stdin** 读一行（而不是跳过已打印的提示符），并正确处理 EOF（返回 nil）。
+
+## E7. `map` 前导空格 bug（`pr_str` 的 map 分支）
+
+**现象**：hash-map 打印时键值错位，第一个键被吞。
+
+**根因**：`pr_str` 的 map 分支累积输出 `out="$out $k $v"`，产生前导空格（`" K1 V1 K2 V2"`）。然后 `${out# }` 剥离前导空格，但如果输出以空格开头，parse 回去时 `${kv%% *}` 匹配到空 token，导致第一个键变成空。
+
+**修复**：解析前**显式剥离**前导空格：
+
+```sh
+out=${out# }              # 先去前导空格
+mal_map ${out# }          # 再传给 mal_map
+```
+
+**教训**：`pr_str` 里涉及字符串拼接的地方，要警惕前导/尾随空格。空格的来源通常是 `out="$out $x"` 的第一次赋值。
+
+## 19. 元数据：平行数组 `_MM_<ref>`，with-meta 克隆不突变
+
+mal 的 `meta`/`with-meta` 要求元数据**不可变附着**：`with-meta` 返回新对象，原对象不变。实现用平行数组 `_MM_<ref>` 存 meta（没有 meta 就不设这个变量，`fn_meta` 读到未设置返回 nil）。
+
+```sh
+fn_with_meta() {
+  # 对 list/vec/map：重建对象（mal_list $v 等），再 eval "_MM_$r=$meta"
+  # 对 atom：复制内容（mal_atom）再设 meta，同样不突变原对象
+  # 对闭包：closure_get 复制字段，按 kind 重建（mal_closure_mal / mal_closure_native），
+  #          ismacro=1 时在新闭包上 eval "_CM_$r=1"，再设 meta
+}
+```
+
+**atom 也支持 meta**（早期版本 `with-meta` 对 atom 直接返回原对象，`(meta (with-meta (atom 1) {:k 1}))` 返回 nil——自托管 stepA 用例暴露后修复）。
+
+**闭包的 meta 重建必须复制 ismacro 标志**：`with-meta` 一个宏闭包，新对象仍应是宏。
+
+**注意**：`_MM_` 只有被 `with-meta` 显式设置过才存在。`fn_meta` 用 `if eval "[ \"\$_MM_$ref\" ]"` 判断存在性——未设置的变量在 `set -f` 下展开为空，`[ "" ]` 为 false，走 else 返回 nil。
+
+## 20. `time-ms` 需要毫秒精度，macOS 的 `date` 不支持 `%N`
+
+mal 规范要求 `time-ms` 返回毫秒时间戳。macOS 的 `date +%s%3N` 会原样输出 `%3N`（BSD date 不支持）。`stepA` 测试里 `(> (time-ms) start-time)` 在秒级精度下恒 false（两次调用间隔不足 1 秒）。
+
+**修复**：用 `python3 -c 'import time; print(int(time.time()*1000))'`。
+
+**矛盾点**：这违反「零外部进程」约束，但 `time-ms` 本来就只能是外部时钟（dash 无内置时钟）。唯一的额外 fork 仅发生在调用 `time-ms` 时，不影响解释器主循环。
+
+---
+
+# 调试
+
+进程被 kill（exit 137）而非报错，基本只有两个原因：`env_get` 陷入无限循环（外链成环），或某个 `while [ -n "$s" ]` 忘了推进 `s`。
+
+单步冒烟比跑 harness 快得多：
+
+```sh
+printf '(+ 1 2)\n(let* (a 1) a)\n' | STEP=step4_if_fn_do dash impls/dash/run
+```
+
+`runtest.py` **默认在第一个硬失败之后跳过剩余全部测试**。看到 "1 failing, 55 skipped" 不是 56 个问题，是 1 个。
