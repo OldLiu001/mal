@@ -4,7 +4,7 @@
 import re, sys
 
 SRC = 'core.sh'
-OUTDIR = 'steps'  # 生成到 steps/ 子目录，避免覆盖现有 wrapper
+OUTDIR = '.'  # 官方架构要求：step 文件直接放实现根目录（覆盖旧 wrapper 壳）
 
 with open(SRC) as f:
     lines = f.readlines()

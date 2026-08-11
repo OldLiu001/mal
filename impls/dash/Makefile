@@ -1,7 +1,8 @@
-SOURCES_BASE = core.sh
-SOURCES_LISP = step0_repl.sh step1_read_print.sh step2_eval.sh \
-               step3_env.sh step4_if_fn_do.sh step5_tco.sh
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+# mal in dash —— 官方架构风格 Makefile
+# 每个 step 一个独立可执行文件（impls/dash/step*.sh），由 tools/split_steps.py 生成。
+STEPS = step0_repl.sh step1_read_print.sh step2_eval.sh step3_env.sh \
+	step4_if_fn_do.sh step5_tco.sh step6_file.sh step7_quote.sh \
+	step8_macros.sh step9_try.sh stepA_mal.sh
 
 # shell 解释器跑 shell 里的解释器，runtest 默认 20s/用例不够用。
 # step5 的 (sum2 10000 0) 一条就要几十秒。
@@ -12,9 +13,14 @@ all:
 
 dist: mal
 
-mal: $(SOURCES) run
-	echo '#!/bin/dash' > $@
+# 单文件分发版（官方 dist 语义）：由 stepA（最终实现）合成
+mal: stepA_mal.sh
+	cat $< > $@
 	chmod +x $@
+
+# 重新生成 step 文件（从 core.sh 单文件实现拆分）
+split:
+	python3 tools/split_steps.py
 
 clean:
 	rm -f mal
