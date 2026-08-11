@@ -32,7 +32,12 @@ NL='
 '
 
 # ================= 存储（零 fork，任意内容安全） =================
-_set_stored() {  # $1=ref $2=内容
+_set_stored() {  # $1=ref $2=内容（创建：登记 GC 桶）
+  _ss_tmp="$2"
+  eval "_V_$1=\$_ss_tmp"
+  gc_reg "$1"
+}
+_update_stored() {  # $1=ref $2=内容（更新已有对象：不重复登记）
   _ss_tmp="$2"
   eval "_V_$1=\$_ss_tmp"
 }
@@ -40,6 +45,110 @@ _get_stored() {  # $1=ref -> r
   eval "r=\$_V_$1"
 }
 new_id() { _MAL_NEXT=$((_MAL_NEXT+1)); r=$_MAL_NEXT; }
+
+# ================= GC（方案 C：Mark-Sweep） =================
+# 只回收存储型对象（L/V/H/G/A 的 _V_、闭包的 _CK_ 六件套），环境由 pend 机制管。
+# 登记：对象创建时按 id/256 追加到桶变量 _GC_B<桶>（摊还 O(1)）。
+# 标记：从根（REPL_ENV）DFS，_GC_<ref>=1 防重；环境无环不设标记直接展开。
+# 清扫：遍历桶，未标记的 unset；触发点在 REPL 顶层等安全点（调用栈为空）。
+_GC_LAST=0
+_GC_THRESH=30000
+_GC_BUCKET=256
+
+gc_reg() {  # $1=ref（存储型）-> 登记到桶
+  local id=${1#?} b
+  b=$((id/_GC_BUCKET))
+  eval "_GC_B$b=\"\$_GC_B$b $1\""
+}
+
+gc_mark() {  # $1=ref
+  local ref="$1" t kv e2
+  case "$ref" in
+    L'*'*|V'*'*|H'*'*)
+      # 内联对象：不占变量表、不可能有 meta，直接展开子元素即可
+      mal_val "$ref"
+      for e in $r; do gc_mark "$e"; done
+      return ;;
+    L*|V*|H*|G*|A*)
+      eval "if [ \"\${_GC_$ref+x}\" = x ]; then return; fi; _GC_$ref=1"
+      mal_type "$ref"
+      t="$r"
+      case "$t" in
+        __list|__vec|__map)
+          mal_val "$ref"
+          for e in $r; do gc_mark "$e"; done
+          ;;
+        __atom)
+          mal_val "$ref"
+          if [ -n "$r" ]; then gc_mark "$r"; fi
+          ;;
+      esac
+      eval "if [ -n \"\$_MM_$ref\" ]; then gc_mark \"\$_MM_$ref\"; fi"
+      ;;
+    C*)
+      eval "if [ \"\${_GC_$ref+x}\" = x ]; then return; fi; _GC_$ref=1"
+      eval "gc_mark \"\$_CE_$ref\""
+      eval "if [ -n \"\$_MM_$ref\" ]; then gc_mark \"\$_MM_$ref\"; fi"
+      ;;
+    E*)
+      # 环境链无环（_EO_ 只指向更早创建的环境），重复展开只是浪费不算错
+      eval "kv=\$_EB_$ref"
+      eval "e2=\$_EO_$ref"
+      set -- $kv
+      if [ $# -ge 1 ]; then
+        shift                               # _EB_ 格式 " =名 值 =名 值 ..."
+        while [ $# -ge 1 ]; do
+          gc_mark "$1"                      # 偶数位是值 ref
+          if [ $# -ge 2 ]; then shift 2; else break; fi
+        done
+      fi
+      if [ -n "$e2" ]; then gc_mark "$e2"; fi
+      ;;
+  esac
+}
+
+gc_sweep() {
+  local b start end list newlist ref
+  gc_mark "$REPL_ENV"                  # 先标记根：REPL_ENV 可达的一切都存活
+  b=0
+  end=$((_MAL_NEXT/_GC_BUCKET))
+  while [ $b -le $end ]; do
+    eval "list=\$_GC_B$b"
+    if [ -z "$list" ]; then b=$((b+1)); continue; fi
+    newlist=""
+    for ref in $list; do
+      eval "gc_alive=\${_GC_$ref+x}"
+      if [ -n "$gc_alive" ]; then
+        newlist="$newlist $ref"
+        eval "unset _GC_$ref"
+      else
+        case "$ref" in
+          C*) eval "unset _CK_$ref _CF_$ref _CP_$ref _CB_$ref _CE_$ref _CM_$ref" ;;
+          *)  eval "unset _V_$ref" ;;
+        esac
+        eval "if [ -n \"\$_MM_$ref\" ]; then unset _MM_$ref; fi"
+      fi
+    done
+    eval "_GC_B$b=\"${newlist# }\""
+    b=$((b+1))
+  done
+  _GC_LAST=$_MAL_NEXT
+}
+
+gc_maybe() {  # 安全点：REPL 顶层 / load-file 后调用
+  if [ $((_MAL_NEXT - _GC_LAST)) -ge $_GC_THRESH ]; then
+    gc_sweep
+  fi
+}
+
+
+
+# ---- 内联小对象（方案 E）----
+# list/vector/hash-map 的载荷若较短且不含 US（\x1f），直接编码进 ref：
+#   L*<空格->\x1f>  V*<...>  H*<...>
+# 不占变量表，缓解 dash 定长哈希表退化。存储型仍是 L<id>/V<id>/H<id>。
+US=$(printf '\037')
+_MAL_INLINE_MAX=40
 
 # ================= 值模型 =================
 # Z=nil Y=true F=false N<数字> S<符号> K<关键字>
@@ -68,7 +177,20 @@ mal_val() {  # $1=ref -> r=原始内容
     N*) r=${1#N} ;;
     S*) r=${1#S} ;;
     K*) r=${1#K} ;;
-    G*|L*|V*|H*|A*) _get_stored "$1" ;;
+    G*|A*) _get_stored "$1" ;;
+    L*|V*|H*)
+      case "$1" in
+        L'*'*|V'*'*|H'*'*)
+          r=${1#??}
+          # 解码：US -> 空格（IFS 分词重连）
+          local _oldifs="$IFS"
+          IFS="$US"
+          set -- $r
+          IFS="$_oldifs"
+          r="$*"
+          ;;
+        *) _get_stored "$1" ;;
+      esac ;;
     *) r="" ;;
   esac
 }
@@ -85,18 +207,40 @@ mal_str() {
   r="G$id"
 }
 mal_list() {
-  local id
-  new_id
-  id=$r
-  _set_stored "L$id" "$*"
-  r="L$id"
+  local payload="$*"
+  if [ "${#payload}" -le "$_MAL_INLINE_MAX" ] && [ "${payload#*"$US"}" = "$payload" ]; then
+    local _oldifs="$IFS"
+    IFS=' '
+    set -- $payload
+    IFS="$US"
+    r="$*"
+    IFS="$_oldifs"
+    r="L*$r"
+  else
+    local id
+    new_id
+    id=$r
+    _set_stored "L$id" "$payload"
+    r="L$id"
+  fi
 }
 mal_vec() {
-  local id
-  new_id
-  id=$r
-  _set_stored "V$id" "$*"
-  r="V$id"
+  local payload="$*"
+  if [ "${#payload}" -le "$_MAL_INLINE_MAX" ] && [ "${payload#*"$US"}" = "$payload" ]; then
+    local _oldifs="$IFS"
+    IFS=' '
+    set -- $payload
+    IFS="$US"
+    r="$*"
+    IFS="$_oldifs"
+    r="V*$r"
+  else
+    local id
+    new_id
+    id=$r
+    _set_stored "V$id" "$payload"
+    r="V$id"
+  fi
 }
 mal_map() {
   local id input_kv k v pairs="" o k2 v2 newpairs
@@ -120,10 +264,21 @@ mal_map() {
     pairs="${newpairs# } $k $v"
   done
   pairs=${pairs# }
-  new_id
-  id=$r
-  _set_stored "H$id" "$pairs"
-  r="H$id"
+  if [ "${#pairs}" -le "$_MAL_INLINE_MAX" ] && [ "${pairs#*"$US"}" = "$pairs" ]; then
+    local _oldifs="$IFS"
+    IFS=' '
+    set -- $pairs
+    IFS="$US"
+    r="$*"
+    IFS="$_oldifs"
+    r="H*$r"
+  else
+    local id
+    new_id
+    id=$r
+    _set_stored "H$id" "$pairs"
+    r="H$id"
+  fi
 }
 mal_atom() {
   local id
@@ -139,6 +294,7 @@ mal_closure_native() {  # $1=shell 函数名 -> r=C<id>
   new_id
   id=$r
   eval "_CK_C$id=native ; _CF_C$id=\$1 ; _CM_C$id=0"
+  gc_reg "C$id"
   r="C$id"
 }
 mal_closure_mal() {  # $1=形参名串 $2=body ref $3=闭包env -> r=C<id>
@@ -148,6 +304,7 @@ mal_closure_mal() {  # $1=形参名串 $2=body ref $3=闭包env -> r=C<id>
   # 环境回收的依据：env 只可能经由闭包的 _CE_ 字段逃逸，这里是唯一的捕获点。
   _MAL_NCLOS=$((_MAL_NCLOS+1))
   eval "_CK_C$id=mal ; _CP_C$id=\$1 ; _CB_C$id=\$2 ; _CE_C$id=\$3 ; _CM_C$id=0"
+  gc_reg "C$id"
   r="C$id"
 }
 closure_get() {  # $1=C<id> -> r_kind r_fn r_params r_body r_env r_ismacro
@@ -1468,7 +1625,10 @@ fn_println(){ _join_args 0 ' ' "$@"; printf '%s\n' "$r_join"; r=Z; }
 # -------- stepA：metadata --------
 fn_meta() {  # $1=对象 -> meta（无则 nil）
   local ref="$1" v
-  if eval "[ \"\$_MM_$ref\" ]"; then
+  case "$ref" in
+    L'*'*|V'*'*|H'*'*) r=Z; return ;;   # 内联对象不可能有 meta（with-meta 时已物化）
+  esac
+  if eval "[ "\$_MM_$ref" ]"; then
     eval "v=\$_MM_$ref"
     r="$v"
   else
@@ -1482,19 +1642,26 @@ fn_with_meta() {  # $1=对象 $2=meta -> 新对象（不突变）
   t="$r"
   case "$t" in
     __list)
+      # 物化为存储型：内联 ref 不是合法动态变量名，meta 必须挂在 L<id> 上
       mal_val "$obj"; v="$r"
-      mal_list $v
-      eval "_MM_$r=$meta"
+      new_id; id="$r"
+      _set_stored "L$id" "$v"
+      eval "_MM_L$id=$meta"
+      r="L$id"
       ;;
     __vec)
       mal_val "$obj"; v="$r"
-      mal_vec $v
-      eval "_MM_$r=$meta"
+      new_id; id="$r"
+      _set_stored "V$id" "$v"
+      eval "_MM_V$id=$meta"
+      r="V$id"
       ;;
     __map)
       mal_val "$obj"; v="$r"
-      mal_map $v
-      eval "_MM_$r=$meta"
+      new_id; id="$r"
+      _set_stored "H$id" "$v"
+      eval "_MM_H$id=$meta"
+      r="H$id"
       ;;
     __fn)
       # 闭包：复制字段 + 设 meta
@@ -1641,7 +1808,7 @@ fn_deref()  {
 fn_reset()  {
   mal_type "$1"
   if [ "$r" != __atom ]; then mal_error "reset!: not an atom"; return; fi
-  _set_stored "$1" "$2"
+  _update_stored "$1" "$2"
   r="$2"
 }
 fn_swap() {
@@ -1653,7 +1820,7 @@ fn_swap() {
   cur="$r"
   APPLY "$f" "$cur" "$@"
   if [ "$MAL_ERR" = 1 ]; then return; fi
-  _set_stored "$a" "$r"
+  _update_stored "$a" "$r"
 }
 
 # -------- step9：throw / 类型谓词 / apply / map --------
@@ -1831,6 +1998,7 @@ mal_repl() {
     env_set "$REPL_ENV" '*ARGV*' "$r"
     MAL_ERR=0; MAL_ERR_MSG=""; MAL_BLANK=0
     rep_silent "(load-file \"$file\")"
+    gc_maybe
     exit 0
   fi
   while true; do
@@ -1862,5 +2030,6 @@ mal_repl() {
     fi
     PRINT "$r"
     printf '%s\n' "$r_str"
+    gc_maybe
   done
 }
