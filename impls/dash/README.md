@@ -54,6 +54,28 @@ make
 
 ---
 
+# Shell 兼容性
+
+目标 shell 是 **dash**（POSIX），同时兼容 sh / bash / zsh：
+
+| Shell | 状态 | 说明 |
+|-------|------|------|
+| dash | ✅ 目标 | 全部功能验证（939/939 测试） |
+| sh（macOS /bin/sh） | ✅ | 特性矩阵 18/18 |
+| bash | ✅ | 特性矩阵 18/18 |
+| zsh | ✅（内置兼容行） | zsh 默认不分词（SH_WORD_SPLIT 未开），所有模块与 step 文件头部已内置 `if [ -n "$ZSH_VERSION" ]; then setopt SH_WORD_SPLIT; fi`；开启后全量 939/939 |
+| ksh93 | ❌ 不支持 | 见下 |
+
+**ksh93 不兼容的原因（无可行方案）**：
+
+1. `local`（dash/bash/zsh 扩展）与 `typeset`（ksh93）无交集关键字——dash 不认 typeset，ksh93 不认 local
+2. 实测 ksh93 的 POSIX 风格函数 `f() { typeset x=1; }` 中 typeset 是**全局**（调用后外部变量被改）；局部变量只在 Korn 风格 `function f { }` 中有效
+3. dash 不支持 `function` 关键字——两个 shell 的"局部变量可用形态"完全不重叠
+
+曾实测评估：eval 间接声明（ksh 中 typeset 经 eval 变全局）、local→typeset 构建期替换（ksh93 () 风格无效）、Korn 风格函数（dash 不支持）均失败。纯 POSIX 重写（移除全部 local）理论可行但与规则 6 的正确性根基冲突，不采用。
+
+---
+
 
 # 隐含规则
 
@@ -159,7 +181,7 @@ _get_stored() { eval "r=\$_V_$1"; }
 
 `_xx_` 那类**故意不加 `local`**：它们要被同函数内的 `eval` 字符串引用，而且只出现在**非递归的叶子函数**里。一旦某个用了 `_xx_` 的函数变成递归的，必须立刻改成 `local`。
 
-## 6. 递归函数的每个临时变量都必须 `local`
+## 6. 递归函数的每个临时变量都必须 `local`（ksh93 例外：不兼容）
 
 `EVAL`、`pr_str`、`fn_equal`、`READ_FORM` 全是递归的。dash 的 `local` 是动态作用域：内层声明会遮蔽外层，退出时恢复。**漏掉一个变量，内外层就共用它。**
 
