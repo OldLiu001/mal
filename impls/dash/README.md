@@ -5,24 +5,30 @@
 约束是自找的，也是这个实现全部有意思的地方：
 
 * 目标 shell 是 `dash`，**不是** bash。没有数组、没有关联数组、没有 `[[ ]]`、没有 `${v:off:len}`、没有 `${v//a/b}`、没有 `local -n`、没有进程替换。
-* **零外部进程**。整个解释器不 fork 任何子进程：不用 `sed`/`awk`/`tr`/`expr`/`cat`/`base64`，甚至不用 `$( )`。所有字符串处理都靠参数展开逐字符剥离。
-* 单一 `core.sh` 承载全部逻辑，`stepN_*.sh` 只是设一个 `STEPNUM` 的薄壳。
+* **最小外部进程**。除 `time-ms`（毫秒时钟，dash 无内置替代）调用一次 `python3` 外，解释器不 fork 任何子进程：不用 `sed`/`awk`/`tr`/`expr`/`cat`/`base64`，甚至不用 `$( )`。所有字符串处理都靠参数展开逐字符剥离。
+* **官方模块化架构**（guide.md 的 types.qx/reader.qx/printer.qx/env.qx/core.qx + stepN_xxx.qx）：共享模块 + 每 step 一个主文件，模块按官方增量逐步引入（step1 起 types/reader/printer，step2 加 env，step4 加 core）。
 
 ```
-core.sh            解释器全部实现
-step0_repl.sh      \
-step1_read_print.sh |
-step2_eval.sh       > 每个 6~7 行：设 STEPNUM，source core.sh，起 REPL
-step3_env.sh        |
-step4_if_fn_do.sh   /
-step5_tco.sh        尾调用优化
-step6_file.sh       文件 / 求值 / atom
-step7_quote.sh      quote / quasiquote / cons / concat
-step8_macros.sh     宏
-step9_try.sh        try / catch / throw
-stepA_mal.sh        metadata / readline / time-ms / seq / conj
+types.sh          值模型：ref 类型标签、构造器、存储、GC、内联小对象（官方 types.qx）
+reader.sh         tokenizer + reader，含 READ 入口（官方 reader.qx）
+printer.sh        pr_str / PRINT / 字符串转义（官方 printer.qx）
+env.sh            Env：env_new / env_set / env_get（官方 env.qx）
+core.sh           核心函数库：fn_* 全部 + key_equal / _join_args（官方 core.qx）
+
+step0_repl.sh      REPL 回显（READ/EVAL/PRINT/rep 桩）
+step1_read_print.sh 读取与打印
+step2_eval.sh     eval（符号/算术/容器字面量；fn_add 等内联，官方 step2 尚无 core.qx）
+step3_env.sh      def! / let*
+step4_if_fn_do.sh if / fn* / do + 核心库
+step5_tco.sh      尾调用优化 + DEBUG-EVAL
+step6_file.sh     文件 / 求值 / atom
+step7_quote.sh    quote / quasiquote / cons / concat
+step8_macros.sh   宏
+step9_try.sh      try* / hash-map 全量 / apply / map
+stepA_mal.sh      metadata / readline / time-ms / seq / conj
+
 run                exec dash "$dir/${STEP:-stepA_mal}.sh" [file.mal ...]
-Makefile           构建单文件 mal（cat core.sh + stepA wrapper）
+Makefile           构建单文件分发版 mal（stepA 合成）
 ```
 
 # 启动与用法
@@ -40,7 +46,7 @@ STEP=stepA_mal ./run somefile.mal
 # 自托管：dash 的 stepA 执行 impls/mal/ 下用 mal 语言写的解释器
 MAL_IMPL=dash STEP=stepA_mal ../../impls/mal/run
 
-# 构建单文件解释器（core.sh + stepA 合成可执行文件 mal）
+# 构建单文件分发版（stepA 合成可执行文件 mal）
 make
 ```
 
@@ -190,20 +196,24 @@ if [ "$MAL_ERR" = 1 ]; then return; fi
 
 漏掉检查不会崩，只会让错误后的代码继续拿着垃圾 `$r` 往下算，最终以一个风马牛不相及的信息报错。`EVAL` 和 `APPLY` 入口处也各有一次检查，作为兜底的"错误已置位就整体空转到顶"机制。
 
-## 8. 一个 `core.sh`，用 `STEPNUM` 做门控
+## 8. 官方模块化：共享模块 + step 主文件，`STEPNUM` 仅作注册裁剪
 
-不给每个 step 拷一份代码。`stepN_*.sh` 只做一件事：
+按官方 guide 拆分：5 个共享模块（types/reader/printer/env/core）+ 每 step 一个主文件。主文件 source 所需模块并承载主逻辑：
 
 ```sh
 STEPNUM=4
-. "$(dirname "$0")/core.sh"
+. "$(dirname "$0")/types.sh"      # 值模型/存储/GC
+. "$(dirname "$0")/reader.sh"
+. "$(dirname "$0")/printer.sh"
+. "$(dirname "$0")/env.sh"
+. "$(dirname "$0")/core.sh"       # step4 起
 init_repl_env
 mal_repl
 ```
 
-`core.sh` 内部用 `[ "$STEPNUM" -ge 3 ]` 之类的条件裁剪特殊形式和内建函数。好处是修一处全 step 受益；代价是**新增特性时必须想清楚它属于哪一步**，否则 step2 会意外通过本该失败的测试（官方测试确实会检查"这一步还不该支持什么"）。
+`STEPNUM` 保留在主文件里，用于 `init_repl_env` 的注册裁剪（哪些核心函数进 repl_env）与 `mal_repl` 的行为分支——模块化时已把注册门控**静态裁剪**进各 step 的 `init_repl_env`（step4 的主文件只注册 step4 函数），因此主文件不再有 `if [ "$STEPNUM" -ge N ]` 条件。**新增核心函数时想清楚它属于哪一步**，否则 step2 会意外通过本该失败的测试（官方测试确实会检查"这一步还不该支持什么"）。
 
-`STEPNUM` 语义即 mal 官方步骤号：0=echo、1=read/print、2=最简 eval、3=def!/let*、4=if/fn*/do、……
+例外：`fn_add`/`fn_sub`/`fn_mul`/`fn_div` 定义在 step2+ 主文件里（官方 step2 尚无 core.qx，算术直接写在 step 主文件），其余 `fn_*` 全部在 core.sh。
 
 ## 9. 输出一律 `printf '%s\n'`
 
