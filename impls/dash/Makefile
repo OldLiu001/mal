@@ -1,5 +1,6 @@
 # mal in dash —— 官方架构风格 Makefile
-# 每个 step 一个独立可执行文件（impls/dash/step*.sh），由 tools/split_steps.py 生成。
+# 官方模块化结构：types/reader/printer/env/core 模块 + step*.sh 主文件
+# （官方 types.qx/reader.qx/printer.qx/env.qx/core.qx + stepN_xxx.qx）。
 STEPS = step0_repl.sh step1_read_print.sh step2_eval.sh step3_env.sh \
 	step4_if_fn_do.sh step5_tco.sh step6_file.sh step7_quote.sh \
 	step8_macros.sh step9_try.sh stepA_mal.sh
@@ -17,10 +18,6 @@ dist: mal
 mal: stepA_mal.sh
 	cat $< > $@
 	chmod +x $@
-
-# 重新生成（模块化：5 个模块 + 11 个 step 主文件）
-split:
-	python3 tools/modularize.py
 
 clean:
 	rm -f mal

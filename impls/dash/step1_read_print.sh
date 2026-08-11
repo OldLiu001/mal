@@ -84,6 +84,5 @@ mal_repl() {
 }
 
 
-# ---- 启动 ----
-init_repl_env
+# ---- 启动（官方 step1 无环境，EVAL 恒等，直接 REPL）----
 mal_repl "$@"
