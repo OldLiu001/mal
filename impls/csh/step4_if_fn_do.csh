@@ -36,16 +36,11 @@ set noglob
 # input, with $status always 0.  Re-read without re-prompting on an empty
 # line and give up after a short run, so a closed pipe exits promptly.
 @ blank = 0
-set dir = `dirname $0`
-set tokprog = "$dir/tok.awk"
-set decprog = "$dir/dec.awk"
-set split2prog = "$dir/split2.awk"
-set strlib = "$dir/strlib.awk"
-set joinprog = "$dir/join.awk"
-set wrapprog = "$dir/wrap.awk"
-set equalprog = "$dir/equal.awk"
+set dir = "$0:h"
+if ("$dir" == "$0") set dir = "."
 
 set T = "/tmp/mal_csh_$$"
+set awkprog = "$dir/mal.awk"
 
 # ---- pre-allocated reader stack (indices 1..128) ----
 set op = (0)
@@ -204,7 +199,7 @@ REPL_AFTER_READ:
     goto EVAL
 
 REPL_PRINT:
-    echo "$E_RESULT" | awk -f "$decprog"
+    echo "$E_RESULT" | awk -v mode=dec -f "$awkprog"
     goto REPL_START
 
 REPL_EXIT:
@@ -217,7 +212,7 @@ REPL_EXIT:
 READ:
     set read_result = ""
     set rerr = ""
-    set TKA = (`echo "$R_LINE" | awk -f "$tokprog"`)
+    set TKA = (`echo "$R_LINE" | awk -v mode=tok -f $awkprog`)
     set ntok = $#TKA
     @ ti2 = 1
     while ($ti2 <= $ntok)
@@ -369,7 +364,7 @@ EVAL_DISPATCH:
         end
         if ("$dv" != "" && "$dv" != "nil" && "$dv" != "false") then
             echo -n "EVAL: "
-            echo "$E_AST" | awk -f "$decprog"
+            echo "$E_AST" | awk -v mode=dec -f "$awkprog"
         endif
     endif
     if ("$TCLASS" == "list" || "$TCLASS" == "vector" || "$TCLASS" == "hash") goto EVAL_COLL
@@ -486,7 +481,7 @@ EVAL_COLL_SETUP:
             endif
         endif
     endif
-    set SPL = (`echo "$E_AST" | awk -f "$split2prog"`)
+    set SPL = (`echo "$E_AST" | awk -v mode=split2 -f $awkprog`)
     set SPN[$D] = $#SPL
     @ i = 1
     while ($i <= $SPN[$D])
@@ -661,7 +656,7 @@ EVAL_LET:
             endif
         endif
     endif
-    set SPL = (`echo "$bl" | awk -f "$split2prog"`)
+    set SPL = (`echo "$bl" | awk -v mode=split2 -f $awkprog`)
     set LB_N[$D] = $#SPL
     @ i = 1
     while ($i <= $LB_N[$D])
@@ -809,7 +804,7 @@ EVAL_FN:
             endif
         endif
     endif
-    set SPL = (`echo "$pstr" | awk -f "$split2prog"`)
+    set SPL = (`echo "$pstr" | awk -v mode=split2 -f $awkprog`)
     set FNPARN[$FNN] = $#SPL
     @ i = 1
     while ($i <= $FNPARN[$FNN])
@@ -852,7 +847,7 @@ FN_BODY:
             endif
         endif
     endif
-    set SPL = (`echo "$bstr" | awk -f "$split2prog"`)
+    set SPL = (`echo "$bstr" | awk -v mode=split2 -f $awkprog`)
     set FNBB[$FNN] = $#SPL
     @ i = 1
     while ($i <= $FNBB[$FNN])
@@ -1094,7 +1089,7 @@ SPLIT_SCRATCH:
             endif
         endif
     endif
-    set SPL = (`echo "$a1" | awk -f "$split2prog"`)
+    set SPL = (`echo "$a1" | awk -v mode=split2 -f $awkprog`)
     set SCNT = $#SPL
     goto $SPLIT_CALLER
 SPLIT_SCRATCH_FAST:
@@ -1161,7 +1156,7 @@ APPLY_EQ:
     endif
     echo "$a1" > "$T.eq"
     echo "$a2" >> "$T.eq"
-    set E_RESULT = "`awk -f $strlib -f $equalprog $T.eq`"
+    set E_RESULT = "`awk -v mode=equal -f $awkprog $T.eq`"
     goto EVAL_RETURN
 
 APPLY_LT:
@@ -1231,8 +1226,8 @@ APPLY_PRSTR:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" > "$T.j"
-    set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j`"
+    awk -v mode=join -v jmode=1 -f "$awkprog" "$T.elv.$D" > "$T.j"
+    set E_RESULT = "`awk -v mode=wrap -v esc=1 -f $awkprog $T.j`"
     goto EVAL_RETURN
 
 APPLY_STR:
@@ -1243,8 +1238,8 @@ APPLY_STR:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=2 "$T.elv.$D" > "$T.j"
-    set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j`"
+    awk -v mode=join -v jmode=2 -f "$awkprog" "$T.elv.$D" > "$T.j"
+    set E_RESULT = "`awk -v mode=wrap -v esc=0 -f $awkprog $T.j`"
     goto EVAL_RETURN
 
 APPLY_PRN:
@@ -1255,7 +1250,7 @@ APPLY_PRN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+    awk -v mode=join -v jmode=1 -f "$awkprog" "$T.elv.$D" | awk -v mode=dec -f "$awkprog"
     set E_RESULT = "nil"
     goto EVAL_RETURN
 
@@ -1267,6 +1262,6 @@ APPLY_PRINTLN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+    awk -v mode=join -v jmode=3 -f "$awkprog" "$T.elv.$D" | awk -v mode=dec -f "$awkprog"
     set E_RESULT = "nil"
     goto EVAL_RETURN

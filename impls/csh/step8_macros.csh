@@ -36,22 +36,12 @@ set noglob
 # input, with $status always 0.  Re-read without re-prompting on an empty
 # line and give up after a short run, so a closed pipe exits promptly.
 @ blank = 0
-set dir = `dirname $0`
-set tokprog = "$dir/tok.awk"
-set decprog = "$dir/dec.awk"
-set split2prog = "$dir/split2.awk"
-set strlib = "$dir/strlib.awk"
-set joinprog = "$dir/join.awk"
-set wrapprog = "$dir/wrap.awk"
-set equalprog = "$dir/equal.awk"
-set encprog = "$dir/enc.awk"
-set filetokprog = "$dir/loadfile.awk"
-set atomprog = "$dir/atomprint.awk"
-set unquoteprog = "$dir/unquote.awk"
-set unreadprog = "$dir/unread.awk"
-set stripprog = "$dir/strip.awk"
+set dir = "$0:h"
+if ("$dir" == "$0") set dir = "."
+if ("$dir" == "$0") set dir = "."
 
 set T = "/tmp/mal_csh_$$"
+set awkprog = "$dir/mal.awk"
 
 # ---- pre-allocated reader stack (indices 1..128) ----
 set op = (0)
@@ -227,7 +217,7 @@ REPL_START:
     # with a file argument, load it first (like the official `run file`)
     if ($LD_STARTUP == 0 && $#argv > 0) then
         set LD_STARTUP = 1
-        set TKA = (`awk -f "$filetokprog" "$argv[1]"`)
+        set TKA = (`awk -v mode=filetok -f $awkprog "$argv[1]"`)
         set ntok = $#TKA
         set TI = 1
         set RCALLER = LOAD_FORM_DONE
@@ -266,9 +256,9 @@ REPL_AFTER_READ:
 
 REPL_PRINT:
     if ("$E_RESULT" =~ *__ATM_*) then
-        echo "$E_RESULT" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        echo "$E_RESULT" | awk -v mode=atom -v afile="$T.atoms" -f $awkprog | awk -v mode=dec -f $awkprog
     else
-        echo "$E_RESULT" | awk -f "$decprog"
+        echo "$E_RESULT" | awk -v mode=dec -f $awkprog
     endif
     goto REPL_START
 
@@ -284,7 +274,7 @@ REPL_EXIT:
 READ:
     set read_result = ""
     set rerr = ""
-    set TKA = (`echo "$R_LINE" | awk -f "$tokprog"`)
+    set TKA = (`echo "$R_LINE" | awk -v mode=tok -f $awkprog`)
     set ntok = $#TKA
     @ ti2 = 1
     while ($ti2 <= $ntok)
@@ -444,7 +434,7 @@ EVAL_DISPATCH:
         end
         if ("$dv" != "" && "$dv" != "nil" && "$dv" != "false") then
             echo -n "EVAL: "
-            echo "$E_AST" | awk -f "$decprog"
+            echo "$E_AST" | awk -v mode=dec -f $awkprog
         endif
     endif
     if ("$TCLASS" == "list" || "$TCLASS" == "vector" || "$TCLASS" == "hash") goto EVAL_COLL
@@ -561,7 +551,7 @@ EVAL_COLL_SETUP:
             endif
         endif
     endif
-    set SPL = (`echo "$E_AST" | awk -f "$split2prog"`)
+    set SPL = (`echo "$E_AST" | awk -v mode=split2 -f $awkprog`)
     set SPN[$D] = $#SPL
     @ i = 1
     while ($i <= $SPN[$D])
@@ -781,7 +771,7 @@ EVAL_LET:
             endif
         endif
     endif
-    set SPL = (`echo "$bl" | awk -f "$split2prog"`)
+    set SPL = (`echo "$bl" | awk -v mode=split2 -f $awkprog`)
     set LB_N[$D] = $#SPL
     @ i = 1
     while ($i <= $LB_N[$D])
@@ -932,7 +922,7 @@ EVAL_FN:
             endif
         endif
     endif
-    set SPL = (`echo "$pstr" | awk -f "$split2prog"`)
+    set SPL = (`echo "$pstr" | awk -v mode=split2 -f $awkprog`)
     set FNPARN[$FNN] = $#SPL
     @ i = 1
     while ($i <= $FNPARN[$FNN])
@@ -975,7 +965,7 @@ FN_BODY:
             endif
         endif
     endif
-    set SPL = (`echo "$bstr" | awk -f "$split2prog"`)
+    set SPL = (`echo "$bstr" | awk -v mode=split2 -f $awkprog`)
     set FNBB[$FNN] = $#SPL
     @ i = 1
     while ($i <= $FNBB[$FNN])
@@ -1180,7 +1170,7 @@ QQ_DONE:
 QQ_LOOP:
     # vectors: process the elements as a list and wrap the result in vec
     if ("$QQAST" =~ [[]*) then
-        echo "$QQAST" | awk -f "$stripprog" > "$T.qqv"
+        echo "$QQAST" | awk -v mode=strip -f $awkprog > "$T.qqv"
         set tmp = "`cat $T.qqv`"
         @ QQN++
         set QQS_CALLER[$QQN] = "$QQCALLER"
@@ -1532,7 +1522,7 @@ SPLIT_SCRATCH:
             endif
         endif
     endif
-    set SPL = (`echo "$a1" | awk -f "$split2prog"`)
+    set SPL = (`echo "$a1" | awk -v mode=split2 -f $awkprog`)
     set SCNT = $#SPL
     @ i = 1
     while ($i <= $SCNT)
@@ -1604,7 +1594,7 @@ APPLY_EQ:
     endif
     echo "$a1" > "$T.eq"
     echo "$a2" >> "$T.eq"
-    set E_RESULT = "`awk -f $strlib -f $equalprog $T.eq`"
+    set E_RESULT = "`awk -v mode=equal -f $awkprog $T.eq`"
     goto EVAL_RETURN
 
 APPLY_LT:
@@ -1674,12 +1664,12 @@ APPLY_PRSTR:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" > "$T.j"
+    awk -v mode=join -v jmode=1 -f $awkprog "$T.elv.$D" > "$T.j"
     if ("$T.j" =~ *__ATM_*) then
-        awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
-        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j2`"
+        awk -v mode=atom -v afile="$T.atoms" -f $awkprog "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -v mode=wrap -v esc=1 -f $awkprog $T.j2`"
     else
-        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j`"
+        set E_RESULT = "`awk -v mode=wrap -v esc=1 -f $awkprog $T.j`"
     endif
     goto EVAL_RETURN
 
@@ -1691,12 +1681,12 @@ APPLY_STR:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    awk -f "$strlib" -f "$joinprog" -v mode=2 "$T.elv.$D" > "$T.j"
+    awk -v mode=join -v jmode=2 -f $awkprog "$T.elv.$D" > "$T.j"
     if ("$T.j" =~ *__ATM_*) then
-        awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
-        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j2`"
+        awk -v mode=atom -v afile="$T.atoms" -f $awkprog "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -v mode=wrap -v esc=0 -f $awkprog $T.j2`"
     else
-        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j`"
+        set E_RESULT = "`awk -v mode=wrap -v esc=0 -f $awkprog $T.j`"
     endif
     goto EVAL_RETURN
 
@@ -1709,9 +1699,9 @@ APPLY_PRN:
         @ k++
     end
     if ("$T.elv.$D" =~ *__ATM_*) then
-        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        awk -v mode=join -v jmode=1 -f $awkprog "$T.elv.$D" | awk -v mode=atom -v afile="$T.atoms" -f $awkprog | awk -v mode=dec -f $awkprog
     else
-        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+        awk -v mode=join -v jmode=1 -f $awkprog "$T.elv.$D" | awk -v mode=dec -f $awkprog
     endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
@@ -1725,9 +1715,9 @@ APPLY_PRINTLN:
         @ k++
     end
     if ("$T.elv.$D" =~ *__ATM_*) then
-        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        awk -v mode=join -v jmode=3 -f $awkprog "$T.elv.$D" | awk -v mode=atom -v afile="$T.atoms" -f $awkprog | awk -v mode=dec -f $awkprog
     else
-        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+        awk -v mode=join -v jmode=3 -f $awkprog "$T.elv.$D" | awk -v mode=dec -f $awkprog
     endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
@@ -1740,8 +1730,8 @@ APPLY_READSTRING:
     # csh's nested-quote-in-backtick parse limitation), then tokenize with
     # the multi-line tokenizer (strings may contain real newlines) and
     # parse one form
-    echo "$a1" | awk -f "$strlib" -f "$unreadprog" | awk -f "$decprog" > "$T.raw"
-    set TKA = (`awk -f "$filetokprog" "$T.raw"`)
+    echo "$a1" | awk -v mode=unread -f $awkprog | awk -v mode=dec -f $awkprog > "$T.raw"
+    set TKA = (`awk -v mode=filetok -f $awkprog "$T.raw"`)
     set ntok = $#TKA
     set TI = 1
     set RCALLER = READSTRING_DONE
@@ -1768,9 +1758,9 @@ READSTRING_DONE:
 APPLY_SLURP:
     @ idx = ($D - 1) * 256 + 2
     set a1 = "$EVA[$idx]"
-    echo "$a1" | awk -f "$unquoteprog" > "$T.raw"
+    echo "$a1" | awk -v mode=unquote -f $awkprog > "$T.raw"
     set fpath = "`cat $T.raw`"
-    set E_RESULT = "`awk -f "$encprog" "$fpath"`"
+    set E_RESULT = "`awk -v mode=enc -f $awkprog "$fpath"`"
     goto EVAL_RETURN
 
 APPLY_ATOM:
@@ -1968,11 +1958,11 @@ SWAP_RESET_DONE:
 APPLY_LOADFILE:
     @ idx = ($D - 1) * 256 + 2
     set a1 = "$EVA[$idx]"
-    echo "$a1" | awk -f "$unquoteprog" > "$T.raw"
+    echo "$a1" | awk -v mode=unquote -f $awkprog > "$T.raw"
     set fpath = "`cat $T.raw`"
     # tokenize the whole file (forms may span lines), then parse+eval each
     # form in turn in the current environment
-    set TKA = (`awk -f "$filetokprog" "$fpath"`)
+    set TKA = (`awk -v mode=filetok -f $awkprog "$fpath"`)
     set ntok = $#TKA
     @ ti2 = 1
     while ($ti2 <= $ntok)

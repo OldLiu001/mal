@@ -2,8 +2,11 @@
 
 用 **csh（tcsh）** 实现的 [mal](https://github.com/kanaka/mal)（Make a Lisp）。
 
-这个实现的核心约束是自找的：**不用任何非标准外部程序**。awk 是唯一的
-外部依赖，而且只用于 csh 无法完成的字符级 I/O 工作（词法分析、集合切分、
+这个实现的核心约束是自找的：**不用任何非标准外部程序，也不用 tcsh 对
+csh 的语法扩展**——全部语法特性（`@ x++`、`:as`、`=~`、`${name}`、`else if`、
+`$var:h` 等）在 OpenBSD/FreeBSD 的经典 csh 手册中均有据可查。awk 是唯一的
+重型外部依赖，而且 18 个辅助脚本已合成为**单个 `mal.awk`**（`-v mode=`
+分发），只用于 csh 无法完成的字符级 I/O 工作（词法分析、集合切分、
 打印解码）——每次输入一行至多几次 fork，而不是每个操作一次。EVAL 热路径
 （元素访问、分类、环境查找、闭包应用、算术）全部是纯 csh 数组操作，零 fork。
 
@@ -20,6 +23,7 @@ step8_macros.csh   defmacro! / macroexpand / cond 宏
 step9_try.csh      try* / catch* / throw / hash-map 族 / apply / map
 stepA_mal.csh      metadata / readline / time-ms / seq / conj / 类型谓词
 run                STEP 环境变量选择步骤文件（默认 stepA_mal）
+mal.awk           全部 awk 辅助逻辑（按 -v mode= 分发，唯一外部依赖）
 ```
 
 跑测试：
@@ -115,6 +119,20 @@ tcsh 每条语句约 0.2ms，`goto` 还要全文搜标签。step5 测试里的
 所以 `Makefile.impls` 里 `step5_EXCLUDES += csh`（和 bash 同一待遇：
 "never completes at 10,000"）。其余所有 step 的测试都能通过，套件整体跑完
 约 10-20 分钟，建议用 `--test-timeout 120`。
+
+## 8.5 外部依赖
+
+| 程序 | 调用点 | 用途 | 状态 |
+|---|---|---|---|
+| `awk` | ~250（调用点） | 单文件 mal.awk，18 种模式 | 唯一重型依赖，POSIX 标准 |
+| `cat` | 42 | 反引号读临时文件（`$<` 重定向不可用） | 必需 |
+| `python3` | 2 | time-ms 毫秒时间戳 | macOS/Linux 自带 |
+| `echo` | 管道内 | csh 内建（管道中 fork 一次） | 内建 |
+| `/bin/csh` | — | 解释器 | 目标语言 |
+
+启动时不再调用 `dirname`（改用内建 `$0:h`，无斜杠时回退 `.`）。
+**已知陷阱**：反引号内 `"$var"` 双引号变量展开会压缩连续空格，awk 路径
+参数在反引号内必须无引号（`-f $awkprog`）；路径含空格的部署需自行调整。
 
 ## 9. 已知取舍
 

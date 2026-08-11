@@ -5,6 +5,7 @@
 # own directory, so cd there first.
 set step = "$STEP"
 if ("$step" == "") set step = "stepA_mal"
-set dir = `dirname $0`
+set dir = "$0:h"
+if ("$dir" == "$0") set dir = "."
 cd "$dir"
 exec /bin/csh "$step.csh" $argv

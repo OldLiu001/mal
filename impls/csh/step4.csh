@@ -1,2 +1,2 @@
 #!/bin/csh -f
-exec /bin/csh `dirname $0`/step4_if_fn_do.csh $argv
+exec /bin/csh "$0:h/step4_if_fn_do.csh $argv
