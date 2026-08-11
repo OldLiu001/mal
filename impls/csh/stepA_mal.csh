@@ -52,6 +52,7 @@ set unquoteprog = "$dir/unquote.awk"
 set unreadprog = "$dir/unread.awk"
 set stripprog = "$dir/strip.awk"
 set seqprog = "$dir/seq.awk"
+set stripwmprog = "$dir/stripwm.awk"
 
 set T = "/tmp/mal_csh_$$"
 
@@ -318,10 +319,14 @@ REPL_PRINT:
         if ("$E_RESULT" !~ Error*) set E_RESULT = "Error: $E_RESULT"
         set ERR = 0
     endif
-    if ("$E_RESULT" =~ *__ATM_*) then
-        echo "$E_RESULT" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    if ("$E_RESULT" =~ *ZZWM*) then
+        echo "$E_RESULT" | awk -f "$stripwmprog" | awk -f "$decprog"
     else
-        echo "$E_RESULT" | awk -f "$decprog"
+        if ("$E_RESULT" =~ *__ATM_*) then
+            echo "$E_RESULT" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        else
+            echo "$E_RESULT" | awk -f "$decprog"
+        endif
     endif
     goto REPL_START
 
@@ -602,6 +607,12 @@ EVAL_COLL_SETUP:
         set ECLOSE[$D] = "}"
     endif
     set EVN[$D] = 0
+    # with-meta identity markers do not affect evaluation; strip them so
+    # the collection splits cleanly (the rebuilt value drops the marker)
+    if ("$E_AST" =~ *ZZWM*) then
+        echo "$E_AST" | awk -f "$stripwmprog" > "$T.wm"
+        set E_AST = "`cat $T.wm`"
+    endif
     # A closure body whose split was cached at fn* time: copy it in.
     if ($BODYCACHE > 0) then
         set fidx = $BODYCACHE
@@ -788,7 +799,43 @@ EVAL_COLL_BUILD:
         endif
         @ k++
     end
+    # hash-map literals: duplicate keys collapse (last value wins)
+    if ("$EOPEN[$D]" == "{") then
+        set a1 = "{$s}"
+        set SPLIT_CALLER = HMBUILD_SPLIT
+        goto SPLIT_SCRATCH
+    endif
     set E_RESULT = "$EOPEN[$D]$s$ECLOSE[$D]"
+    goto EVAL_RETURN
+HMBUILD_SPLIT:
+    set s = ""
+    set started = 0
+    @ i = 1
+    while ($i < $SCNT)
+        set k1 = "$SPL[$i]"
+        @ i++
+        set v1 = "$SPL[$i]"
+        @ i++
+        # skip this pair if the key appears again later (last value wins)
+        set dup = 0
+        @ j = $i
+        while ($j < $SCNT)
+            if ("$SPL[$j]" == "$k1") then
+                set dup = 1
+                break
+            endif
+            @ j = $j + 2
+        end
+        if ($dup == 0) then
+            if ($started == 0) then
+                set s = "$k1 $v1"
+                set started = 1
+            else
+                set s = "$s $k1 $v1"
+            endif
+        endif
+    end
+    set E_RESULT = "{$s}"
     goto EVAL_RETURN
 
 # Common exit: E_RESULT already holds the value of the collection at depth D.
@@ -1383,6 +1430,15 @@ QQ_CONS_HEAD_DONE:
 
 # ---- special form: try* ----
 EVAL_TRY:
+    # without a catch* clause the body is evaluated plainly (errors
+    # propagate normally), like the reference implementation
+    if ($SPN[$D] < 3) then
+        @ idx = ($D - 1) * 256 + 2
+        set E_AST = "$SPA[$idx]"
+        set E_ENV = "$COLL_ENV[$D]"
+        set CALLER = EVAL_RET
+        goto EVAL
+    endif
     @ TRYN++
     set TRYD[$TRYN] = $D
     set TRYENV[$TRYN] = "$COLL_ENV[$D]"
@@ -1645,6 +1701,10 @@ APPLY_LISTP:
 # Uses only the SPL temp, never the depth-indexed SPA, so it is safe to call
 # from core functions while a collection is being evaluated.
 SPLIT_SCRATCH:
+    if ("$a1" =~ *ZZWM*) then
+        echo "$a1" | awk -f "$stripwmprog" > "$T.wm"
+        set a1 = "`cat $T.wm`"
+    endif
     if ("$a1" =~ \(*) then
         set mid = "$a1:s/(//"
         set mid = "$mid:as/)//"
@@ -1737,17 +1797,20 @@ APPLY_EQ:
     if ("$tmp" != "$a2") goto EQ_HASH
     # Pure string equality is exact for atoms and for lists/vectors built
     # from canonical serialization.  Vectors need the string-aware
-    # comparison in equal.awk ([..] vs (..) equivalence).
+    # comparison in equal.awk ([..] vs (..) equivalence), and values that
+    # carry with-meta markers go through equal.awk too (it strips them).
     set tmp = "$a1:as/[//"
     if ("$tmp" == "$a1") then
         set tmp = "$a2:as/[//"
         if ("$tmp" == "$a2") then
-            if ("$a1" == "$a2") then
-                set E_RESULT = "true"
-            else
-                set E_RESULT = "false"
+            if ("$a1" !~ *ZZWM* && "$a2" !~ *ZZWM*) then
+                if ("$a1" == "$a2") then
+                    set E_RESULT = "true"
+                else
+                    set E_RESULT = "false"
+                endif
+                goto EVAL_RETURN
             endif
-            goto EVAL_RETURN
         endif
     endif
     echo "$a1" > "$T.eq"
@@ -1755,6 +1818,17 @@ APPLY_EQ:
     set E_RESULT = "`awk -f $strlib -f $equalprog $T.eq`"
     goto EVAL_RETURN
 EQ_HASH:
+    # both operands must be hash-maps
+    set tmp = "$a1:s/{//"
+    if ("$tmp" == "$a1") then
+        set E_RESULT = "false"
+        goto EVAL_RETURN
+    endif
+    set tmp = "$a2:s/{//"
+    if ("$tmp" == "$a2") then
+        set E_RESULT = "false"
+        goto EVAL_RETURN
+    endif
     set a1 = "$a1"
     set SPLIT_CALLER = EQ_HASH_A1
     goto SPLIT_SCRATCH
@@ -1785,7 +1859,30 @@ EQ_HASH_A2:
         while ($j < $SCNT)
             if ("$SPL[$j]" == "$k1") then
                 @ j++
-                if ("$SPL[$j]" != "$v1") then
+                # nested collections compare through equal.awk
+                # (string-aware, vector/list equivalence)
+                set tmp = "$v1:as/[//"
+                if ("$tmp" == "$v1") then
+                    set tmp = "$v1:as/{//"
+                    if ("$tmp" == "$v1") then
+                        set tmp = "$SPL[$j]:as/[//"
+                        if ("$tmp" == "$SPL[$j]") then
+                            set tmp = "$SPL[$j]:as/{//"
+                            if ("$tmp" == "$SPL[$j]") then
+                                if ("$v1" != "$SPL[$j]") then
+                                    set E_RESULT = "false"
+                                    goto EVAL_RETURN
+                                endif
+                                set found = 1
+                                break
+                            endif
+                        endif
+                    endif
+                endif
+                echo "$v1" > "$T.eq"
+                echo "$SPL[$j]" >> "$T.eq"
+                set er = "`awk -f $strlib -f $equalprog $T.eq`"
+                if ("$er" != "true") then
                     set E_RESULT = "false"
                     goto EVAL_RETURN
                 endif
@@ -1869,6 +1966,11 @@ APPLY_PRSTR:
         @ k++
     end
     awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" > "$T.j"
+    if ("$T.j" =~ *ZZWM*) then
+        awk -f "$stripwmprog" "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j2`"
+        goto EVAL_RETURN
+    endif
     if ("$T.j" =~ *__ATM_*) then
         awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
         set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=1 $T.j2`"
@@ -1886,6 +1988,11 @@ APPLY_STR:
         @ k++
     end
     awk -f "$strlib" -f "$joinprog" -v mode=2 "$T.elv.$D" > "$T.j"
+    if ("$T.j" =~ *ZZWM*) then
+        awk -f "$stripwmprog" "$T.j" > "$T.j2"
+        set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j2`"
+        goto EVAL_RETURN
+    endif
     if ("$T.j" =~ *__ATM_*) then
         awk -f "$atomprog" -v afile="$T.atoms" "$T.j" > "$T.j2"
         set E_RESULT = "`awk -f $strlib -f $wrapprog -v esc=0 $T.j2`"
@@ -1902,10 +2009,14 @@ APPLY_PRN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    if ("$T.elv.$D" =~ *__ATM_*) then
-        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    if ("$T.elv.$D" =~ *ZZWM*) then
+        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$stripwmprog" | awk -f "$decprog"
     else
-        awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+        if ("$T.elv.$D" =~ *__ATM_*) then
+            awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        else
+            awk -f "$strlib" -f "$joinprog" -v mode=1 "$T.elv.$D" | awk -f "$decprog"
+        endif
     endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
@@ -1918,10 +2029,14 @@ APPLY_PRINTLN:
         echo "$EVA[$idx]" >> "$T.elv.$D"
         @ k++
     end
-    if ("$T.elv.$D" =~ *__ATM_*) then
-        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+    if ("$T.elv.$D" =~ *ZZWM*) then
+        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$stripwmprog" | awk -f "$decprog"
     else
-        awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+        if ("$T.elv.$D" =~ *__ATM_*) then
+            awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$atomprog" -v afile="$T.atoms" | awk -f "$decprog"
+        else
+            awk -f "$strlib" -f "$joinprog" -v mode=3 "$T.elv.$D" | awk -f "$decprog"
+        endif
     endif
     set E_RESULT = "nil"
     goto EVAL_RETURN
@@ -2759,6 +2874,37 @@ APPLY_HASHMAP:
         endif
         @ k++
     end
+    # duplicate keys collapse (last value wins)
+    set a1 = "{$s}"
+    set SPLIT_CALLER = HM_CONSTRUCT_SPLIT
+    goto SPLIT_SCRATCH
+HM_CONSTRUCT_SPLIT:
+    set s = ""
+    set started = 0
+    @ i = 1
+    while ($i < $SCNT)
+        set k1 = "$SPL[$i]"
+        @ i++
+        set v1 = "$SPL[$i]"
+        @ i++
+        set dup = 0
+        @ j = $i
+        while ($j < $SCNT)
+            if ("$SPL[$j]" == "$k1") then
+                set dup = 1
+                break
+            endif
+            @ j = $j + 2
+        end
+        if ($dup == 0) then
+            if ($started == 0) then
+                set s = "$k1 $v1"
+                set started = 1
+            else
+                set s = "$s $k1 $v1"
+            endif
+        endif
+    end
     set E_RESULT = "{$s}"
     goto EVAL_RETURN
 
@@ -2844,6 +2990,16 @@ APPLY_WITHMETA:
             @ i++
         end
         set E_RESULT = "__FNC_${FNN}__"
+        goto WM_STORE
+    endif
+    if ("$a1" =~ __ATM_*) then
+        set E_RESULT = "$a1"
+        goto WM_STORE
+    endif
+    set tmp = "$a1:s/{//"
+    if ("$a1" =~ [[]* || "$a1" =~ \(* || "$tmp" != "$a1") then
+        @ WM_N++
+        set E_RESULT = "${a1}ZZWM$WM_N"
         goto WM_STORE
     endif
     if ("$a1" =~ __CORE_*) then

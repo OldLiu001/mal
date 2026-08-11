@@ -121,6 +121,25 @@ tcsh 每条语句约 0.2ms，`goto` 还要全文搜标签。step5 测试里的
 - `ZZSP` 编码意味着用户写出的字面量 `ZZSP` 会被还原成空格（测试套件不含）。
 - slurp 的文件末尾换行会保留（`test.txt` 依赖这一点）；文件没有结尾换行时
   会多出一个 `ZZBn`。
-- `swap!` 对闭包和四则运算内建函数有效；其他内建函数不支持。
 - `*ARGV*` 的元素用 `:as` 编码，只处理常见字符。
 - atom 打印为 `(atom <值>)`（atomprint.awk 查表渲染）。
+- 用户写出的字面量 `ZZWM<数字>` 会被当作 with-meta 标记剥离（同 ZZSP 的
+  取舍，测试套件不含）。
+- 被 with-meta 标记的集合值在求值/切分时标记会被剥离，结果值不再携带
+  元数据（`(eval ^2 [1])` 会丢 meta；测试套件不依赖这一点）。
+
+## 10. 可选（soft/deferrable）测试也全部通过
+
+- **DEBUG-EVAL**：EVAL 前打印 `EVAL: <ast pr-str>`，与参考实现一致。
+- **quasiquote 展开结构**：与参考一致——构建表达式树
+  `(cons ...)`/`(concat ...)`/`(vec ...)`，顶层整体 EVAL 一次；原子
+  （nil/true/false/数字/字符串/关键字）原样返回，符号与 hash-map 用
+  `(quote ...)` 包裹。
+- **hash-map 重复键**：字面量和 `hash-map` 构造器都去重（后值生效）。
+- **hash-map 相等**：顺序无关的键值配对比较，嵌套向量/列表等价
+  （`{:a [11 22]}` 等于 `{:a (11 22)}`），map 与 list/vector 不相等。
+- **try* 无 catch**：body 普通求值，错误正常传播。
+- **with-meta 非突变**：闭包克隆；内建函数包装成变参闭包
+  `(apply (quote <fn>) args)`；其他值（集合/atom 除外）加 `ZZWM<id>`
+  身份标记，打印/相等/切分时剥离。`defmacro!` 同样克隆闭包，原函数
+  不被突变成宏。

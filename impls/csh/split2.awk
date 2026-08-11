@@ -47,6 +47,7 @@ function split_toplevel(s,    i, depth, cur, n, ch, len, c3, nx, instr) {
 
 {
     s = $0
+    gsub(/#WM[0-9]+/, "", s)
     first = substr(s, 1, 1)
     if (first == "(" || first == "[" || first == "{") {
         inner = substr(s, 2, length(s) - 2)

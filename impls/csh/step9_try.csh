@@ -772,7 +772,43 @@ EVAL_COLL_BUILD:
         endif
         @ k++
     end
+    # hash-map literals: duplicate keys collapse (last value wins)
+    if ("$EOPEN[$D]" == "{") then
+        set a1 = "{$s}"
+        set SPLIT_CALLER = HMBUILD_SPLIT
+        goto SPLIT_SCRATCH
+    endif
     set E_RESULT = "$EOPEN[$D]$s$ECLOSE[$D]"
+    goto EVAL_RETURN
+HMBUILD_SPLIT:
+    set s = ""
+    set started = 0
+    @ i = 1
+    while ($i < $SCNT)
+        set k1 = "$SPL[$i]"
+        @ i++
+        set v1 = "$SPL[$i]"
+        @ i++
+        # skip this pair if the key appears again later (last value wins)
+        set dup = 0
+        @ j = $i
+        while ($j < $SCNT)
+            if ("$SPL[$j]" == "$k1") then
+                set dup = 1
+                break
+            endif
+            @ j = $j + 2
+        end
+        if ($dup == 0) then
+            if ($started == 0) then
+                set s = "$k1 $v1"
+                set started = 1
+            else
+                set s = "$s $k1 $v1"
+            endif
+        endif
+    end
+    set E_RESULT = "{$s}"
     goto EVAL_RETURN
 
 # Common exit: E_RESULT already holds the value of the collection at depth D.
@@ -1367,6 +1403,15 @@ QQ_CONS_HEAD_DONE:
 
 # ---- special form: try* ----
 EVAL_TRY:
+    # without a catch* clause the body is evaluated plainly (errors
+    # propagate normally), like the reference implementation
+    if ($SPN[$D] < 3) then
+        @ idx = ($D - 1) * 256 + 2
+        set E_AST = "$SPA[$idx]"
+        set E_ENV = "$COLL_ENV[$D]"
+        set CALLER = EVAL_RET
+        goto EVAL
+    endif
     @ TRYN++
     set TRYD[$TRYN] = $D
     set TRYENV[$TRYN] = "$COLL_ENV[$D]"
@@ -1712,17 +1757,20 @@ APPLY_EQ:
     if ("$tmp" != "$a2") goto EQ_HASH
     # Pure string equality is exact for atoms and for lists/vectors built
     # from canonical serialization.  Vectors need the string-aware
-    # comparison in equal.awk ([..] vs (..) equivalence).
+    # comparison in equal.awk ([..] vs (..) equivalence), and values that
+    # carry with-meta markers go through equal.awk too (it strips them).
     set tmp = "$a1:as/[//"
     if ("$tmp" == "$a1") then
         set tmp = "$a2:as/[//"
         if ("$tmp" == "$a2") then
-            if ("$a1" == "$a2") then
-                set E_RESULT = "true"
-            else
-                set E_RESULT = "false"
+            if ("$a1" !~ *ZZWM* && "$a2" !~ *ZZWM*) then
+                if ("$a1" == "$a2") then
+                    set E_RESULT = "true"
+                else
+                    set E_RESULT = "false"
+                endif
+                goto EVAL_RETURN
             endif
-            goto EVAL_RETURN
         endif
     endif
     echo "$a1" > "$T.eq"
@@ -1730,6 +1778,17 @@ APPLY_EQ:
     set E_RESULT = "`awk -f $strlib -f $equalprog $T.eq`"
     goto EVAL_RETURN
 EQ_HASH:
+    # both operands must be hash-maps
+    set tmp = "$a1:s/{//"
+    if ("$tmp" == "$a1") then
+        set E_RESULT = "false"
+        goto EVAL_RETURN
+    endif
+    set tmp = "$a2:s/{//"
+    if ("$tmp" == "$a2") then
+        set E_RESULT = "false"
+        goto EVAL_RETURN
+    endif
     set a1 = "$a1"
     set SPLIT_CALLER = EQ_HASH_A1
     goto SPLIT_SCRATCH
@@ -1760,7 +1819,30 @@ EQ_HASH_A2:
         while ($j < $SCNT)
             if ("$SPL[$j]" == "$k1") then
                 @ j++
-                if ("$SPL[$j]" != "$v1") then
+                # nested collections compare through equal.awk
+                # (string-aware, vector/list equivalence)
+                set tmp = "$v1:as/[//"
+                if ("$tmp" == "$v1") then
+                    set tmp = "$v1:as/{//"
+                    if ("$tmp" == "$v1") then
+                        set tmp = "$SPL[$j]:as/[//"
+                        if ("$tmp" == "$SPL[$j]") then
+                            set tmp = "$SPL[$j]:as/{//"
+                            if ("$tmp" == "$SPL[$j]") then
+                                if ("$v1" != "$SPL[$j]") then
+                                    set E_RESULT = "false"
+                                    goto EVAL_RETURN
+                                endif
+                                set found = 1
+                                break
+                            endif
+                        endif
+                    endif
+                endif
+                echo "$v1" > "$T.eq"
+                echo "$SPL[$j]" >> "$T.eq"
+                set er = "`awk -f $strlib -f $equalprog $T.eq`"
+                if ("$er" != "true") then
                     set E_RESULT = "false"
                     goto EVAL_RETURN
                 endif
@@ -2733,6 +2815,37 @@ APPLY_HASHMAP:
             set s = "$s $EVA[$idx]"
         endif
         @ k++
+    end
+    # duplicate keys collapse (last value wins)
+    set a1 = "{$s}"
+    set SPLIT_CALLER = HM_CONSTRUCT_SPLIT
+    goto SPLIT_SCRATCH
+HM_CONSTRUCT_SPLIT:
+    set s = ""
+    set started = 0
+    @ i = 1
+    while ($i < $SCNT)
+        set k1 = "$SPL[$i]"
+        @ i++
+        set v1 = "$SPL[$i]"
+        @ i++
+        set dup = 0
+        @ j = $i
+        while ($j < $SCNT)
+            if ("$SPL[$j]" == "$k1") then
+                set dup = 1
+                break
+            endif
+            @ j = $j + 2
+        end
+        if ($dup == 0) then
+            if ($started == 0) then
+                set s = "$k1 $v1"
+                set started = 1
+            else
+                set s = "$s $k1 $v1"
+            endif
+        endif
     end
     set E_RESULT = "{$s}"
     goto EVAL_RETURN

@@ -976,7 +976,10 @@ EVAL_QQ:
     set QQ_REST = 0
     goto QQ_LOOP
 QQ_DONE:
-    goto EVAL_RETURN
+    # E_RESULT holds the built expression tree; evaluate it once
+    set E_AST = "$E_RESULT"
+    set CALLER = EVAL_RET
+    goto EVAL
 
 QQ_LOOP:
     # vectors: process the elements as a list and wrap the result in vec
@@ -990,21 +993,26 @@ QQ_LOOP:
         set QQ_REST = 1
         goto QQ_LOOP
     endif
-    # not a list (atom, string, keyword, number, hash-map) -> (quote ast)
+    # not a list: nil/true/false/numbers/strings/keywords return as-is
+    # (they evaluate to themselves); symbols and hash-maps are quoted
     set tmp = "$QQAST:as/(//"
     if ("$tmp" == "$QQAST") then
-        set E_AST = "(quote $QQAST)"
-        set CALLER = "$QQCALLER"
-        goto EVAL
+        if ("$QQAST" == "nil" || "$QQAST" == "true" || "$QQAST" == "false" || \
+            "$QQAST" =~ [0-9]* || "$QQAST" =~ -[0-9]* || "$QQAST" =~ ZZQ* || \
+            "$QQAST" =~ :*) then
+            set E_RESULT = "$QQAST"
+            goto $QQCALLER
+        endif
+        set E_RESULT = "(quote $QQAST)"
+        goto $QQCALLER
     endif
     set a1 = "$QQAST"
     set SPLIT_CALLER = QQ_SPLIT_DONE
     goto SPLIT_SCRATCH
 QQ_SPLIT_DONE:
     if ($SCNT == 0) then
-        set E_AST = "(quote ())"
-        set CALLER = "$QQCALLER"
-        goto EVAL
+        set E_RESULT = "()"
+        goto $QQCALLER
     endif
     set QQFIRST = "$SPL[1]"
     if ($QQ_REST == 0) then
@@ -1014,9 +1022,8 @@ QQ_SPLIT_DONE:
                 set ERR = 1
                 goto EVAL_ABORT
             endif
-            set E_AST = "$SPL[2]"
-            set CALLER = "$QQCALLER"
-            goto EVAL
+            set E_RESULT = "$SPL[2]"
+            goto $QQCALLER
         endif
     endif
     # splice-unquote at the head of this list: save the rest of THIS list
@@ -1044,17 +1051,11 @@ QQ_HEAD_SPLIT:
         set ERR = 1
         goto EVAL_ABORT
     endif
-    # (concat <evaluated-splice> (qq rest)): evaluate the splice argument
-    # first, then qq the rest
+    # (concat <splice-form> (qq rest)): the splice argument stays a form
+    # (evaluated by concat when the tree is evaluated); qq the rest first
     @ QQN++
     set QQS_RES[$QQN] = "$SPL[2]"
     set QQS_CALLER[$QQN] = "$QQCALLER"
-    set E_AST = "$SPL[2]"
-    set CALLER = QQ_SPLICE_EVAL_DONE
-    goto EVAL
-QQ_SPLICE_EVAL_DONE:
-    if ($ERR == 1) goto EVAL_ABORT
-    set QQS_RES[$QQN] = "$E_RESULT"
     set QQAST = "($qrest)"
     set QQCALLER = QQ_SPLICE_DONE
     set QQ_REST = 1
@@ -1084,9 +1085,8 @@ QQ_SPLICE_DONE:
     set QQCALLER = "$QQS_CALLER[$QQN]"
     set QQSPL = "$QQS_RES[$QQN]"
     @ QQN--
-    set E_AST = "(concat (quote $QQSPL) (quote $QQR))"
-    set CALLER = "$QQCALLER"
-    goto EVAL
+    set E_RESULT = "(concat $QQSPL $QQR)"
+    goto $QQCALLER
 QQ_CONS_REST_DONE:
     set QQS_RR[$QQN] = "$E_RESULT"
     set QQHEAD = "$QQS_RES[$QQN]"
@@ -1099,9 +1099,8 @@ QQ_CONS_HEAD_DONE:
     set QQR = "$QQS_RR[$QQN]"
     set QQCALLER = "$QQS_CALLER[$QQN]"
     @ QQN--
-    set E_AST = "(cons (quote $QQH) (quote $QQR))"
-    set CALLER = "$QQCALLER"
-    goto EVAL
+    set E_RESULT = "(cons $QQH $QQR)"
+    goto $QQCALLER
 
 # ---- apply ----
 EVAL_APPLY:
@@ -1927,7 +1926,7 @@ VEC_SPLIT_DONE:
     goto EVAL_RETURN
 
 QQ_VEC_INNER_DONE:
-    set E_AST = "(vec (quote $E_RESULT))"
-    set CALLER = "$QQS_CALLER[$QQN]"
+    set E_RESULT = "(vec $E_RESULT)"
+    set QQCALLER = "$QQS_CALLER[$QQN]"
     @ QQN--
-    goto EVAL
+    goto $QQCALLER
