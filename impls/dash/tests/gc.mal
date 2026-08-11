@@ -1,0 +1,211 @@
+;; ============================================================
+;; dash 实现 GC 专项测试（官方测试样例较弱，这里补 corner case）
+;;
+;; 运行方式（低阈值强制触发 GC，避免海量运行）：
+;;   cd impls/dash
+;;   GC_THRESH=300 python3 ../../runtest.py tests/gc.mal -- ./run
+;;
+;; 覆盖点：
+;;   1. 内联小对象（L*/V*/H*）与存储型对象的功能等价性
+;;   2. 活对象跨 GC 存活：全局 def!、atom、闭包捕获、meta、字符串
+;;   3. 死对象被回收后功能不受影响（循环制造临时大对象）
+;;   4. atom 反复 reset!/swap!（登记去重 corner case）
+;;   5. 循环引用（atom -> list -> atom）标记防重，不崩溃
+;;   6. 内联对象 + with-meta 物化后跨 GC
+;;   7. 环境 pend 回收与 sweep 共存（TCO 深递归）
+;; ============================================================
+
+;; ---------- 1. 内联 vs 存储：功能等价 ----------
+;; 20 元素（载荷 59 字符 > 40）→ 存储型
+(list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
+;=>(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
+
+;; 8 元素（载荷 23 字符 <= 40）→ 内联型
+(list 1 2 3 4 5 6 7 8)
+;=>(1 2 3 4 5 6 7 8)
+
+;; 空集合（内联空载荷）
+(list)
+;=>()
+[]
+;=>[]
+{}
+;=>{}
+
+;; 内联对象嵌套
+(list (list 1 2) [3 4] {:a 5})
+;=>((1 2) [3 4] {:a 5})
+
+;; 内联对象可正常作为 hash-map 键值
+(get {:k (list 1 2 3)} :k)
+;=>(1 2 3)
+
+;; 内联对象相等性
+(= (list 1 2 3) (list 1 2 3))
+;=>true
+
+;; ---------- 2. 活对象跨 GC 存活 ----------
+
+;; 全局大 list
+(def! keep-big (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20))
+;=>(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
+
+;; 全局大 vector / hash-map
+(def! keep-vec [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20])
+;=>[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+(def! keep-hm {:a 1 :b 2 :c 3 :d 4 :e 5 :f 6 :g 7 :h 8 :i 9 :j 10})
+;=>{:a 1 :b 2 :c 3 :d 4 :e 5 :f 6 :g 7 :h 8 :i 9 :j 10}
+
+;; 制造垃圾的循环（每次创建一个大临时 list，随即丢弃）
+(def! junk-loop (fn* (n) (if (= n 0) nil (do (list n n n n n n n n n n n n n n n n n n n n) (junk-loop (- n 1))))))
+;=>#<function>
+(junk-loop 100)
+;=>nil
+
+;; 垃圾制造后，全局活对象仍完好
+(count keep-big)
+;=>20
+(nth keep-big 19)
+;=>20
+(nth keep-vec 10)
+;=>11
+(get keep-hm :j)
+;=>10
+
+;; 内联小对象跨 GC（嵌套在 env 里的）
+(def! keep-small (list 1 2 3))
+;=>(1 2 3)
+(junk-loop 60)
+;=>nil
+keep-small
+;=>(1 2 3)
+
+;; ---------- 3. atom 跨 GC + reset! 登记去重 ----------
+
+(def! keep-atom (atom (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)))
+;=>(atom (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20))
+(count (deref keep-atom))
+;=>20
+
+;; 反复 reset!（每次旧值变垃圾）+ 触发 GC
+(reset! keep-atom (list 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40))
+;=>(21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40)
+(junk-loop 50)
+;=>nil
+(first (deref keep-atom))
+;=>21
+(nth (deref keep-atom) 19)
+;=>40
+
+;; swap! 同样不破坏登记
+(swap! keep-atom (fn* (xs) (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)))
+;=>(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
+(junk-loop 40)
+;=>nil
+(count (deref keep-atom))
+;=>20
+
+;; ---------- 4. 闭包捕获的环境跨 GC ----------
+
+(def! mk-adder (fn* (x) (fn* (y) (+ x y))))
+;=>#<function>
+(def! add5 (mk-adder 5))
+;=>#<function>
+(junk-loop 70)
+;=>nil
+(add5 7)
+;=>12
+
+;; 闭包捕获容器对象
+(def! mk-capture (fn* () (let* (big (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)) (fn* () big))))
+;=>#<function>
+(def! getter (mk-capture))
+;=>#<function>
+(junk-loop 60)
+;=>nil
+(count (getter))
+;=>20
+
+;; ---------- 5. 循环引用：标记防重，不崩溃 ----------
+
+(def! cyc (atom nil))
+;=>(atom nil)
+;; 造一个含自身引用的大 list（用 do 包住避免 REPL 打印环结构导致 pr_str 死循环）
+(do (reset! cyc (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 cyc)) nil)
+;=>nil
+;; 触发 GC（标记阶段必须能处理这个环）
+(junk-loop 80)
+;=>nil
+(atom? cyc)
+;=>true
+;; 不打印完整结构（pr_str 对环会递归），只做不深入的操作
+(count (deref cyc))
+;=>21
+;; 解环后正常
+(reset! cyc nil)
+;=>nil
+(junk-loop 30)
+;=>nil
+
+;; ---------- 6. meta 跨 GC（with-meta 物化） ----------
+
+;; 存储型对象带 meta
+(def! m-big (with-meta (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20) {:k 1}))
+;=>(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
+(junk-loop 50)
+;=>nil
+(meta m-big)
+;=>{:k 1}
+(count m-big)
+;=>20
+
+;; 内联对象 with-meta 物化后跨 GC
+(def! m-small (with-meta [1 2] {:a 1}))
+;=>[1 2]
+(meta m-small)
+;=>{:a 1}
+(junk-loop 40)
+;=>nil
+(meta m-small)
+;=>{:a 1}
+m-small
+;=>[1 2]
+
+;; 字符串跨 GC（G 存储型）
+(def! keep-str "hello gc world")
+;=>"hello gc world"
+(junk-loop 60)
+;=>nil
+keep-str
+;=>"hello gc world"
+
+;; ---------- 7. 环境 pend 回收与 sweep 共存 ----------
+
+;; TCO 深递归 + 每轮制造大临时对象
+(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ acc (count keep-big))))))
+;=>#<function>
+(sum2 200 0)
+;=>4000
+
+;; 深递归后全局对象仍完好
+(count keep-big)
+;=>20
+(get keep-hm :a)
+;=>1
+
+;; ---------- 8. 大量内联小对象（不占变量表） ----------
+
+(def! tiny-loop (fn* (n acc) (if (= n 0) acc (tiny-loop (- n 1) (cons n acc)))))
+;=>#<function>
+(count (tiny-loop 150 ()))
+;=>150
+(first (tiny-loop 150 ()))
+;=>1
+
+;; 收尾：全部活对象最终状态
+(count keep-big)
+;=>20
+(count (deref keep-atom))
+;=>20
+(add5 100)
+;=>105

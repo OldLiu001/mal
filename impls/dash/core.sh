@@ -52,7 +52,7 @@ new_id() { _MAL_NEXT=$((_MAL_NEXT+1)); r=$_MAL_NEXT; }
 # 标记：从根（REPL_ENV）DFS，_GC_<ref>=1 防重；环境无环不设标记直接展开。
 # 清扫：遍历桶，未标记的 unset；触发点在 REPL 顶层等安全点（调用栈为空）。
 _GC_LAST=0
-_GC_THRESH=30000
+_GC_THRESH=${GC_THRESH:-30000}
 _GC_BUCKET=256
 
 gc_reg() {  # $1=ref（存储型）-> 登记到桶
@@ -87,6 +87,9 @@ gc_mark() {  # $1=ref
       ;;
     C*)
       eval "if [ \"\${_GC_$ref+x}\" = x ]; then return; fi; _GC_$ref=1"
+      # 闭包的可达对象：形参 list、body list、捕获环境、meta
+      eval "gc_mark \"\$_CP_$ref\""
+      eval "gc_mark \"\$_CB_$ref\""
       eval "gc_mark \"\$_CE_$ref\""
       eval "if [ -n \"\$_MM_$ref\" ]; then gc_mark \"\$_MM_$ref\"; fi"
       ;;
