@@ -18,9 +18,9 @@ mal: stepA_mal.sh
 	cat $< > $@
 	chmod +x $@
 
-# 重新生成 step 文件（从 core.sh 单文件实现拆分）
+# 重新生成（模块化：5 个模块 + 11 个 step 主文件）
 split:
-	python3 tools/split_steps.py
+	python3 tools/modularize.py
 
 clean:
 	rm -f mal
