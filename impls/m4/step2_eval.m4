@@ -16,8 +16,7 @@ dnl    evaluation cannot clobber them.
 include(reader.m4)dnl
 define(<<<READ>>>, <<<define(<<<__LAST_AST>>>, ENC(read_str(<<<$1>>>)))>>>)dnl
 define(<<<PRINT>>>, <<<DEC(ev_form(defn(<<<__FORM>>>)))>>>)dnl
-define(<<<REP>>>, <<<READ(<<<$1>>>)define(<<<__FORM>>>, defn(<<<__LAST_AST>>>))define(<<<__RES>>>, PRINT())ifelse(__ERR, 1, <<<Error: >>>__ERRMSG<<<
->>>, <<<defn(<<<__RES>>>)>>>)
+define(<<<REP>>>, <<<READ(<<<$1>>>)define(<<<__FORM>>>, defn(<<<__LAST_AST>>>))define(<<<__RES>>>, PRINT())ifelse(__ERR, 1, <<<Error: >>>__ERRMSG, <<<defn(<<<__RES>>>)>>>)
 >>>)dnl
 define(<<<is_number>>>, <<<ifelse(first_char(<<<$1>>>), <<<->>>, <<<is_digits(rest_str(<<<$1>>>))>>>, <<<is_digits(<<<$1>>>)>>>)>>>)dnl
 define(<<<is_digit>>>, <<<ifelse(regexp(<<<$1>>>, <<<^[0-9]$>>>), 0, 1, 0)>>>)dnl

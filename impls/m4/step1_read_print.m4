@@ -7,6 +7,5 @@ include(reader.m4)dnl
 define(<<<READ>>>, <<<define(<<<__LAST_AST>>>, read_str(<<<$1>>>))>>>)dnl
 define(<<<EVAL>>>, <<<$1>>>)dnl
 define(<<<PRINT>>>, <<<DEC(defn(<<<__LAST_AST>>>))>>>)dnl
-define(<<<REP>>>, <<<READ(<<<$1>>>)ifelse(__ERR, 1, <<<Error: >>>__ERRMSG<<<
->>>, <<<PRINT()>>>)
+define(<<<REP>>>, <<<READ(<<<$1>>>)ifelse(__ERR, 1, <<<Error: >>>__ERRMSG, <<<PRINT()>>>)
 >>>)dnl

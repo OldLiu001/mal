@@ -8,8 +8,9 @@ dnl so all quoting here uses <<< >>> as well.
 dnl
 dnl All value-passing between macro layers uses $@ (which preserves
 dnl argument boundaries, so values containing commas survive).
-
+dnl
 define(<<<READ>>>, <<<$@>>>)dnl
 define(<<<EVAL>>>, <<<$@>>>)dnl
 define(<<<PRINT>>>, <<<$@>>>)dnl
-define(<<<REP>>>, <<<PRINT(EVAL(READ($@)))>>>)dnl
+define(<<<REP>>>, <<<PRINT(EVAL(READ($@)))<<<
+>>>>>>)dnl
