@@ -20,7 +20,7 @@ dnl   commas/leading whitespace would corrupt collection otherwise).
 dnl - COMMA-FREE CALLS: builtin calls with commas in their argument text
 dnl   (substr, translit) MUST be wrapped in helper macros so the commas
 dnl   appear only inside a quoted macro definition, never inline.
-
+dnl
 define(<<<__ERR>>>, <<<0>>>)dnl
 define(<<<SP>>>, format(%c,32))dnl
 define(<<<BS>>>, format(%c,92))dnl
