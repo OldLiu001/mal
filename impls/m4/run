@@ -9,4 +9,4 @@ step="${STEP:-stepA_mal}"
 tmp=$(mktemp /tmp/m4mal.XXXXXX)
 trap 'rm -f "$tmp"' EXIT
 sed "s|__STEP__|$dir/$step.m4|" "$dir/driver.m4.in" > "$tmp"
-exec m4 -L 2000 "$tmp"
+exec m4 -I "$dir" -L 2000 "$tmp"

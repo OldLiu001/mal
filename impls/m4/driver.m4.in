@@ -4,5 +4,5 @@ define(<<<NL>>>, <<<esyscmd(<<<printf "\n">>>)>>>)dnl
 define(<<<PR>>>, <<<esyscmd(<<<printf "\nuser> ">>>)>>>)dnl
 include(__STEP__)dnl
 PR
-define(<<<mainloop>>>, <<<define(<<<_l>>>, readline)ifelse(defn(<<<_l>>>), EOF, <<<>>>, <<<NL<<<>>>indir(<<<REP>>>, defn(<<<_l>>>))<<<>>>PR<<<>>>mainloop>>>)>>>)dnl
+define(<<<mainloop>>>, <<<define(<<<_l>>>, readline)ifelse(defn(<<<_l>>>), EOF, <<<>>>, <<<NL<<<>>>indir(<<<REP>>>, defn(<<<_l>>>))NL<<<>>>PR<<<>>>mainloop>>>)>>>)dnl
 mainloop
