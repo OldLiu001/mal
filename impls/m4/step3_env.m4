@@ -17,9 +17,9 @@ define(<<<REP>>>, <<<ifelse(defn(<<<__REPL_ENV>>>), E, <<<define(<<<__REPL_ENV>>
 >>>)dnl
 define(<<<env_new>>>, <<<define(<<<__ENV_CTR>>>, eval(defn(<<<__ENV_CTR>>>)+1))indir(<<<define>>>, <<<__E>>>defn(<<<__ENV_CTR>>>)<<<_C>>>, 0)ifelse(<<<$1>>>, E, E, <<<indir(<<<define>>>, <<<__E>>>defn(<<<__ENV_CTR>>>)<<<_O>>>, <<<$1>>>)>>>)defn(<<<__ENV_CTR>>>)>>>)dnl
 define(<<<env_set>>>, <<<define(<<<__EI>>>, indir(<<<__E>>>$1<<<_C>>>))indir(<<<define>>>, <<<__E>>>$1<<<_N>>>defn(<<<__EI>>>), <<<$2>>>)indir(<<<define>>>, <<<__E>>>$1<<<_V>>>defn(<<<__EI>>>), <<<$3>>>)indir(<<<define>>>, <<<__E>>>$1<<<_C>>>, eval(defn(<<<__EI>>>)+1))>>>)dnl
-define(<<<env_get>>>, <<<ifelse(<<<$1>>>, E, <<<err_symbol(<<<$2>>>)E>>>, <<<env_gs(<<<$1>>>, <<<$2>>>, 0)>>>)>>>)dnl
-define(<<<env_gs>>>, <<<ifdef(<<<__E>>>$1<<<_N>>>$3, <<<env_gs1(<<<$1>>>, <<<$2>>>, <<<$3>>>)>>>, <<<env_gs_outer(<<<$1>>>, <<<$2>>>)>>>)>>>)dnl
-define(<<<env_gs1>>>, <<<ifelse(indir(<<<__E>>>$1<<<_N>>>$3), <<<$2>>>, <<<defn(<<<__E>>>$1<<<_V>>>$3)>>>, <<<env_gs(<<<$1>>>, <<<$2>>>, eval($3+1))>>>)>>>)dnl
+define(<<<env_get>>>, <<<ifelse(<<<$1>>>, E, <<<err_symbol(<<<$2>>>)E>>>, <<<env_gs(<<<$1>>>, <<<$2>>>, eval(indir(<<<__E>>>$1<<<_C>>>)-1))>>>)>>>)dnl
+define(<<<env_gs>>>, <<<ifelse(eval($3<0), 1, <<<env_gs_outer(<<<$1>>>, <<<$2>>>)>>>, <<<ifdef(<<<__E>>>$1<<<_N>>>$3, <<<env_gs1(<<<$1>>>, <<<$2>>>, <<<$3>>>)>>>, <<<env_gs_outer(<<<$1>>>, <<<$2>>>)>>>)>>>)>>>)dnl
+define(<<<env_gs1>>>, <<<ifelse(indir(<<<__E>>>$1<<<_N>>>$3), <<<$2>>>, <<<defn(<<<__E>>>$1<<<_V>>>$3)>>>, <<<env_gs(<<<$1>>>, <<<$2>>>, eval($3-1))>>>)>>>)dnl
 define(<<<env_gs_outer>>>, <<<ifdef(<<<__E>>>$1<<<_O>>>, <<<env_get(indir(<<<__E>>>$1<<<_O>>>), <<<$2>>>)>>>, <<<err_symbol(<<<$2>>>)E>>>)>>>)dnl
 dnl ---- helpers ----
 define(<<<is_number>>>, <<<ifelse(first_char(<<<$1>>>), <<<->>>, <<<is_digits(rest_str(<<<$1>>>))>>>, <<<is_digits(<<<$1>>>)>>>)>>>)dnl
@@ -125,7 +125,7 @@ define(<<<ev_lf3>>>, <<<ifelse(<<<$1>>>, <<<{>>>, <<<sf_brace(<<<$2>>>)ev_lf_ele
 define(<<<ev_lf4>>>, <<<ifelse(<<<$1>>>, <<<">>>, <<<sf_string(<<<$2>>>)ev_lf_elem(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$3>>>, <<<$4>>>)>>>, <<<ev_lf5(<<<$2>>>, <<<$3>>>, <<<$4>>>)>>>)>>>)dnl
 define(<<<ev_lf5>>>, <<<ev_token(E, <<<$1>>>)ev_lf_elem(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>, <<<$3>>>)>>>)dnl
 define(<<<ev_lf_elem>>>, <<<define(<<<__V>>>, ev_form(<<<$1>>>, <<<$4>>>))ifelse(len(<<<$3>>>), 0, <<<ev_lf_scan(skip_ws(<<<$2>>>), defn(<<<__V>>>), <<<$4>>>)>>>, <<<ev_lf_scan(skip_ws(<<<$2>>>), <<<$3>>>SP()defn(<<<__V>>>), <<<$4>>>)>>>)>>>)dnl
-define(<<<ev_listq>>>, <<<define(<<<__V>>>, ev_form(skip_ws(<<<$1>>>), <<<$2>>>))ifelse(index(defn(<<<__V>>>), <<<(-->>>), 0, true, false)>>>)dnl
+define(<<<ev_listq>>>, <<<define(<<<__V>>>, ev_form(skip_ws(<<<$1>>>), <<<$2>>>))ifelse(index(defn(<<<__V>>>), <<<(>>>), 0, true, false)>>>)dnl
 define(<<<ev_emptyq>>>, <<<define(<<<__V>>>, ev_form(skip_ws(<<<$1>>>), <<<$2>>>))ifelse(len(inner_of(defn(<<<__V>>>))), 0, true, false)>>>)dnl
 define(<<<ev_count>>>, <<<define(<<<__V>>>, ev_form(skip_ws(<<<$1>>>), <<<$2>>>))count_scan(skip_ws(inner_of(defn(<<<__V>>>))), 0)>>>)dnl
 define(<<<count_scan>>>, <<<ifelse(len(<<<$1>>>), 0, <<<$2>>>, <<<split_first(<<<$1>>>)count_scan(defn(<<<__SF_REST>>>), eval($2+1))>>>)>>>)dnl
