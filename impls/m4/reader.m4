@@ -24,12 +24,19 @@ dnl
 define(<<<__ERR>>>, <<<0>>>)dnl
 define(<<<SP>>>, format(%c,32))dnl
 define(<<<BS>>>, format(%c,92))dnl
+define(<<<NLCH>>>, format(%c,10))dnl
+define(<<<TABCH>>>, format(%c,9))dnl
+define(<<<CRCH>>>, format(%c,13))dnl
 define(<<<E>>>, )dnl
 dnl encoded delimiters
-define(<<<LP>>>, format(%c,11))dnl      dnl encoded (
-define(<<<RP>>>, format(%c,127))dnl     dnl encoded )
-define(<<<CM>>>, format(%c,12))dnl      dnl encoded ,
-define(<<<HS>>>, format(%c,26))dnl      dnl encoded #
+dnl NOTE: LP/CM were \x0b/\x0c (VT/FF) which GNU m4 treats as
+ dnl whitespace during argument collection, silently splitting macro
+ dnl args. Changed to \x0e/\x10 which are non-whitespace control
+ dnl chars and never appear in MAL input. RP/HS moved to \x0f/\x11.
+define(<<<LP>>>, format(%c,14))dnl      dnl encoded (  (\x0e, non-ws)
+define(<<<RP>>>, format(%c,15))dnl      dnl encoded )  (\x0f, non-ws)
+define(<<<CM>>>, format(%c,16))dnl      dnl encoded ,  (\x10, non-ws)
+define(<<<HS>>>, format(%c,17))dnl      dnl encoded #  (\x11, non-ws)
 define(<<<ENC>>>, <<<translit(<<<$1>>>, <<<(),#>>>, LP()RP()CM()HS())>>>)dnl
 define(<<<DEC>>>, <<<translit(<<<$1>>>, LP()RP()CM()HS(), <<<(),#>>>)>>>)dnl
 dnl ---- string helpers (wrap comma-containing builtin calls) ----
@@ -76,7 +83,7 @@ define(<<<parse_map_body2>>>, <<<ifelse(len(<<<$1>>>), 0, <<<errset>>>, <<<ifels
 define(<<<pm_join>>>, <<<ifelse(len(<<<$2>>>), 0, <<<$1>>>, <<<$1>>>SP<<<$2>>>)>>>)dnl
 dnl ---- strings (verbatim copy of raw content between the quotes) ----
 define(<<<parse_string>>>, <<<ps_scan(E, rest_str(<<<$1>>>))>>>)dnl
-define(<<<ps_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<err_string>>>, <<<ifelse(first_char(<<<$2>>>), <<<">>>, <<<ps_done(<<<$1>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), BS, <<<ps_scan(<<<$1>>>defn(<<<BS>>>)second_char(<<<$2>>>), skip2(<<<$2>>>))>>>, <<<ps_scan(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)>>>)>>>)dnl
+define(<<<ps_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<ps_done(<<<$1>>>, E)>>>, <<<ifelse(first_char(<<<$2>>>), <<<">>>, <<<ps_done(<<<$1>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), BS, <<<ps_scan(<<<$1>>>defn(<<<BS>>>)second_char(<<<$2>>>), skip2(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), NLCH(), <<<ps_scan(<<<$1>>>BS()<<<n>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), TABCH(), <<<ps_scan(<<<$1>>>BS()<<<t>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), CRCH(), <<<ps_scan(<<<$1>>>BS()<<<r>>>, rest_str(<<<$2>>>))>>>, <<<ps_scan(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)>>>)>>>)>>>)>>>)>>>)dnl
 define(<<<ps_done>>>, <<<define(<<<__REST>>>, <<<$2>>>)"<<<$1>>>">>>)dnl
 dnl ---- error helpers ----
 define(<<<errset>>>, <<<define(<<<__ERR>>>, 1)define(<<<__ERRMSG>>>, unbalanced parentheses)define(<<<__REST>>>, )>>>)dnl
