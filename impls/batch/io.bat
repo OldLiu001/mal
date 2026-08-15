@@ -2,24 +2,23 @@
 if "%~1" neq "" (
 	call %* || (
 		if defined _G.TRACE (
-			2>con >&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" failed.
+			>&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" failed.
 		) else (
-			2>con >&2 echo [%~n0] Fatal: Call "%~nx0" failed.
+			>&2 echo [%~n0] Fatal: Call "%~nx0" failed.
 		)
 		2>con >&2 pause
 		exit 1
 	)
 ) else (
 	if defined _G.TRACE (
-		2>con >&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" with nothing.
+		>&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" with nothing.
 	) else (
-		2>con >&2 echo [%~n0] Fatal: Call "%~nx0" with nothing.
+		>&2 echo [%~n0] Fatal: Call "%~nx0" with nothing.
 	)
 	2>con >&2 pause
 	exit 1
 )
 exit /b 0
-
 
 :IO_ReadEncLine -> Line
 	for %%. in (_L[!_G.LEVEL!].) do (
@@ -78,10 +77,11 @@ exit /b 0
 
 :IO_WriteErrLineVal Val
 	for %%. in (_L[!_G.LEVEL!].) do (
+		set "%%.V=%~1"
 		if defined MAL_BATCH_IMPL_NO_STDERR (
-			echo.%~1
+			echo.!%%.V!
 		) else (
-			2>&1 echo.%~1
+			2>&1 echo.!%%.V!
 		)
 	)
 %-|%
