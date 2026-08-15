@@ -12,30 +12,34 @@ setlocal disabledelayedexpansion
 
 set Input=
 set /p "Input="
+if not defined Input goto :eof
+
+rem First, replace $ to $$.
+set "Input=%Input:$=$$%"
+rem Replace double quotation mark.
+set "Input=%Input:"=$D%"
+rem Replace ! to $E (call for two-step expansion to handle delayed-expansion char).
+call set "Input=%%Input:!=$E%%"
+
+rem Switch to delayed expansion for ^ and % handling.
+rem Delayed expansion (!var!) is safe inside ( ) blocks because
+rem values are expanded at runtime, not parse time.
+setlocal ENABLEDELAYEDEXPANSION
+
+rem Replace ^ to $C.
+set "Input=!Input:^=$C!"
+
+rem Replace % char by char (set command can't safely replace literal %).
+set FormatedInput=
+:ReplacementLoop
 if defined Input (
-	rem First, replace $ to $$.
-	set "Input=%Input:$=$$%"
-	rem Replace double quotation mark.
-	set "Input=%Input:"=$D%"
-	rem Batch can't deal with "!" when delayed expansion is enabled, so replace it to a special string.
-	call set "Input=%%Input:!=$E%%"
-	setlocal ENABLEDELAYEDEXPANSION
-	%Speed Improve Start% (
-		rem Batch has some problem in "^" processing, so replace it.
-		set "Input=!Input:^=$C!"
-		rem Replace %.
-		set FormatedInput=
-		:LOCALTAG_Main_ReplacementLoop
-		if defined Input (
-			if "!Input:~,1!" == "%%" (
-				set "FormatedInput=!FormatedInput!$P"
-			) else (
-				set "FormatedInput=!FormatedInput!!Input:~,1!"
-			)
-			set "Input=!Input:~1!"
-			goto LOCALTAG_Main_ReplacementLoop
-		)
-		echo.!FormatedInput!
-		endlocal
-	) %Speed Improve End%
+	if "!Input:~,1!" == "%%" (
+		set "FormatedInput=!FormatedInput!$P"
+	) else (
+		set "FormatedInput=!FormatedInput!!Input:~,1!"
+	)
+	set "Input=!Input:~1!"
+	goto ReplacementLoop
 )
+echo.!FormatedInput!
+endlocal
