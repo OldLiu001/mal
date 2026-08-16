@@ -1,9 +1,15 @@
 // Node vs browser behavior
 var interop = {};
 if (typeof module === 'undefined') {
-    var exports = interop,
-        GLOBAL = window;
+    var exports = interop;
 }
+// Determine global object across runtimes
+var GLOBAL;
+if (typeof global !== 'undefined') { GLOBAL = global; }
+else if (typeof window !== 'undefined') { GLOBAL = window; }
+else if (typeof WScript !== 'undefined') { GLOBAL = this; }
+else if (typeof System !== 'undefined') { GLOBAL = this; }
+else { GLOBAL = this; }
 
 function resolve_js(str) {
     if (str.match(/\./)) {

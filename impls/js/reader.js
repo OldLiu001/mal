@@ -18,7 +18,7 @@ function tokenize(str) {
     var re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
     var results = [];
     while ((match = re.exec(str)[1]) != '') {
-        if (match[0] === ';') { continue; }
+        if (match.charAt(0) === ';') { continue; }
         results.push(match);
     }
     return results;
@@ -34,9 +34,9 @@ function read_atom (reader) {
     } else if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
         return token.slice(1,token.length-1) 
             .replace(/\\(.)/g, function (_, c) { return c === "n" ? "\n" : c})
-    } else if (token[0] === "\"") {
+    } else if (token.charAt(0) === "\"") {
             throw new Error("expected '\"', got EOF");
-    } else if (token[0] === ":") {
+    } else if (token.charAt(0) === ":") {
         return types._keyword(token.slice(1));
     } else if (token === "nil") {
         return null;

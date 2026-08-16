@@ -19,7 +19,7 @@ function _obj_type(obj) {
         switch (typeof(obj)) {
         case 'number':   return 'number';
         case 'function': return 'function';
-        case 'string': return obj[0] == '\u029e' ? 'keyword' : 'string';
+        case 'string': return obj.charAt(0) == '\u029e' ? 'keyword' : 'string';
         default: throw new Error("Unknown type '" + typeof(obj) + "'");
         }
     }
@@ -76,10 +76,11 @@ function _clone (obj) {
     default:
         throw new Error("clone of non-collection: " + _obj_type(obj));
     }
-    Object.defineProperty(new_obj, "__meta__", {
-        enumerable: false,
-        writable: true
-    });
+    // Use direct assignment instead of Object.defineProperty for ES3 compat
+    // Only set __meta__ for functions (with-meta is used on functions)
+    if (_obj_type(new_obj) === 'function' && new_obj.__meta__ === undefined) {
+        new_obj.__meta__ = null;
+    }
     return new_obj;
 }
 
@@ -90,7 +91,7 @@ function _true_Q(a) { return a === true ? true : false; }
 function _false_Q(a) { return a === false ? true : false; }
 function _number_Q(obj) { return typeof obj === 'number'; }
 function _string_Q(obj) {
-    return typeof obj === 'string' && obj[0] !== '\u029e';
+    return typeof obj === 'string' && obj.charAt(0) !== '\u029e';
 }
 
 
@@ -106,14 +107,14 @@ function _symbol_Q(obj) { return obj instanceof Symbol; }
 
 // Keywords
 function _keyword(obj) {
-    if (typeof obj === 'string' && obj[0] === '\u029e') {
+    if (typeof obj === 'string' && obj.charAt(0) === '\u029e') {
         return obj;
     } else {
         return "\u029e" + obj;
     }
 }
 function _keyword_Q(obj) {
-    return typeof obj === 'string' && obj[0] === '\u029e';
+    return typeof obj === 'string' && obj.charAt(0) === '\u029e';
 }
 
 

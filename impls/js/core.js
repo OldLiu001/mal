@@ -4,10 +4,10 @@ if (typeof module === 'undefined') {
     var exports = core;
 } else {
     var types = require('./types'),
-        readline = require('./node_readline'),
         reader = require('./reader'),
         printer = require('./printer'),
         interop = require('./interop');
+    var IO = require('./io');
 }
 
 // Errors/Exceptions
@@ -40,18 +40,7 @@ function println() {
 }
 
 function slurp(f) {
-    if (typeof require !== 'undefined') {
-        return require('fs').readFileSync(f, 'utf-8');
-    } else {
-        var req = new XMLHttpRequest();
-        req.open("GET", f, false);
-        req.send();
-        if (req.status == 200) {
-            return req.responseText;
-        } else {
-            throw new Error("Failed to slurp file: " + f);
-        }
-    }
+    return IO.slurp(f);
 }
 
 
@@ -84,8 +73,8 @@ function contains_Q(hm, key) {
     if (key in hm) { return true; } else { return false; }
 }
 
-function keys(hm) { return Object.keys(hm); }
-function vals(hm) { return Object.keys(hm).map(function(k) { return hm[k]; }); }
+function keys(hm) { return Object.keys(hm).filter(function(k) { return k !== '__meta__' && k !== '__isvector__'; }); }
+function vals(hm) { return Object.keys(hm).filter(function(k) { return k !== '__meta__' && k !== '__isvector__'; }).map(function(k) { return hm[k]; }); }
 
 
 // Sequence functions
@@ -216,7 +205,7 @@ var ns = {'type': types._obj_type,
           'str': str,
           'prn': prn,
           'println': println,
-          'readline': readline.readline,
+          'readline': IO.readline,
           'read-string': reader.read_str,
           'slurp': slurp,
           '<'  : function(a,b){return a<b;},

@@ -1,10 +1,10 @@
 if (typeof module !== 'undefined') {
     var types = require('./types');
-    var readline = require('./node_readline');
     var reader = require('./reader');
     var printer = require('./printer');
     var Env = require('./env').Env;
     var core = require('./core');
+    var IO = require('./io');
 }
 
 // read
@@ -50,14 +50,14 @@ function _EVAL(ast, env) {
     switch (a0.value) {
     case "def!":
         var res = EVAL(a2, env);
-        if (!a1.constructor || a1.constructor.name !== 'Symbol') {
+        if (!types._symbol_Q(a1)) {
             throw new Error("env.get key must be a symbol")
         }
         return env.set(a1.value, res);
     case "let*":
         var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
-            if (!a1[i].constructor || a1[i].constructor.name !== 'Symbol') {
+            if (!types._symbol_Q(a1[i])) {
                 throw new Error("env.get key must be a symbol")
             }
             let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
@@ -119,20 +119,39 @@ repl_env.set('*ARGV*', []);
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 
-if (typeof process !== 'undefined' && process.argv.length > 2) {
+if (typeof RUNTIME !== 'undefined') {
+    if (IO.args.length > 0) {
+        repl_env.set(types._symbol('*ARGV*'), IO.args.slice(1));
+        rep('(load-file "' + IO.args[0].replace(/\\/g, '/') + '")');
+        IO.exit(0);
+    }
+} else if (typeof process !== 'undefined' && process.argv.length > 2) {
     repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));
     rep('(load-file "' + process.argv[2] + '")');
     process.exit(0);
 }
 
 // repl loop
-if (typeof require !== 'undefined' && require.main === module) {
-    // Synchronous node.js commandline mode
+if (typeof RUNTIME !== 'undefined') {
+    // jscript/jsc: always main
     while (true) {
-        var line = readline.readline("user> ");
+        var line = IO.readline("user> ");
         if (line === null) { break; }
         try {
-            if (line) { printer.println(rep(line)); }
+            if (line) { IO.println(rep(line)); }
+        } catch (exc) {
+            if (exc instanceof reader.BlankException) { continue }
+            if (exc instanceof Error) { IO.writeErrLine(exc.message || exc.description || exc.toString()) }
+            else { IO.writeErrLine("Error: " + printer._pr_str(exc, true)) }
+        }
+    }
+} else if (typeof require !== 'undefined' && require.main === module) {
+    // node
+    while (true) {
+        var line = IO.readline("user> ");
+        if (line === null) { break; }
+        try {
+            if (line) { IO.println(rep(line)); }
         } catch (exc) {
             if (exc instanceof reader.BlankException) { continue }
             if (exc instanceof Error) { console.warn(exc.stack) }

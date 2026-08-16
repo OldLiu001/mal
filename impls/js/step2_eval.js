@@ -1,8 +1,8 @@
 if (typeof module !== 'undefined') {
     var types = require('./types');
-    var readline = require('./node_readline');
     var reader = require('./reader');
     var printer = require('./printer');
+    var IO = require('./io');
 }
 
 // read
@@ -66,13 +66,26 @@ repl_env['*'] = function(a,b){return a*b;};
 repl_env['/'] = function(a,b){return a/b;};
 
 // repl loop
-if (typeof require !== 'undefined' && require.main === module) {
-    // Synchronous node.js commandline mode
+if (typeof RUNTIME !== 'undefined') {
+    // jscript/jsc: always main
     while (true) {
-        var line = readline.readline("user> ");
+        var line = IO.readline("user> ");
         if (line === null) { break; }
         try {
-            if (line) { printer.println(rep(line)); }
+            if (line) { IO.println(rep(line)); }
+        } catch (exc) {
+            if (exc instanceof reader.BlankException) { continue }
+            if (exc instanceof Error) { IO.writeErrLine(exc.message || exc.description || exc.toString()) }
+            else { IO.writeErrLine("Error: " + printer._pr_str(exc, true)) }
+        }
+    }
+} else if (typeof require !== 'undefined' && require.main === module) {
+    // node
+    while (true) {
+        var line = IO.readline("user> ");
+        if (line === null) { break; }
+        try {
+            if (line) { IO.println(rep(line)); }
         } catch (exc) {
             if (exc instanceof reader.BlankException) { continue }
             if (exc instanceof Error) { console.warn(exc.stack) }

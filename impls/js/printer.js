@@ -2,11 +2,13 @@
 var printer = {};
 if (typeof module !== 'undefined') {
     var types = require('./types');
-    // map output/print to console.log
-    printer.println = exports.println = function () {
-        console.log.apply(console, arguments);
-    };
+    var IO = require('./io');
 }
+// map output/print to IO.println (works across all runtimes)
+printer.println = exports.println = function () {
+    var args = Array.prototype.slice.call(arguments);
+    IO.println(args.join(' '));
+};
 
 function _pr_str(obj, print_readably) {
     if (typeof print_readably === 'undefined') { print_readably = true; }
@@ -22,11 +24,12 @@ function _pr_str(obj, print_readably) {
     case 'hash-map':
         var ret = [];
         for (var k in obj) {
+            if (k === '__meta__' || k === '__isvector__') { continue; }
             ret.push(_pr_str(k,_r), _pr_str(obj[k],_r));
         }
         return "{" + ret.join(' ') + "}";
     case 'string':
-        if (obj[0] === '\u029e') {
+        if (obj.charAt(0) === '\u029e') {
             return ':' + obj.slice(1);
         } else if (_r) {
             return '"' + obj.replace(/\\/g, "\\\\")

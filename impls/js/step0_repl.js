@@ -1,6 +1,6 @@
 if (typeof module !== 'undefined') {
-    var readline = require('./node_readline');
     var printer = require('./printer');
+    var IO = require('./io');
 }
 
 // read
@@ -22,11 +22,18 @@ function PRINT(exp) {
 var rep = function(str) { return PRINT(EVAL(READ(str), {})); };
 
 // repl loop
-if (typeof require !== 'undefined' && require.main === module) {
-    // Synchronous node.js commandline mode
+if (typeof RUNTIME !== 'undefined') {
+    // jscript/jsc: always main
     while (true) {
-        var line = readline.readline("user> ");
+        var line = IO.readline("user> ");
         if (line === null) { break; }
-        if (line) { printer.println(rep(line)); }
+        if (line) { IO.println(rep(line)); }
+    }
+} else if (typeof require !== 'undefined' && require.main === module) {
+    // node
+    while (true) {
+        var line = IO.readline("user> ");
+        if (line === null) { break; }
+        if (line) { IO.println(rep(line)); }
     }
 }
