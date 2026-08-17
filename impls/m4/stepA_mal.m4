@@ -281,7 +281,7 @@ dnl ---- prn / not ----
 define(<<<ev_prn>>>, <<<define(<<<__PO>>>, ev_lf_scan(skip_ws(<<<$1>>>), __EE, <<<$2>>>))syscmd(<<<printf '%s\n' '>>>DEC(defn(<<<__PO>>>))<<<'>>>)nil>>>)dnl
 dnl ---- read-string ----
 define(<<<ev_read_string>>>, <<<split_first(<<<$1>>>)ev_read_string2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_read_string2>>>, <<<ifelse(__ERR, 1, __EE, <<<patsubst(patsubst(patsubst(read_str(translit(unesc(inner_of(ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))), NLCH()TABCH()CRCH(), S1()S2()S3())), S1(), <<<\\n>>>), S2(), <<<\\t>>>), S3(), <<<\\r>>>)>>>)>>>)dnl
+define(<<<ev_read_string2>>>, <<<ifelse(__ERR, 1, __EE, <<<patsubst(patsubst(patsubst(read_str(translit(unesc(inner_of(ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))), NLCH()TABCH()CRCH(), S1()S2()S3())), S1(), <<<\\n>>>), S2(), <<<\\t>>>), S3(), <<<\\r>>>)>>>)>>>)dnl
 dnl 转义解码：\n → 换行，\t → tab，\r → CR，\" → "，\\ → \，\其它 → 其它
 dnl ===== unesc: 转义解码链（值内部形式 -> 真实字符）=====
 dnl 转义: \\n -> 换行, \\t -> tab, \\r -> CR, \\" -> ", \\\\ -> \\, \\其它 -> 其它
@@ -313,10 +313,10 @@ dnl ---- eval ----
 define(<<<ev_mal_eval>>>, <<<ev_form(ENC(ev_form(skip_ws(<<<$1>>>), <<<$2>>>)), defn(<<<__ROOT_ENV>>>))>>>)dnl
 dnl ---- slurp ----
 define(<<<ev_slurp>>>, <<<split_first(<<<$1>>>)ev_slurp2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_slurp2>>>, <<<define(<<<__SLF>>>, inner_of(DEC(ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))))define(<<<__SL>>>, esyscmd(<<<cat '>>>__SLF<<<'>>>))define(<<<__SLB>>>, __SL)define(<<<__SLS>>>, <<<">>>translit(__SLB, NLCH()TABCH()CRCH(), S1()S2()S3())<<<">>>)patsubst(patsubst(patsubst(defn(<<<__SLS>>>), S1(), <<<\\n>>>), S2(), <<<\\t>>>), S3(), <<<\\r>>>)>>>)dnl
+define(<<<ev_slurp2>>>, <<<define(<<<__SLF>>>, inner_of(DEC(ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))))define(<<<__SL>>>, esyscmd(<<<cat '>>>__SLF<<<'>>>))define(<<<__SLB>>>, __SL)define(<<<__SLS>>>, <<<">>>translit(__SLB, NLCH()TABCH()CRCH(), S1()S2()S3())<<<">>>)patsubst(patsubst(patsubst(defn(<<<__SLS>>>), S1(), <<<\\n>>>), S2(), <<<\\t>>>), S3(), <<<\\r>>>)>>>)dnl
 dnl ---- load-file ----
 define(<<<ev_load_file>>>, <<<split_first(<<<$1>>>)ev_load_file2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_load_file2>>>, <<<define(<<<__LFF>>>, inner_of(DEC(ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))))define(<<<__LF>>>, esyscmd(<<<cat '>>>__LFF<<<'>>>))define(<<<__LFB>>>, substr(__LF, 0, eval(len(__LF)-1)))define(<<<__LFC>>>, patsubst(__LFB, <<<;.*>>>, <<<>>>))ev_lf_loop(translit(ENC(__LFC), NLCH(), SP()), <<<$3>>>)>>>)dnl
+define(<<<ev_load_file2>>>, <<<define(<<<__LFF>>>, inner_of(DEC(ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))))define(<<<__LF>>>, esyscmd(<<<cat '>>>__LFF<<<'>>>))define(<<<__LFB>>>, substr(__LF, 0, eval(len(__LF)-1)))define(<<<__LFC>>>, patsubst(__LFB, <<<;.*>>>, <<<>>>))ev_lf_loop(translit(ENC(__LFC), NLCH(), SP()), <<<$3>>>)>>>)dnl
 dnl load-file 逐行循环：用 format(%c,10) 找换行
 define(<<<NLCH>>>, format(%c,10))dnl
 define(<<<ev_lf_loop>>>, <<<ifelse(len(<<<$1>>>), 0, nil, <<<ev_lfl_ws(<<<$1>>>, <<<$2>>>)>>>)>>>)dnl
@@ -331,13 +331,13 @@ define(<<<ev_lfl_t>>>, <<<ev_token(__EE, <<<$1>>>)ev_lfl_eval(defn(<<<__SF_ELEM>
 define(<<<ev_lfl_eval>>>, <<<ifelse(len(<<<$1>>>), 0, __EE, <<<define(<<<__LFR>>>, ev_form(<<<$1>>>, <<<$3>>>))>>>)ev_lf_loop(skip_ws(<<<$2>>>), <<<$3>>>)>>>)dnl
 dnl ---- atom ----
 define(<<<ev_atom>>>, <<<split_first(<<<$1>>>)ev_atom2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_atom2>>>, <<<define(<<<__AV>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))define(<<<__ATM_CTR>>>, eval(defn(<<<__ATM_CTR>>>)+1))define(<<<__AID>>>, defn(<<<__ATM_CTR>>>))indir(<<<define>>>, <<<__ATM>>>defn(<<<__AID>>>), defn(<<<__AV>>>))define(<<<__AOBJ>>>, ENC(<<<@>>>LP()<<<ATM:>>>defn(<<<__AID>>>)RP()))__AOBJ>>>)dnl
+define(<<<ev_atom2>>>, <<<define(<<<__AV>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))define(<<<__ATM_CTR>>>, eval(defn(<<<__ATM_CTR>>>)+1))define(<<<__AID>>>, defn(<<<__ATM_CTR>>>))indir(<<<define>>>, <<<__ATM>>>defn(<<<__AID>>>), defn(<<<__AV>>>))define(<<<__AOBJ>>>, ENC(<<<@>>>LP()<<<ATM:>>>defn(<<<__AID>>>)RP()))__AOBJ>>>)dnl
 dnl ---- atom? ----
 define(<<<ev_atomq>>>, <<<split_first(<<<$1>>>)ev_atomq2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_atomq2>>>, <<<define(<<<__AQ>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))ifelse(substr(__AQ, 0, 6), <<<@>>>LP()<<<ATM:>>>, true, false)>>>)dnl
+define(<<<ev_atomq2>>>, <<<define(<<<__AQ>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))ifelse(substr(__AQ, 0, 6), <<<@>>>LP()<<<ATM:>>>, true, false)>>>)dnl
 dnl ---- deref ----
 define(<<<ev_deref>>>, <<<split_first(<<<$1>>>)ev_deref2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_deref2>>>, <<<define(<<<__DF>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))ev_deref3(__DF)>>>)dnl
+define(<<<ev_deref2>>>, <<<define(<<<__DF>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))ev_deref3(__DF)>>>)dnl
 define(<<<LP2>>>, <<<(>>>)dnl
 define(<<<RP2>>>, <<<)>>>)dnl
 define(<<<SP>>>, <<< >>>)dnl
@@ -348,11 +348,11 @@ define(<<<ev_deref_sym>>>, <<<define(<<<__DS>>>, ev_form(skip_ws(<<<$1>>>), <<<$
 
 dnl ---- reset! ----
 define(<<<ev_reset>>>, <<<split_first(<<<$1>>>)ev_reset2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_reset2>>>, <<<define(<<<__RF>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))ev_reset3(__RF, defn(<<<__SF_REST>>>), <<<$3>>>)>>>)dnl
+define(<<<ev_reset2>>>, <<<define(<<<__RF>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))ev_reset3(__RF, defn(<<<__SF_REST>>>), <<<$3>>>)>>>)dnl
 define(<<<ev_reset3>>>, <<<define(<<<__RFID>>>, substr(<<<$1>>>, 6, eval(len(<<<$1>>>)-7)))define(<<<__RV>>>, ev_form(skip_ws(<<<$2>>>), <<<$3>>>))indir(<<<define>>>, <<<__ATM>>>__RFID, defn(<<<__RV>>>))defn(<<<__RV>>>)>>>)dnl
 dnl ---- swap! ----
 define(<<<ev_swap>>>, <<<split_first(<<<$1>>>)ev_swap2(defn(<<<__SF_ELEM>>>), defn(<<<__SF_REST>>>), <<<$2>>>)>>>)dnl
-define(<<<ev_swap2>>>, <<<define(<<<__SW>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))ev_swap3(__SW, defn(<<<__SF_REST>>>), <<<$3>>>)>>>)dnl
+define(<<<ev_swap2>>>, <<<define(<<<__SW>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))ev_swap3(__SW, defn(<<<__SF_REST>>>), <<<$3>>>)>>>)dnl
 define(<<<ev_swap3>>>, <<<define(<<<__SWID>>>, substr(<<<$1>>>, 6, eval(len(<<<$1>>>)-7)))define(<<<__SWOLD>>>, indir(<<<defn>>>, <<<__ATM>>>__SWID))ev_swap4(__SWID, <<<$2>>>, <<<$3>>>)>>>)dnl
 dnl swap! : 参数 = fn + 额外参数。先切出 fn，再求值 fn，额外参数逐个求值拼在 old 后
 define(<<<ev_swap4>>>, <<<ev_sw_d(first_char(skip_ws(<<<$2>>>)), skip_ws(<<<$2>>>), $1, <<<$3>>>)>>>)dnl
@@ -515,6 +515,23 @@ dnl ---- token scan ----
 define(<<<ev_token>>>, <<<ifelse(len(<<<$2>>>), 0, <<<sf_done(<<<$1>>>, __EE)>>>, <<<ev_tk1(<<<$1>>>, <<<$2>>>)>>>)>>>)dnl
 define(<<<ev_tk1>>>, <<<ifelse(is_ws(first_char(<<<$2>>>)), 1, <<<sf_done(<<<$1>>>, skip_ws(<<<$2>>>))>>>, <<<ev_tk2(<<<$1>>>, <<<$2>>>)>>>)>>>)dnl
 define(<<<ev_tk2>>>, <<<ifelse(first_char(<<<$2>>>), RP, <<<sf_done(<<<$1>>>, <<<$2>>>)>>>, <<<ev_token(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)dnl
+
+
+
+
+
+
+
+
+
+
+
+
+define(<<<ev_withmeta>>>, <<<define(<<<__WM_A>>> , inner_of(skip_ws(<<<$1>>>)))ev_wm_first(skip_ws(defn(<<<__WM_A>>>)))define(<<<__WM_M>>> , ev_wm_rest(skip_ws(defn(<<<__WM_R1>>>))))<<<@>>>LP()<<<META:>>>defn(<<<__WM_M>>>)format(%c,4)defn(<<<__WM_V>>>)>>>)dnl
+define(<<<ev_wm_first>>>, <<<ifelse(len(<<<$1>>>), 0, __EE, <<<ev_wm_fd(first_char(<<<$1>>>), <<<$1>>>)>>>)>>>)dnl
+define(<<<ev_wm_fd>>>, <<<ifelse(<<<$1>>>, LP, <<<sf_paren(<<<$2>>>)define(<<<__WM_R1>>>, defn(<<<__SF_REST>>>))define(<<<__WM_V>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))defn(<<<__WM_V>>>)>>>, <<<ifelse(<<<$1>>>, <<<[>>>, <<<sf_bracket(<<<$2>>>)define(<<<__WM_R1>>>, defn(<<<__SF_REST>>>))define(<<<__WM_V>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))defn(<<<__WM_V>>>)>>>, <<<ifelse(<<<$1>>>, <<<{>>>, <<<sf_brace(<<<$2>>>)define(<<<__WM_R1>>>, defn(<<<__SF_REST>>>))define(<<<__WM_V>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))defn(<<<__WM_V>>>)>>>, <<<ifelse(<<<$1>>>, <<<">>>, <<<sf_string(<<<$2>>>)define(<<<__WM_R1>>>, defn(<<<__SF_REST>>>))define(<<<__WM_V>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))defn(<<<__WM_V>>>)>>>, <<<ev_token(__EE, <<<$2>>>)define(<<<__WM_R1>>>, defn(<<<__SF_REST>>>))define(<<<__WM_V>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))defn(<<<__WM_V>>>)>>>)>>>)>>>)>>>)>>>)dnl
+define(<<<ev_wm_rest>>>, <<<ifelse(len(<<<$1>>>), 0, __EE, <<<ev_wm_rd(first_char(<<<$1>>>), <<<$1>>>)>>>)>>>)dnl
+define(<<<ev_wm_rd>>>, <<<ifelse(<<<$1>>>, LP, <<<sf_paren(<<<$2>>>)define(<<<__WM_M>>>, defn(<<<__SF_ELEM>>>))defn(<<<__WM_M>>>)>>>, <<<ifelse(<<<$1>>>, <<<[>>>, <<<sf_bracket(<<<$2>>>)define(<<<__WM_M>>>, defn(<<<__SF_ELEM>>>))defn(<<<__WM_M>>>)>>>, <<<ifelse(<<<$1>>>, <<<{>>>, <<<sf_brace(<<<$2>>>)define(<<<__WM_M>>>, defn(<<<__SF_ELEM>>>))defn(<<<__WM_M>>>)>>>, <<<ifelse(<<<$1>>>, <<<">>>, <<<sf_string(<<<$2>>>)define(<<<__WM_M>>>, defn(<<<__SF_ELEM>>>))defn(<<<__WM_M>>>)>>>, <<<ev_token(__EE, <<<$2>>>)define(<<<__WM_M>>>, defn(<<<__SF_ELEM>>>))defn(<<<__WM_M>>>)>>>)>>>)>>>)>>>)>>>)dnl
 dnl ---- split_first ----
 define(<<<split_first>>>, <<<sf_scan(__EE, skip_ws(<<<$1>>>))>>>)dnl
 define(<<<sf_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<sf_done(<<<$1>>>, __EE)>>>, <<<sf_s0(<<<$1>>>, <<<$2>>>)>>>)>>>)dnl
@@ -548,7 +565,8 @@ define(<<<WM_PFX>>>, <<<@>>>LP()<<<META:>>>)dnl
 define(<<<is_meta>>>, <<<ifelse(substr(<<<$1>>>, 0, 7), <<<@>>>LP()<<<META:>>>, 1, 0)>>>)dnl
 define(<<<strip_meta>>>, <<<ifelse(is_meta(<<<$1>>>), 1, <<<substr(<<<$1>>>, eval(index(<<<$1>>>, format(%c,4))+1))>>>, <<<$1>>>)>>>)dnl
 define(<<<get_meta>>>, <<<ifelse(is_meta(<<<$1>>>), 1, <<<substr(<<<$1>>>, 7, eval(index(<<<$1>>>, format(%c,4))-7))>>>, <<<nil>>>)>>>)dnl
-define(<<<ev_withmeta>>>, <<<split_first(skip_ws(<<<$1>>>))define(<<<__WM_R>>>, skip_ws(defn(<<<__SF_REST>>>)))define(<<<__WMV>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$2>>>))define(<<<__WMM>>>, ev_form(defn(<<<__WM_R>>>), <<<$2>>>))<<<@>>>LP()<<<META:>>>defn(<<<__WMM>>>)format(%c,4)defn(<<<__WMV>>>)>>>)dnl
+
+
 define(<<<ev_meta>>>, <<<define(<<<__MV>>>, ev_form(skip_ws(<<<$1>>>), <<<$2>>>))get_meta(defn(<<<__MV>>>))>>>)dnl
 dnl ---- stepA: readline / time-ms / seq / conj ----
 dnl ev_readline: read one line from fd 0. The REPL mainloop (driver.m4.in)
@@ -568,7 +586,7 @@ define(<<<ev_conj>>>, <<<split_first(skip_ws(<<<$1>>>))define(<<<__CJ_R>>>, skip
 dnl conj_scan: capture the remaining forms into __CJV_R BEFORE calling
 dnl ev_form, because ev_form(collection/element) re-runs split_first
 dnl internally and would clobber the shared __SF_REST global.
-define(<<<conj_scan>>>, <<<ifelse(len(<<<$1>>>), 0, <<<$2>>>, <<<split_first(<<<$1>>>)define(<<<__CJV_R>>>, skip_ws(defn(<<<__SF_REST>>>)))define(<<<__CJV>>>, ev_form(defn(<<<__SF_ELEM>>>), <<<$3>>>))conj_add(<<<$2>>>, defn(<<<__CJV>>>), defn(<<<__CJV_R>>>), <<<$3>>>)>>>)>>>)dnl
+define(<<<conj_scan>>>, <<<ifelse(len(<<<$1>>>), 0, <<<$2>>>, <<<split_first(<<<$1>>>)define(<<<__CJV_R>>>, skip_ws(defn(<<<__SF_REST>>>)))define(<<<__CJV>>>, ev_form(defn(<<<__SF_ELEM>>>), defn(<<<__REPL_ENV>>>)))conj_add(<<<$2>>>, defn(<<<__CJV>>>), defn(<<<__CJV_R>>>), <<<$3>>>)>>>)>>>)dnl
 define(<<<conj_add>>>, <<<ifelse(first_char(<<<$1>>>), <<<[>>>, <<<conj_vec(<<<$1>>>, <<<$2>>>, <<<$3>>>, <<<$4>>>)>>>, <<<conj_list(<<<$1>>>, <<<$2>>>, <<<$3>>>, <<<$4>>>)>>>)>>>)dnl
 define(<<<conj_list>>>, <<<conj_scan(<<<$3>>>, ifelse(len(inner_of(<<<$1>>>)), 0, LP()<<<$2>>>RP(), LP()<<<$2>>>SP()inner_of(<<<$1>>>)<<<>>>RP()), <<<$4>>>)>>>)dnl
 define(<<<conj_vec>>>, <<<conj_scan(<<<$3>>>, ifelse(len(inner_of(<<<$1>>>)), 0, <<<[>>>$2<<<]>>>, <<<[>>>inner_of(<<<$1>>>)<<<>>>SP()<<<$2>>><<<]>>>), <<<$4>>>)>>>)dnl
