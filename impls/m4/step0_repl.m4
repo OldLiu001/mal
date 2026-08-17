@@ -9,8 +9,8 @@ dnl
 dnl All value-passing between macro layers uses $@ (which preserves
 dnl argument boundaries, so values containing commas survive).
 dnl
-define(<<<READ>>>, <<<$@>>>)dnl
-define(<<<EVAL>>>, <<<$@>>>)dnl
-define(<<<PRINT>>>, <<<$@>>>)dnl
-define(<<<REP>>>, <<<PRINT(EVAL(READ($@)))<<<
+define(<<<__READ>>>, <<<$@>>>)dnl
+define(<<<__EVAL>>>, <<<$@>>>)dnl
+define(<<<__PRINT>>>, <<<$@>>>)dnl
+define(<<<REP>>>, <<<__PRINT(__EVAL(__READ($@)))<<<
 >>>>>>)dnl

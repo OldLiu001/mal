@@ -27,7 +27,7 @@ define(<<<BS>>>, format(%c,92))dnl
 define(<<<NLCH>>>, format(%c,10))dnl
 define(<<<TABCH>>>, format(%c,9))dnl
 define(<<<CRCH>>>, format(%c,13))dnl
-define(<<<E>>>, )dnl
+define(<<<__EE>>>, )dnl
 dnl encoded delimiters
 dnl NOTE: LP/CM were \x0b/\x0c (VT/FF) which GNU m4 treats as
  dnl whitespace during argument collection, silently splitting macro
@@ -45,15 +45,15 @@ define(<<<rest_str>>>, <<<substr(<<<$1>>>,1)>>>)dnl
 define(<<<skip2>>>, <<<substr(<<<$1>>>,2)>>>)dnl
 define(<<<second_char>>>, <<<substr(<<<$1>>>,1,1)>>>)dnl
 dnl ---- whitespace / comment skipping (space and encoded comma) ----
-define(<<<is_ws>>>, <<<ifelse(<<<$1>>>, <<< >>>, 1, <<<ifelse(<<<$1>>>, CM, 1, 0)>>>)>>>)dnl
+define(<<<is_ws>>>, <<<ifelse(<<<$1>>>, <<< >>>, 1, <<<ifelse(<<<$1>>>, CM, 1, <<<ifelse(<<<$1>>>, HS, 1, 0)>>>)>>>)>>>)dnl
 define(<<<skip_ws>>>, <<<sw_loop(<<<$1>>>)>>>)dnl
-define(<<<sw_loop>>>, <<<ifelse(len(<<<$1>>>), 0, E, <<<ifelse(is_ws(first_char(<<<$1>>>)), 1, <<<skip_ws(rest_str(<<<$1>>>))>>>, <<<ifelse(first_char(<<<$1>>>), <<<;>>>, E, <<<$1>>>)>>>)>>>)>>>)dnl
+define(<<<sw_loop>>>, <<<ifelse(len(<<<$1>>>), 0, __EE, <<<ifelse(is_ws(first_char(<<<$1>>>)), 1, <<<skip_ws(rest_str(<<<$1>>>))>>>, <<<ifelse(first_char(<<<$1>>>), <<<;>>>, __EE, <<<$1>>>)>>>)>>>)>>>)dnl
 dnl ---- delimiter test (all branches lazily quoted; expansion is a bare 0/1) ----
 define(<<<is_delim>>>, <<<ifelse(<<<$1>>>, <<< >>>, 1, <<<ifelse(<<<$1>>>, CM, 1, <<<ifelse(<<<$1>>>, LP, 1, <<<ifelse(<<<$1>>>, RP, 1, <<<ifelse(<<<$1>>>, <<<[>>>, 1, <<<ifelse(<<<$1>>>, <<<]>>>, 1, <<<ifelse(<<<$1>>>, <<<{>>>, 1, <<<ifelse(<<<$1>>>, <<<}>>>, 1, <<<ifelse(<<<$1>>>, <<<">>>, 1, <<<ifelse(<<<$1>>>, <<<'>>>, 1, <<<ifelse(<<<$1>>>, <<<`>>>, 1, <<<ifelse(<<<$1>>>, <<<~>>>, 1, <<<ifelse(<<<$1>>>, <<<@>>>, 1, <<<ifelse(<<<$1>>>, <<<^>>>, 1, <<<ifelse(<<<$1>>>, <<<;>>>, 1, 0)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)dnl
 dnl ---- top level ----
 define(<<<read_str>>>, <<<define(<<<__ERR>>>, 0)canon(ENC(<<<$1>>>))>>>)dnl
 define(<<<canon>>>, <<<canon2(skip_ws(<<<$1>>>))>>>)dnl
-define(<<<canon2>>>, <<<ifelse(len(<<<$1>>>), 0, E, <<<c_dispatch(first_char(<<<$1>>>), <<<$1>>>)>>>)>>>)dnl
+define(<<<canon2>>>, <<<ifelse(len(<<<$1>>>), 0, __EE, <<<c_dispatch(first_char(<<<$1>>>), <<<$1>>>)>>>)>>>)dnl
 dnl ---- dispatch on first character ----
 define(<<<c_dispatch>>>, <<<ifelse(<<<$1>>>, LP, <<<parse_list(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<[>>>, <<<parse_vector(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<{>>>, <<<parse_map(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<">>>, <<<parse_string(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<'>>>, <<<quote_wrap(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<`>>>, <<<qq_wrap(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<~>>>, <<<tilde_wrap(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<@>>>, <<<deref_wrap(<<<$2>>>)>>>, <<<ifelse(<<<$1>>>, <<<^>>>, <<<meta_wrap(<<<$2>>>)>>>, <<<classify_atom(<<<$2>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)>>>)dnl
 dnl ---- quote family ----
@@ -63,8 +63,8 @@ define(<<<deref_wrap>>>, <<<(deref<<< >>>canon(rest_str(<<<$1>>>)))>>>)dnl
 define(<<<tilde_wrap>>>, <<<ifelse(second_char(<<<$1>>>), <<<@>>>, <<<(splice-unquote<<< >>>canon(skip2(<<<$1>>>)))>>>, <<<(unquote<<< >>>canon(rest_str(<<<$1>>>)))>>>)>>>)dnl
 define(<<<meta_wrap>>>, <<<define(<<<__M_A>>>, canon(rest_str(<<<$1>>>)))define(<<<__M_B>>>, canon(defn(<<<__REST>>>)))(with-meta<<< >>>__M_B<<< >>>__M_A)>>>)dnl
 dnl ---- atoms (number / symbol / nil / true / false / keyword) ----
-define(<<<classify_atom>>>, <<<pa_scan(E, <<<$1>>>)>>>)dnl
-define(<<<pa_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<pa_done(<<<$1>>>, E)>>>, <<<ifelse(is_delim(first_char(<<<$2>>>)), 1, <<<pa_done(<<<$1>>>, <<<$2>>>)>>>, <<<pa_scan(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)>>>)dnl
+define(<<<classify_atom>>>, <<<pa_scan(__EE, <<<$1>>>)>>>)dnl
+define(<<<pa_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<pa_done(<<<$1>>>, __EE)>>>, <<<ifelse(is_delim(first_char(<<<$2>>>)), 1, <<<pa_done(<<<$1>>>, <<<$2>>>)>>>, <<<pa_scan(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)>>>)dnl
 define(<<<pa_done>>>, <<<define(<<<__REST>>>, <<<$2>>>)<<<$1>>>>>>)dnl
 dnl ---- lists ----
 define(<<<parse_list>>>, <<<(>>><<<parse_list_body(skip_ws(rest_str(<<<$1>>>)))>>><<<)>>>)dnl
@@ -82,7 +82,7 @@ define(<<<parse_map_body>>>, <<<ifelse(len(<<<$1>>>), 0, <<<errset>>>, <<<parse_
 define(<<<parse_map_body2>>>, <<<ifelse(len(<<<$1>>>), 0, <<<errset>>>, <<<ifelse(first_char(<<<$1>>>), <<<}>>>, <<<define(<<<__REST>>>, rest_str(<<<$1>>>))>>>, <<<pm_join(canon(<<<$1>>>), parse_map_body2(defn(<<<__REST>>>)))>>>)>>>)>>>)dnl
 define(<<<pm_join>>>, <<<ifelse(len(<<<$2>>>), 0, <<<$1>>>, <<<$1>>>SP<<<$2>>>)>>>)dnl
 dnl ---- strings (verbatim copy of raw content between the quotes) ----
-define(<<<parse_string>>>, <<<ps_scan(E, rest_str(<<<$1>>>))>>>)dnl
+define(<<<parse_string>>>, <<<ps_scan(__EE, rest_str(<<<$1>>>))>>>)dnl
 define(<<<ps_scan>>>, <<<ifelse(len(<<<$2>>>), 0, <<<err_string(<<<$1>>>)>>>, <<<ifelse(first_char(<<<$2>>>), <<<">>>, <<<ps_done(<<<$1>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), BS, <<<ps_scan(<<<$1>>>defn(<<<BS>>>)second_char(<<<$2>>>), skip2(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), NLCH(), <<<ps_scan(<<<$1>>>BS()<<<n>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), TABCH(), <<<ps_scan(<<<$1>>>BS()<<<t>>>, rest_str(<<<$2>>>))>>>, <<<ifelse(first_char(<<<$2>>>), CRCH(), <<<ps_scan(<<<$1>>>BS()<<<r>>>, rest_str(<<<$2>>>))>>>, <<<ps_scan(<<<$1>>>first_char(<<<$2>>>), rest_str(<<<$2>>>))>>>)>>>)>>>)>>>)>>>)>>>)>>>)dnl
 define(<<<ps_done>>>, <<<define(<<<__REST>>>, <<<$2>>>)"<<<$1>>>">>>)dnl
 dnl ---- error helpers ----

@@ -3,6 +3,31 @@
 > 静态分析 + 实测交叉核验 | 2026-08-17 | 只读分析,未改动源码
 > 对象:`impls/m4/`(GNU m4 1.4.6)。本文档同时作为 impls/m4 的待办清单(todo)存档。
 
+## 已修复记录(2026-08-17)
+
+| 缺陷 | 修复 | 提交 | 回归 |
+|---|---|---|---|
+| #12 EOF 哨兵碰撞 | 哨兵 `EOF`→`__M4EOF__`(driver.m4.in) | da10c261 | step0/1 冒烟通过 |
+| #8 错误状态保存不全 | ev_try2 新增保存/恢复 `__ERRMSG`(各 step) | da10c261 | step9 173/173 |
+| #15 重复绑定 | REP 初始化移除 `throw`/`>`/`>=` 重复 env_set(各 step) | da10c261 | step4 141/1/57 与基线一致 |
+| #1 全局宏 `__F`/`__A` 命名冲突 | ev_cons2 `__A/__B`→`__CA/__CB`、ev_map2 `__F/__L`→`__MF/__ML`(全部 step) | da10c261 | 嵌套调用冒烟通过,step4/9/stepA 与基线一致 |
+
+## 已修复记录(2026-08-18 软/可选测试全绿批)
+
+| 缺陷/目标 | 修复 | 回归 |
+|---|---|---|
+| #6 esyscmd 重扫 | slurp/load-file 改 `cat -- \| tr '(),\043' '\016\017\020\021'` shell 预编码 | step6 71/71 全绿 |
+| read-string 崩溃 | ev_read_string2 对 read_str 结果包 ENC;`*ARGV*` 绑定改 LP()RP() | step6 71/71 |
+| quasiquote 非展开式 | qq_expand 展开式重写(cons/concat/quote/vec 构建后 ev_form)+ qq_split 嵌套分派链 | step7 124/124 全绿 |
+| cons/map 嵌套全局覆盖 | ev_cons2→ev_cons3/4、ev_map2→ev_map3 值立即参数化,不跨嵌套读全局 | step7/8/A 全绿 |
+| concat 尾随空格 | concat_join 空列表元素跳过拼接 | step7 全绿 |
+| RP()/SP() 拼接污染 | 中间值 defn 引号保护隔离;字面文本 <<< >>> 包裹;sf_group_close REST 补 skip_ws | step7/step8 全绿 |
+| stepA metadata 分叉(#5) | ev_withmeta 同步 step9 词法环境版(删 ev_wm_* 链);eq_map 补 strip_meta | stepA 113/113 全绿 |
+
+> 本轮全部修复同步应用到 7 个 step 文件,step4-8 复跑后 MD5 一致(`8720a68d…`)。全量回归(--hard):step6 71/71、step7 124/124、step8 61/61、stepA 113/113,soft/optional 全部通过;step0/1/2/3/9 无 soft 失败且全绿。预存 TIMED OUT 2 个:step4 line 366(pr-str 嵌套引号)、step5 res2(无 TCO),均非本轮引入。详细台账见 .cluster/2026-08-17-m4/soft_optional_ledger.md。
+
+---
+
 ## 执行摘要
 
 mal2 的 m4 实现是 Make-A-Lisp(MAL)在 GNU m4 宏处理器上的完整移植,数据是字符串、程序是宏、执行是宏展开,由 driver + step 文件 + 全局宏传态构成。整体链路(reader 编码、EVAL 链、环境、quote、宏、try/catch)在实测范围内工作正常:step1 121/121、step9 173/173、stepA 0 硬失败(35 软失败集中在 metadata 相等性)。但静态分析发现三类核心问题:
