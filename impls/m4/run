@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mal (M4 Lisp) implementation - run driver
 # Usage: STEP=step0_repl ./run   (default: stepA_mal)
-# Generates a temp driver file (driver.m4.in with __STEP__ substituted)
+# Generates a temp driver file (driver.m4 with __STEP__ substituted)
 # and execs m4 on it. The driver provides the REPL loop (readline +
 # prompt), the step file (included) provides READ/EVAL/PRINT/REP.
 dir=$(cd "$(dirname "$0")" && pwd)
@@ -9,5 +9,5 @@ cd "$dir" || exit 1
 step="${STEP:-stepA_mal}"
 tmp=$(mktemp /tmp/m4mal.XXXXXX)
 trap 'rm -f "$tmp"' EXIT
-sed "s|__STEP__|$dir/$step.m4|" "$dir/driver.m4.in" > "$tmp"
+sed "s|__STEP__|$dir/$step.m4|" "$dir/driver.m4" > "$tmp"
 exec m4 -I "$dir" -L 2000 "$tmp"
