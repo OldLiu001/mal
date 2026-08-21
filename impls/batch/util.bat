@@ -109,9 +109,6 @@ exit /b 0
 			set "%%a="
 		)
 
-		( set "_L[!_G.LEVEL!]" ) > "%TEMP%\mal_l.txt" 2>nul
-		for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
-
 		set /a "_G.LEVEL -= 1"
 		%_G.SKIPTHIS% %&% "_G.TRACE[!_G.LEVEL!]" "_G.TRACE"
 		%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]="
@@ -155,7 +152,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Var' undefined."
 
 	if defined _G.NSUTIL (
-		%&% "!%~1!.Type" "_T.Type"
+		call set "_T.Type=%%!%~1!.Type%%"
 		if /i "!_T.Type!" == "NSMeta" (
 			if defined _G.LEVEL[!_G.LEVEL!][!%~1!] (
 				set "_G.LEVEL[!_G.LEVEL!][!%~1!]="

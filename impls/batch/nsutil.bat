@@ -294,7 +294,7 @@ exit /b 0
 		if defined %~1.Target (
 			set "%%.NSBody=!%~1.Target!"
 		) else (
-			%&% "!%~1!.Target" "%%.NSBody"
+			call set "%%.NSBody=%%!%~1!.Target%%"
 		)
 		set "%%.ValName=!%%.NSBody!.Data.Value[%~2]"
 		if defined %%.ValName (
@@ -428,18 +428,18 @@ exit /b 0
 		if defined %~1.Target (
 			set "%%.NSBody=!%~1.Target!"
 		) else (
-			%&% "!%~1!.Target" "%%.NSBody"
+			call set "%%.NSBody=%%!%~1!.Target%%"
 		)
 
-		%&% "!%%.NSBody!.RefCnt" "%%.RefCnt"
+		call set "%%.RefCnt=%%!%%.NSBody!.RefCnt%%"
 		if !%%.RefCnt! gtr 1 (
 			set /a "!%%.NSBody!.RefCnt -= 1"
 			call NSUTIL :NSUTIL_CloneBody "%%.NSBody" "%%.NewBody"
-			%&% "%%.NewBody" "%%.NSBody"
+			call set "%%.NSBody=%%!%%.NewBody!%%"
 			if defined %~1.Target (
 				set "!%~1!.Target=!%%.NewBody!"
 			) else (
-				%&% "%%.NewBody" "!%~1!.Target"
+				call set "!%~1!.Target=%%!%%.NewBody!%%"
 			)
 		)
 
@@ -447,7 +447,7 @@ exit /b 0
 
 		call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% "%%.HasField"
 		if "!%%.HasField!" == "1" (
-			%&% "!%%.NSBody!.Data.Value[%~2]" %%.OldVal
+			call set "%%.OldVal=%%!%%.NSBody!.Data.Value[%~2]%%"
 			if "!%%.OldVal!" == "!%%.V!" (
 				%-|%
 			)

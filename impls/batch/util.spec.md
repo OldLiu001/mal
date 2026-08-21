@@ -27,11 +27,13 @@ util.bat 是 MAL batch 实现的**调度与返回值交接核心**：定义全�
    读走并清空。`UTIL_GetRet` 在 `_G.ERR` 已置时不写 Out（错误被吞，交由调用方 `%?%` 分支处理）。
 2. **性能约束（本版）**：GetRet 用 `set "%~1=!_G.RET!"` 内联直写，不再嵌套 `UTIL_Invoke`/`UTIL_Copy`
    子调用；GetRet/SetRet 退出不再做 O(环境变量表规模) 的 `for /f set "_T"` 全量清扫。`_T.*` 为固定短名、
-   每次使用前必先赋值再读，残留无功能影响。实测真 step1 12 个 form 从 13.49s→10.39s(~23%)，官方
+   每次使用前必先赋值再读，残留无功能影响。SetRet 读 `!%~1!.Type` 用 `call set` 间接读取替代 `%&%`
+   跨文件 Copy 子调用（省一次跨文件 call）。实测真 step1 12 个 form 从 13.49s→10.39s(~23%)，官方
    step1_read_print 120/120 通过、0 失败，行为等价。
 3. `_G.SKIPTHIS/_G.DOTHIS`：按 `_G.FAST` 决定校验语句是否编译为 `rem`（FAST 下跳过错位校验，保性能）。
 4. `UTIL_Invoke` 非 PACKED 走跨文件 `call ModName :Fn`；PACKED 走同文件 `call :Fn`，省子进程（见 OPTIMIZATION.md #1）。
-5. NS GC：Invoke 退出在 `if defined _G.NSUTIL` 下经临时文件枚举释放当前 LEVEL 命名空间，是后续优化靶点（#2）。
+5. NS GC：Invoke 退出在 `if defined _G.NSUTIL` 下经临时文件枚举释放当前 LEVEL 命名空间。NSUTIL 分支内
+   原先重复的 `_L[level]` 临时文件清扫已删除（与退出路径的统一清扫重复，省一次磁盘 IO），是后续优化靶点（#2）。
 
 ## 边界与异常用例
 

@@ -27,7 +27,9 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
 1. **字段读快路径（本版）**：`NSUTIL_Get` 用内联 `if defined !%%.ValName!` 守卫替代原先的
    `call :NSUTIL_HasField` + `%->%` 交接——HasField 的结果在 `{g` 宏路径下从未被使用（Get 本就经
    `NSUTIL_IndirectGet` 直写 Val），故那次跨文件子调用是纯冗余。新逻辑保持「字段不存在则不写 Out」
-   语义等价，剪掉每次字段读的一次跨文件子进程。
+   语义等价，剪掉每次字段读的一次跨文件子进程。`NSUTIL_Get`/`NSUTIL_Set` 内读取
+   `Target`/`RefCnt`/`OldVal`/`NewBody` 等动态名一律用 `call set` 间接读取，替代 `%&%` 跨文件 Copy
+   子调用（每处省一次跨文件 call）。
 2. **写时复制**：`NSUTIL_Set` 当 `RefCnt>1`（被共享）时先 `CloneBody` 深拷贝出独立 Body 再写，
    复用旧值若为 NS 则释放。字段多时每次写都 O(字段数) 深拷贝——这是主要 GC 放大器（优化点 #3）。
 3. **句柄即值**：NS 变量存的是 Meta 句柄字符串（如 `_G.NS[5]`），`!NSVar!.Target`/`!NSVar!.Type`
