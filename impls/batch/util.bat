@@ -140,13 +140,9 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'Var' undefined."	
 
 	if not defined _G.ERR (
-		%&% "_G.RET" "%~1"
+		set "%~1=!_G.RET!"
 	)
 	set "_G.RET="
-
-	%_G.SKIPTHIS% for /f "delims==" %%a in (
-	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
-	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_SetRet *Var
@@ -176,10 +172,6 @@ exit /b 0
 	) else (
 		set "_G.RET=!%~1!"
 	)
-
-	%_G.SKIPTHIS% for /f "delims==" %%a in (
-	%_G.SKIPTHIS% 	'set "_T" 2^>nul'
-	%_G.SKIPTHIS% ) do set "%%a="
 %-|%
 
 :UTIL_Throw Msg [Type]
