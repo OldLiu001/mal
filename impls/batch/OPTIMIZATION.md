@@ -149,4 +149,25 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 
 ---
 
+## 进展记录（按发布时间序）
+
+| 日期 | 提交 | 变更 | 验证 | 收益（同法对拍） |
+|---|---|---|---|---|
+| 2026-08-22 | `b531563` | util.bat：GetRet 内联直写替嵌套 Copy 子调用、Get/SetRet 去 `_T` 全量清扫 | step1 官方 120/120 | 12 form 13.49s→10.39s（-23%） |
+| 2026-08-22 | `29603bd` | nsutil.bat：NSUTIL_Get 用 `if defined` 守卫替代冗余 HasField 子调用 | step1 官方 120/120 | 12 form 10.39s→9.67s（累计 -28%） |
+
+### 实测观察（2026-08-22）
+- 用 PowerShell 管道对拍：step1 进程存在约 7s 的固定启动/init 开销（cmd 环境复制 + NSUTIL/UTIL 初始化），
+  每 form 边际成本在批内随量下降，说明**大批量下每 form 的真实成本高出单进程小批量对拍**；官方 runtest 单进程喂
+  多 form，故优化每 form 路径仍有真实收益（step1 官方 120 test 在约 200s 内完成，约 1.6s/test）。
+- 由于该固定启动开销，**优化每次字段读/交接的子进程（#1#2#7）比只压单次解析更有价值**——已落地方向正确。
+
+### 下一步候选
+- **reader 词法热路径（#5）**：`reader.bat` 仍有大量 goto/成块的 `{g`/`{s`，可批量去 goto 化 + 合并字段读写为块。
+- **环境膨胀（#4）**：`_G.NS[...]` 全局递增且不复用，程序越长表越大、所有 set 变慢。GC 后重建紧凑索引是最根本防御。
+- **`UTIL_Invoke` 临时文件 GC（#2 残余）**：每次 Invoke 退出仍写 `mal_l.txt`/`mal_gc.txt` 两次磁盘，可改为 `for /l` 索引直清。
+- **step2/step3**：eval/env 更重，基础设施收益应辐射过去，需单跑官方 test 建立基线。
+
+---
+
 *本文档由 cmd/batch 微基准实测驱动，数据源见 `../../bat_perf_report.html` 与个人知识库《批处理cmd解析与性能.md》。*
