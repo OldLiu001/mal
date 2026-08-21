@@ -1,7 +1,9 @@
 @echo off
 set _G.FAST=1
 if "%~1" equ "CALL_SELF" (
-	call %2 %3 %4 %5 %6 %7 %8 %9 || %?|% "Call '%~nx0' failed."
+	for /f "tokens=1,*" %%a in ('echo.%*') do (
+		call %%b || %?|% "Call '%~nx0' failed."
+	)
 	%-|%
 )
 pushd "%~dp0"
@@ -17,38 +19,15 @@ if not defined _G.PACKED (
 
 :MAIN_Main
 	for %%. in (_L[!_G.LEVEL!].) do (
-		set "%%.Prompt=user> "
+		set "%%.Input=1"
+		%{% MAIN REP %%.Input %}
 	)
-	:MAIN_REPL_Loop
-	for %%. in (_L[!_G.LEVEL!].) do (
-		%{% IO WriteVar %%.Prompt %}%
-		%{% IO ReadEncLine %}% %->% %%.Input
-		if defined %%.Input (
-			call !_T.UTIL! :UTIL_Invoke MAIN REP %%.Input
-			%?% (
-				if "!_G.ERR.Type!" == "Exception" (
-					call !_T.UTIL! :UTIL_Invoke IO WriteErrLineVar _G.ERR.Msg
-				) else if "!_G.ERR.Type!" == "Empty" (
-					rem do nothing.
-				) else (
-					%?|% "Error type '!_G.ERR.Type!' not support."
-				)
-
-				( set _G.ERR ) > "%TEMP%\mal_e.txt" 2>nul
-				for /f "usebackq delims==" %%a in ("%TEMP%\mal_e.txt") do set "%%a="
-			)
-		) else (
-			exit /b 0
-		)
-	)
-	goto MAIN_REPL_Loop
 %-|%
 
 :MAIN_Read Mal -> Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Str=!%~1!"
 		%{% READER ReadString "!%%.Str!" %}% %->% %%.Mal
-		%?% %-|%
 		%<-% %%.Mal
 	)
 %-|%
@@ -64,14 +43,8 @@ if not defined _G.PACKED (
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Mal=!%~1!"
 		%{% PRINTER PrintMalType "%%.Mal" %}% %->% %%.StrMal
-		%?% (
-			%-|%
-		)
 		%{% STR GetStr %%.StrMal %}% %->% %%.Result
-		%?% (
-			%-|%
-		)
-		%{% IO WriteEncLine %%.Result %}%
+		echo Result=[!%%.Result!]
 		%<-% %%.Result
 	)
 %-|%
@@ -80,13 +53,7 @@ if not defined _G.PACKED (
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Str=!%~1!"
 		%{% MAIN Read "%%.Str" %}% %->% %%.Mal
-		%?% (
-			%-|%
-		)
 		%{% MAIN Eval %%.Mal %}% %->% %%.Mal2
-		%?% (
-			%-|%
-		)
-		%{% MAIN Print %%.Mal2 %}%
+		%{% MAIN Print %%.Mal2 %}
 	)
 %-|%

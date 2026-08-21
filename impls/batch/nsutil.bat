@@ -32,15 +32,22 @@ exit /b 0
 
 		set /a "_G.NSP = 0"
 
-		set "{n=!{! NSUTIL New"
-		set "{c=!{! NSUTIL Clone"
-		set "{g=!{! NSUTIL Get"
-		set "{s=!{! NSUTIL Set"
+		if defined _G.PACKED (
+			set "{n=call :NSUTIL_New"
+			set "{c=call :NSUTIL_Clone"
+			set "{g=call :NSUTIL_Get"
+			set "{s=call :NSUTIL_Set"
+		) else (
+			set "{n=call NSUTIL :NSUTIL_New"
+			set "{c=call NSUTIL :NSUTIL_Clone"
+			set "{g=call NSUTIL :NSUTIL_Get"
+			set "{s=call NSUTIL :NSUTIL_Set"
+		)
 	)
 %-|%
 
 :NSUTIL_New *NSVar
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.NW.) do (
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
 		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 		%_G.SKIPTHIS% 	2>con >&2 pause
@@ -59,15 +66,14 @@ exit /b 0
 		set "!%%.NSBody!.RefCnt=1"
 		set "!%%.NSMeta!.Target=!%%.NSBody!"
 		
-		set /a "%%.PrevLv = _G.LEVEL - 1"
-		set "_G.LEVEL[!%%.PrevLv!][!%%.NSMeta!]=!%%.NSMeta!"
+		set "_G.LEVEL[!_G.LEVEL!][!%%.NSMeta!]=!%%.NSMeta!"
 		
 		set "%~1=!%%.NSMeta!"
 	)
 %-|%
 
 :NSUTIL_IsNSMeta *NS -> Bool
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.CL.) do (
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
 		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 		%_G.SKIPTHIS% 	2>con >&2 pause
@@ -90,7 +96,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_IsNSBody *NS -> Bool
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.GET.) do (
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
 		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 		%_G.SKIPTHIS% 	2>con >&2 pause
@@ -113,7 +119,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_IsValidNS *NS -> Bool
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.SET.) do (
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
 		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 		%_G.SKIPTHIS% 	2>con >&2 pause
@@ -147,7 +153,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_AssertValidNS *NS
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.V.) do (
 
 		set "%%.T=%~1"
 		%_G.DOTHIS% %-|%
@@ -164,7 +170,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_AssertValidNSBody *NS
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.IM.) do (
 
 		set "%%.T=%~1"
 		%_G.DOTHIS% %-|%
@@ -181,7 +187,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Clone *From *To
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.IB.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -207,13 +213,12 @@ exit /b 0
 
 		set "%~2=_G.NS[!_G.NSP!]"
 
-		set /a "%%.PrevLv = _G.LEVEL - 1"
-		set "_G.LEVEL[!%%.PrevLv!][!%~2!]=!%~2!"
+		set "_G.LEVEL[!_G.LEVEL!][!%~2!]=!%~2!"
 	)
 %-|%
 
 :NSUTIL_CloneMeta *From *To
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.CM.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -242,7 +247,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_HasField *NS -> Bool
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.HF.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -271,7 +276,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Get *NS Field *Val
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.AV.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -286,7 +291,7 @@ exit /b 0
 
 		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		%{% NSUTIL HasField "%~1" "%~2" %}% %->% %%.Res
+		call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% %%.Res
 
 		if defined %~1.Target (
 			set "%%.NSBody=!%~1.Target!"
@@ -304,7 +309,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Free *NS
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.FR.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -329,14 +334,14 @@ exit /b 0
 			set "!%~1!.Target="
 		)
 
-		%{% NSUTIL FreeNSBody "%%.NSBody" %}%
+		call NSUTIL :NSUTIL_FreeNSBody "%%.NSBody"
 
 		%&% %%.RetBackup _G.RET
 	)
 %-|%
 
 :NSUTIL_FreeNSBody *NS
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.FB.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -371,7 +376,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_CloneBody *NS *NewNS
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.CB.) do (
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
 		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 		%_G.SKIPTHIS% 	2>con >&2 pause
@@ -392,9 +397,9 @@ exit /b 0
 		for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
 			set "!%%.NewBody!.Data.Key[!%%a!]=!%%a!"
 
-			%{% NSUTIL IsNSMeta "!%~1!.Data.Value[!%%a!]" %}% %->% %%.IsMeta
+			call NSUTIL :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% %%.IsMeta
 			if "!%%.IsMeta!" == "1" (
-				%{% NSUTIL CloneMeta "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]" %}%
+				call NSUTIL :NSUTIL_CloneMeta "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]"%
 			) else (
 				%&% "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]"
 			)
@@ -405,7 +410,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Set *NS Field *Val
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for %%. in (_T.AB.) do (
 
 		set "%%.T=%~1"
 		%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -429,7 +434,7 @@ exit /b 0
 		%&% "!%%.NSBody!.RefCnt" "%%.RefCnt"
 		if !%%.RefCnt! gtr 1 (
 			set /a "!%%.NSBody!.RefCnt -= 1"
-			%{% NSUTIL CloneBody "%%.NSBody" "%%.NewBody" %}%
+			call NSUTIL :NSUTIL_CloneBody "%%.NSBody" "%%.NewBody"
 			%&% "%%.NewBody" "%%.NSBody"
 			if defined %~1.Target (
 				set "!%~1!.Target=!%%.NewBody!"
@@ -440,7 +445,7 @@ exit /b 0
 
 		set "%%.V=%~3"
 
-		%{% NSUTIL HasField "%~1" "%~2" %}% %->% "%%.HasField"
+		call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% "%%.HasField"
 		if "!%%.HasField!" == "1" (
 			%&% "!%%.NSBody!.Data.Value[%~2]" %%.OldVal
 			if "!%%.OldVal!" == "!%%.V!" (
@@ -448,14 +453,14 @@ exit /b 0
 			)
 			%{% NSUTIL IsValidNS "!%%.OldVal!" %}% %->% "%%.IsMeta"
 			if "!%%.IsMeta!" == "1" (
-				%{% NSUTIL Free "%%.OldVal" %}%
+				call NSUTIL :NSUTIL_Free "%%.OldVal"
 			)
 		)
 
 		set "!%%.NSBody!.Data.Key[%~2]=%~2"
-		%{% NSUTIL IsValidNS "!%%.V!" %}% %->% "%%.IsNS"
+		call NSUTIL :NSUTIL_IsValidNS "!%%.V!" %->% "%%.IsNS"
 		if "!%%.IsNS!" == "1" (
-			%{% NSUTIL CloneMeta "!%%.V!" "!%%.NSBody!.Data.Value[%~2]" %}
+			call NSUTIL :NSUTIL_CloneMeta "!%%.V!" "!%%.NSBody!.Data.Value[%~2]"
 		) else (
 			set "!%%.NSBody!.Data.Value[%~2]=!%%.V!"
 		)
