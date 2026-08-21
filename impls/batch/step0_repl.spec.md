@@ -14,7 +14,7 @@ step0_repl.bat 是 Make-A-Lisp 的 step0 入口：建立 REPL（读取-求值-�
 | 名称 | 签名/格式 | 说明 |
 |---|---|---|
 | `MAIN_Main` | `:MAIN_Main` | 入口：设 Prompt、进入 REPL 读-评-打循环 |
-| `MAIN_REPL_Loop | 内联于 MAIN_Main 的 `for /l` 无限循环 | 反复 `Prompt→Read→REP→(空输入则退出)` |
+| `MAIN_REPL_Loop | `:MAIN_REPL_Loop` 标签 + `goto` 回跳的循环 | 反复 `Prompt→Read→REP→(空输入则退出)` |
 | `MAIN_Read` | `:MAIN_Read Mal -> Mal` | 恒等读入：`set %%.Mal=!%~1!` 原样返回 |
 | `MAIN_Eval` | `:MAIN_Eval Mal -> Mal` | 恒等求值：原样返回 |
 | `MAIN_Print` | `:MAIN_Print Mal -> Mal` | 经 `IO WriteEncLine` 写出后返回 |
@@ -23,14 +23,15 @@ step0_repl.bat 是 Make-A-Lisp 的 step0 入口：建立 REPL（读取-求值-�
 
 ## 关键行为与约束
 
-1. **REPL 循环为 `for /l` 死循环**（`for /l %%i in (0 0 2147483647)`）包裹原括号块，
-   使整个读-评-打循环体**只在进入时为解析器 parse 一次**，之后每次迭代执行已缓存命令，
-   不再像 `goto` 回跳那样每轮重新定位标签并重解析。这是以「括号块 parse 一次」摊薄
-   循环开销的优化（对照 cmd 性能实测：goto 循环比等价括号块 for 慢约 2.26 倍）。
-2. 退出条件唯一：`ReadEncLine` 读到空输入（文件末尾 / 空行）→ `exit /b 0` 直接终止
-   整个批次并返回调用者，退出前不回收任何东西（本步无持久对象）。
-3. `%%.` 为「_L[level]. 前缀」占位循环变量（`for %%. in (_L[!_G.LEVEL!].)`），与外层
-   `for /l %%i` 的迭代变量**区分命名**，避免嵌套 for 变量遮蔽。
+1. **REPL 循环为 `:MAIN_REPL_Loop` + `goto` 回跳**：每轮重新定位标签并重解析循环体，代价略高于
+   单次解析的括号块，但**能保证 EOF 正确退出**（见边界用例「空输入-退出」）。曾尝试换成
+   `for /l` 死循环以单次 parse，实测触发 EOF 挂死回归（`IO_ReadEncLine` 在 EOF 时 `for/f` 不产出
+   行，使 `%%.Input` 残留上一轮旧值，`if defined` 恒真 → 对已关闭 stdin 无限重放，而非 `exit`），
+   故回退 goto 结构，并把性能优化目标放到 call 分发密度（另文 OPTIMIZATION.md）。
+2. 退出条件唯一：`ReadEncLine` 读到空输入（文件末尾 / 空行）→ `exit /b 0` 直接终止整个批次并
+   返回调用者，退出前不回收任何东西（本步无持久对象）。**前提是 `%%.Input` 在 EOF 时必须被置空**，
+   仅 goto 结构下该不变量成立。
+3. `%%.` 为「_L[level]. 前缀」占位循环变量（`for %%. in (_L[!_G.LEVEL!].)`），与外层结构变量区分命名。
 4. 恒等求值：本步不解析 Mal 语法，任何输入原样 echo 回（含 `(` `)` 特殊字符），由
    `IO ReadEncLine` 的转义管线保证括号不在解析期裸嵌（见 readme 坑1）。
 5. 不涉及：NS 创建/GC、类型系统、reader/printer、环境——均由后续 step 引入。
@@ -57,4 +58,5 @@ step0_repl.bat 是 Make-A-Lisp 的 step0 入口：建立 REPL（读取-求值-�
 
 | 日期 | 版本 | 变更摘要 | 关联 commit |
 |---|---|---|---|
-| 2026-08-22 | 0.1.0 | 去 goto 化 REPL 循环：`:MAIN_REPL_Loop` + `goto` → `for /l` 死循环括号块，命中「goto 慢 2.26x」实测结论 | 待提交 |
+| 2026-08-22 | 0.1.1 | 回退 0.1.0 的 for/l 死循环（其 EOF 不置空 `%%.Input` 致无限重放挂死），恢复 `:MAIN_REPL_Loop`+`goto`；记录坑：REPL 退出不变量依赖 EOF 空输入路径 | c047fbd 之后的新提交 |
+| 2026-08-22 | 0.1.0 | 去 goto 化 REPL 循环：`:MAIN_REPL_Loop` + `goto` → `for /l` 死循环括号块（已回退） | c047fbd |
