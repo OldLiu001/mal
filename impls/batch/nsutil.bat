@@ -291,15 +291,15 @@ exit /b 0
 
 		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% %%.Res
-
 		if defined %~1.Target (
 			set "%%.NSBody=!%~1.Target!"
 		) else (
 			%&% "!%~1!.Target" "%%.NSBody"
 		)
 		set "%%.ValName=!%%.NSBody!.Data.Value[%~2]"
-		call :NSUTIL_IndirectGet "%%.ValName" "%~3"
+		if defined %%.ValName (
+			call :NSUTIL_IndirectGet "%%.ValName" "%~3"
+		)
 	)
 %-|%
 
