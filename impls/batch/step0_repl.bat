@@ -21,8 +21,7 @@ if not defined _G.PACKED (
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Prompt=user> "
 	)
-	:MAIN_REPL_Loop
-	for %%. in (_L[!_G.LEVEL!].) do (
+	for /l %%i in (0 0 2147483647) do for %%. in (_L[!_G.LEVEL!].) do (
 		%{% IO WriteVar %%.Prompt %}%
 		%{% IO ReadEncLine %}% %->% %%.Input
 		if defined %%.Input (
@@ -31,7 +30,6 @@ if not defined _G.PACKED (
 			exit /b 0
 		)
 	)
-	goto MAIN_REPL_Loop
 %-|%
 
 :MAIN_Read Mal -> Mal
