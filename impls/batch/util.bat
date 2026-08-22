@@ -99,8 +99,8 @@ exit /b 0
 		%_G.SKIPTHIS% set "_G.TRACE=!_G.TRACE!>(NSUTIL)Free"
 		set /a "_G.LEVEL += 1"
 		set /a "_T.PrevLevel = _G.LEVEL - 1"
-		( set "_G.LEVEL[!_T.PrevLevel!]" ) > "%TEMP%\mal_gc.txt" 2>nul
-		for /f "usebackq delims==" %%a in ("%TEMP%\mal_gc.txt") do (
+		( set "_G.LEVEL[!_T.PrevLevel!]" ) > "%TEMP%\mal_gc_!_T.PrevLevel!.txt" 2>nul
+		for /f "usebackq delims==" %%a in ("%TEMP%\mal_gc_!_T.PrevLevel!.txt") do (
 			if defined _G.PACKED (
 				call :NSUTIL_Free "%%a"
 			) else (
@@ -114,8 +114,8 @@ exit /b 0
 		%_G.SKIPTHIS% set "_G.TRACE[!_G.LEVEL!]="
 	)
 	
-	( set "_L[!_G.LEVEL!]" ) > "%TEMP%\mal_l.txt" 2>nul
-	for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
+	( set "_L[!_G.LEVEL!]" ) > "%TEMP%\mal_l_!_G.LEVEL!.txt" 2>nul
+		for /f "usebackq delims==" %%a in ("%TEMP%\mal_l_!_G.LEVEL!.txt") do set "%%a="
 	
 	set /a _G.LEVEL -= 1
 	

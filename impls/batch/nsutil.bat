@@ -366,8 +366,8 @@ exit /b 0
 		set "!%~1!.Type="
 		set "!%~1!.RefCnt="
 
-		( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
-		for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
+		( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f_!_G.LEVEL!.txt" 2>nul
+		for /f "usebackq delims==" %%a in ("%TEMP%\mal_f_!_G.LEVEL!.txt") do (
 			set "!%~1!.Data.Value[!%%a!]="
 			set "%%a="
 		)
@@ -392,8 +392,8 @@ exit /b 0
 	set "!_T.CB.NewBody!.Type=NSBody"
 	set "!_T.CB.NewBody!.RefCnt=1"
 
-	( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
-	for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
+	( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f_!_G.LEVEL!.txt" 2>nul
+	for /f "usebackq delims==" %%a in ("%TEMP%\mal_f_!_G.LEVEL!.txt") do (
 		set "!_T.CB.NewBody!.Data.Key[!%%a!]=!%%a!"
 
 		call NSUTIL :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% _T.CB.IsMeta

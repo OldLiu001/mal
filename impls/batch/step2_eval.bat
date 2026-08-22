@@ -35,8 +35,8 @@ if not defined _G.PACKED (
 				) else (
 					%?|% "Error type '!_G.ERR.Type!' not support."
 				)
-				( set _G.ERR ) > "%TEMP%\mal_e.txt" 2>nul
-				for /f "usebackq delims==" %%a in ("%TEMP%\mal_e.txt") do set "%%a="
+				( set _G.ERR ) > "%TEMP%\mal_e_!_G.LEVEL!.txt" 2>nul
+				for /f "usebackq delims==" %%a in ("%TEMP%\mal_e_!_G.LEVEL!.txt") do set "%%a="
 			)
 		) else (
 			exit /b 0
