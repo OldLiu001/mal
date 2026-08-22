@@ -32,6 +32,10 @@ exit /b 0
 
 		set /a "_G.NSP = 0"
 
+		rem 环境规模动态受限（readme §0 准则4）：默认阈值可被外部 `set _G.NSMAX=…`
+		rem 覆盖以适配不同机器；超出即终止，防止环境膨胀击穿性能与稳定性。
+		if not defined _G.NSMAX set /a "_G.NSMAX = 8000"
+
 		if defined _G.PACKED (
 			set "{n=call :NSUTIL_New"
 			set "{c=call :NSUTIL_Clone"
@@ -55,6 +59,13 @@ exit /b 0
 		%_G.SKIPTHIS% )
 		
 		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
+
+		rem 环境规模动态受限：分配前校验，超限立即终止而非默默膨胀。
+		if !_G.NSP! geq !_G.NSMAX! (
+			>&2 echo [%~n0] Fatal: NS count !_G.NSP! at cap !_G.NSMAX! - env growth guard.
+			2>con >&2 pause
+			exit 1
+		)
 
 		set /a "_G.NSP += 1"
 		set "%%.NSBody=_G.NS[!_G.NSP!]"
