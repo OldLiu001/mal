@@ -181,8 +181,8 @@ Set 覆盖已有 NS 值字段时：先 Free 旧值，再 IsValidNS 新值——*
 
 ## 7. 进度台账（2026-08-17）
 - step0：24/24 官方 runtest 管道通过（早期）；file_driver 19/19。
-- step1（step1_read_print.mal）：**119/119 全通过**（含错误/正则用例；file_driver 支持 `;/regex` 与 REPL 错误分支修复）。
-- step2（step2_eval.mal）：**15/15 全通过**（算术/集合求值/错误用例）。
+- step1（step1_read_print.mal）：**121/121 全通过**（含错误/正则用例；`_check.py` 逐用例比对，2026-08）.
+- step2（step2_eval.mal）：**16/16 全通过**（算术/集合求值/错误用例；`_check.py` 2026-08）。
 - step3（step3_env.mal）：**26/35**——剩 4 个 non-optional（mynum/w/y 大小写编码一致性、嵌套 let*）+ 5 个 optional DEBUG-EVAL。
   已修：def!/let*（AutoEval=False）、EnvCopyOuter（Get 路径）、EncKey 大小写编码、meta/body 句柄。
 - 架构缺陷与性能改进分析报告已并入本文档（3.5 性能方案、6 架构缺陷清单）。
@@ -350,6 +350,7 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 | 2026-08-22 | `29603bd` | nsutil.bat：NSUTIL_Get 用 `if defined` 守卫替代冗余 HasField 子调用 | step1 官方 120/120 | 12 form 10.39s→9.67s（累计 -28%） |
 | 2026-08-22 | `0866e36` | util/nsutil：`%&%` 跨文件 Copy 全改 `call set` 间接读取；Invoke 删 NSUTIL 分支内重复 `_L` 清扫 | step1 官方 120/120 | 24 form 186.3s→152.9s（-18%） |
 | 2026-08-23 | 回退 | nsutil.bat：Set 内把 `HasField`/`IsValidNS` 内联为 `call set` 双重解引用（先解析值再读 `.Type`）——**回退**。该内联对含 `~`/`(` 的字面值触发 `%~` 路径算子崩溃；改用 `if defined` 守卫后又破坏 NS 引用检测（字段值必须先解引用才是句柄，间接路径失效） | 方案不成立，回退至 `call NSUTIL` 子调用（NSUTIL_Get 的 IndirectGet 内联保留） | 正确性优先：内联必须以不解引用原始字面值、又能识别间接句柄为前提 |
+| 2026-08-22 | `3ac3bb8` | nsutil.bat：**弃用 `.for-var` 域**，全部 13 函数 `for %%. in (_T.<FN>.)` 展开为显式唯一命名 `_T.<FN>.X` + 去 for 包裹 | step1 官方 121/121、step2 16/16 | 语义收益为主：解除 PACKED 同进程 `.for-var` 串扰阻断（8.4.3.4），为同文件内联/PACKED 铺路；消除每函数一个 `for` 整块解析开销 |
 
 ### 8.4.1 实测观察（2026-08-22）
 - 用 PowerShell 管道对拍：step1 进程存在约 7s 的固定启动/init 开销（cmd 环境复制 + NSUTIL/UTIL 初始化），
