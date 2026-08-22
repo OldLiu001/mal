@@ -155,6 +155,8 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 |---|---|---|---|---|
 | 2026-08-22 | `b531563` | util.bat：GetRet 内联直写替嵌套 Copy 子调用、Get/SetRet 去 `_T` 全量清扫 | step1 官方 120/120 | 12 form 13.49s→10.39s（-23%） |
 | 2026-08-22 | `29603bd` | nsutil.bat：NSUTIL_Get 用 `if defined` 守卫替代冗余 HasField 子调用 | step1 官方 120/120 | 12 form 10.39s→9.67s（累计 -28%） |
+| 2026-08-22 | `0866e36` | util/nsutil：`%&%` 跨文件 Copy 全改 `call set` 间接读取；Invoke 删 NSUTIL 分支内重复 `_L` 清扫 | step1 官方 120/120 | 24 form 186.3s→152.9s（-18%） |
+| 2026-08-23 | 回退 | nsutil.bat：Set 内把 `HasField`/`IsValidNS` 内联为 `call set` 双重解引用（先解析值再读 `.Type`）——**回退**。该内联对含 `~`/`(` 的字面值触发 `%~` 路径算子崩溃；改用 `if defined` 守卫后又破坏 NS 引用检测（字段值必须先解引用才是句柄，间接路径失效） | 方案不成立，回退至 `call NSUTIL` 子调用（NSUTIL_Get 的 IndirectGet 内联保留） | 正确性优先：内联必须以不解引用原始字面值、又能识别间接句柄为前提 |
 
 ### 实测观察（2026-08-22）
 - 用 PowerShell 管道对拍：step1 进程存在约 7s 的固定启动/init 开销（cmd 环境复制 + NSUTIL/UTIL 初始化），
@@ -167,6 +169,28 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 - **环境膨胀（#4）**：`_G.NS[...]` 全局递增且不复用，程序越长表越大、所有 set 变慢。GC 后重建紧凑索引是最根本防御。
 - **`UTIL_Invoke` 临时文件 GC（#2 残余）**：每次 Invoke 退出仍写 `mal_l.txt`/`mal_gc.txt` 两次磁盘，可改为 `for /l` 索引直清。
 - **step2/step3**：eval/env 更重，基础设施收益应辐射过去，需单跑官方 test 建立基线。
+
+### 实测补充（2026-08-23，本会话结论）
+
+1. **Set 的 `call set` 双重解引用不成立**：`call set "_T.R=%%!_T.V!%%"` 在 `_T.V` 为含 `~`/`(` 的字面值时会
+   re-parse 出 `%~@…%`，触发"batch-parameter path operator"报错（功能仍恢复，但产生污染 stderr，官方 runtest
+   判定易失败）。外层加 `if defined !_T.V!.Type` 守卫虽避免崩溃，却**错误拦截了合法的间接 NS 句柄**——NS 字段值
+   在调用方已被 `!…!` 解引用为句柄名（如 `_G.NS[7]`），其 `.Type` 属于句柄所指对象而非该变量本身，故直接
+   `if defined 值.Type` 失配。结论：正确识别"值是否为 NSMeta"必须走真实解引用，不能既快又安全地仅靠 `if defined`。
+
+2. **`~@` 路径噪声是既有问题**：`splice-unquote`（`~@(…)`）触发路径算子报错在**未优化基线同样存在**，属于
+   `IsValidNS` 对符号字面值解引用的固有噪音，输出正确、exit=0，不应优先在此处内联。
+
+3. **PACKED 朴素扁平化会导致无限递归（重要事故）**：把各模块纯文本按 `pack.bat` 式 `:模块名` 拼接、并让入口
+   `call :模块_函数` 同文件分发，实测单表单约 300ms/form（对照 unpacked ~15s/form，约 40x）——速度极具吸引力。
+   但 `io/readline` 等模块靠 `CALL_READLINE`/`CALL_WRITEALL` 标签自我分发（`call %~f0 CALL_READLINE`），
+   压扁后 `goto :READLINE` 定位到错误段落，触发 `cmd /c call <file> CALL_READLINE` **自成环无限递归**，单进程
+   数十秒内孵化数百个 cmd 子进程直至内存耗尽。结论：PACKED 是正确的大方向（消除跨文件子进程），但**必须专门设计
+   扁平化的 `_模块_函数` 统一命名与转发层**，彻底移除 `%T.UTIL%`/文件级 goto 分发，杜绝文件自我调用递归；当前
+   朴素拼接不可用。
+
+> 事故止损经验：批量批处理测试在该环境必须**单进程、短超时、不并行后台**，出现进程数快速增长时立即 `Stop-Process`
+> 全量清理并断根（进程树可能脱离后台 job 自我繁殖）。
 
 ---
 
