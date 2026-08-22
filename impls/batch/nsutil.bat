@@ -51,266 +51,256 @@ exit /b 0
 %-|%
 
 :NSUTIL_New *NSVar
-	for %%. in (_T.NW.) do (
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-		
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
+	rem 弃用 .for-var 域：显式唯一命名 `_T.NW.` 前缀，同文件内不再依赖进程隔离。
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
+	
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
 
-		rem 环境规模动态受限：分配前校验，超限立即终止而非默默膨胀。
-		if !_G.NSP! geq !_G.NSMAX! (
-			>&2 echo [%~n0] Fatal: NS count !_G.NSP! at cap !_G.NSMAX! - env growth guard.
-			2>con >&2 pause
-			exit 1
-		)
-
-		set /a "_G.NSP += 1"
-		set "%%.NSBody=_G.NS[!_G.NSP!]"
-		set "!%%.NSBody!.Type=NSBody"
-		set /a "_G.NSP += 1"
-		set "%%.NSMeta=_G.NS[!_G.NSP!]"
-		set "!%%.NSMeta!.Type=NSMeta"
-
-		set "!%%.NSBody!.RefCnt=1"
-		set "!%%.NSMeta!.Target=!%%.NSBody!"
-		
-		set "_G.LEVEL[!_G.LEVEL!][!%%.NSMeta!]=!%%.NSMeta!"
-		
-		set "%~1=!%%.NSMeta!"
+	rem 环境规模动态受限：分配前校验，超限立即终止而非默默膨胀。
+	if !_G.NSP! geq !_G.NSMAX! (
+		>&2 echo [%~n0] Fatal: NS count !_G.NSP! at cap !_G.NSMAX! - env growth guard.
+		2>con >&2 pause
+		exit 1
 	)
+
+	set /a "_G.NSP += 1"
+	set "_T.NW.NSBody=_G.NS[!_G.NSP!]"
+	set "!_T.NW.NSBody!.Type=NSBody"
+	set /a "_G.NSP += 1"
+	set "_T.NW.NSMeta=_G.NS[!_G.NSP!]"
+	set "!_T.NW.NSMeta!.Type=NSMeta"
+
+	set "!_T.NW.NSBody!.RefCnt=1"
+	set "!_T.NW.NSMeta!.Target=!_T.NW.NSBody!"
+	
+	set "_G.LEVEL[!_G.LEVEL!][!_T.NW.NSMeta!]=!_T.NW.NSMeta!"
+	
+	set "%~1=!_T.NW.NSMeta!"
 %-|%
 
 :NSUTIL_IsNSMeta *NS -> Bool
-	for %%. in (_T.CL.) do (
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	rem 显式命名 `_T.CL.`（弃用 .for-var 域）
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
-		set "%%.T=%~1"
-		call set "%%.V=%%!%%.T!%%"
-		if not defined %%.V set "%%.V=!%%.T!"
-		call set "%%.Type=%%!%%.V!.Type%%"
-		if /i "!%%.Type!" == "NSMeta" (
-			set "%%.Res=1"
-		) else (
-			set "%%.Res=0"
-		)
-		%<-% "%%.Res"
+	set "_T.CL.T=%~1"
+	call set "_T.CL.V=%%!_T.CL.T!%%"
+	if not defined _T.CL.V set "_T.CL.V=!_T.CL.T!"
+	call set "_T.CL.Type=%%!_T.CL.V!.Type%%"
+	if /i "!_T.CL.Type!" == "NSMeta" (
+		set "_T.CL.Res=1"
+	) else (
+		set "_T.CL.Res=0"
 	)
+	%<-% "_T.CL.Res"
 %-|%
 
 :NSUTIL_IsNSBody *NS -> Bool
-	for %%. in (_T.GET.) do (
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	rem 显式命名 `_T.GET.`（弃用 .for-var 域）
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
-		set "%%.T=%~1"
-		call set "%%.V=%%!%%.T!%%"
-		if not defined %%.V set "%%.V=!%%.T!"
-		call set "%%.Type=%%!%%.V!.Type%%"
-		if /i "!%%.Type!" == "NSBody" (
-			set "%%.Res=1"
-		) else (
-			set "%%.Res=0"
-		)
-		%<-% "%%.Res"
+	set "_T.GET.T=%~1"
+	call set "_T.GET.V=%%!_T.GET.T!%%"
+	if not defined _T.GET.V set "_T.GET.V=!_T.GET.T!"
+	call set "_T.GET.Type=%%!_T.GET.V!.Type%%"
+	if /i "!_T.GET.Type!" == "NSBody" (
+		set "_T.GET.Res=1"
+	) else (
+		set "_T.GET.Res=0"
 	)
+	%<-% "_T.GET.Res"
 %-|%
 
 :NSUTIL_IsValidNS *NS -> Bool
-	for %%. in (_T.SET.) do (
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	rem 显式命名 `_T.SET.`（弃用 .for-var 域）
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
-		set "%%.T=%~1"
-		call set "%%.V=%%!%%.T!%%"
-		if not defined %%.V set "%%.V=!%%.T!"
-		call set "%%.Type=%%!%%.V!.Type%%"
-		if /i "!%%.Type!" neq "NSMeta" (
-			set "%%.Res=0"
-			%<-% "%%.Res"
-			%-|%
-		)
-		call set "%%.Target=%%!%%.V!.Target%%"
-		if defined %%.Target (
-			call set "%%.T2Type=%%!%%.Target!.Type%%"
-			if /i "!%%.T2Type!" == "NSBody" (
-				set "%%.Res=1"
-			) else (
-				set "%%.Res=0"
-			)
-		) else (
-			set "%%.Res=0"
-		)
-		%<-% "%%.Res"
+	set "_T.SET.T=%~1"
+	call set "_T.SET.V=%%!_T.SET.T!%%"
+	if not defined _T.SET.V set "_T.SET.V=!_T.SET.T!"
+	call set "_T.SET.Type=%%!_T.SET.V!.Type%%"
+	if /i "!_T.SET.Type!" neq "NSMeta" (
+		set "_T.SET.Res=0"
+		%<-% "_T.SET.Res"
+		%-|%
 	)
+	call set "_T.SET.Target=%%!_T.SET.V!.Target%%"
+	if defined _T.SET.Target (
+		call set "_T.SET.T2Type=%%!_T.SET.Target!.Type%%"
+		if /i "!_T.SET.T2Type!" == "NSBody" (
+			set "_T.SET.Res=1"
+		) else (
+			set "_T.SET.Res=0"
+		)
+	) else (
+		set "_T.SET.Res=0"
+	)
+	%<-% "_T.SET.Res"
 %-|%
 
 :NSUTIL_AssertValidNS *NS
-	for %%. in (_T.V.) do (
+	rem 显式命名 `_T.V.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.DOTHIS% %-|%
-		if not defined _G.NSUTIL (
-			>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
-
-		if "%~1" == "" %?|% "'NS' undefined."
-		%{% NSUTIL IsValidNS "!%%.T!" %}% %->% %%.Res
-		if not "!%%.Res!" == "1" %?|% "not a valid NS."
+	set "_T.V.T=%~1"
+	%_G.DOTHIS% %-|%
+	if not defined _G.NSUTIL (
+		>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		2>con >&2 pause
+		exit 1
 	)
+
+	if "%~1" == "" %?|% "'NS' undefined."
+	%{% NSUTIL IsValidNS "!_T.V.T!" %}% %->% _T.V.Res
+	if not "!_T.V.Res!" == "1" %?|% "not a valid NS."
 %-|%
 
 :NSUTIL_AssertValidNSBody *NS
-	for %%. in (_T.IM.) do (
+	rem 显式命名 `_T.IM.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.DOTHIS% %-|%
-		if not defined _G.NSUTIL (
-			>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-			2>con >&2 pause
-			exit 1
-		)
-
-		if "%~1" == "" %?|% "'NS' undefined."
-		%{% NSUTIL IsNSBody "!%%.T!" %}% %->% %%.Res
-		if not "!%%.Res!" == "1" %?|% "not a valid NS."
+	set "_T.IM.T=%~1"
+	%_G.DOTHIS% %-|%
+	if not defined _G.NSUTIL (
+		>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+		2>con >&2 pause
+		exit 1
 	)
+
+	if "%~1" == "" %?|% "'NS' undefined."
+	%{% NSUTIL IsNSBody "!_T.IM.T!" %}% %->% _T.IM.Res
+	if not "!_T.IM.Res!" == "1" %?|% "not a valid NS."
 %-|%
 
 :NSUTIL_Clone *From *To
-	for %%. in (_T.IB.) do (
+	rem 显式命名 `_T.IB.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
+	set "_T.IB.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		set /a "_G.NSP += 1"
-		set "_G.NS[!_G.NSP!].Type=NSMeta"
-		if defined %~1.Target (
-			set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
-			set "%%.NSBody=!%~1.Target!"
-		) else (
-			%&% "!%~1!.Target" "_G.NS[!_G.NSP!].Target"
-			%&% "!%~1!.Target" "%%.NSBody"
-		)
-		set /a "!%%.NSBody!.RefCnt += 1"
-
-		set "%~2=_G.NS[!_G.NSP!]"
-
-		set "_G.LEVEL[!_G.LEVEL!][!%~2!]=!%~2!"
+	set /a "_G.NSP += 1"
+	set "_G.NS[!_G.NSP!].Type=NSMeta"
+	if defined %~1.Target (
+		set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
+		set "_T.IB.NSBody=!%~1.Target!"
+	) else (
+		%&% "!%~1!.Target" "_G.NS[!_G.NSP!].Target"
+		%&% "!%~1!.Target" "_T.IB.NSBody"
 	)
+	set /a "!_T.IB.NSBody!.RefCnt += 1"
+
+	set "%~2=_G.NS[!_G.NSP!]"
+
+	set "_G.LEVEL[!_G.LEVEL!][!%~2!]=!%~2!"
 %-|%
 
 :NSUTIL_CloneMeta *From *To
-	for %%. in (_T.CM.) do (
+	rem 显式命名 `_T.CM.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
+	set "_T.CM.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		set /a "_G.NSP += 1"
-		set "_G.NS[!_G.NSP!].Type=NSMeta"
-		if defined %~1.Target (
-			set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
-			set "%%.NSBody=!%~1.Target!"
-		) else (
-			%&% "!%~1!.Target" "_G.NS[!_G.NSP!].Target"
-			%&% "!%~1!.Target" "%%.NSBody"
-		)
-		set /a "!%%.NSBody!.RefCnt += 1"
-
-		set "%~2=_G.NS[!_G.NSP!]"
+	set /a "_G.NSP += 1"
+	set "_G.NS[!_G.NSP!].Type=NSMeta"
+	if defined %~1.Target (
+		set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
+		set "_T.CM.NSBody=!%~1.Target!"
+	) else (
+		%&% "!%~1!.Target" "_G.NS[!_G.NSP!].Target"
+		%&% "!%~1!.Target" "_T.CM.NSBody"
 	)
+	set /a "!_T.CM.NSBody!.RefCnt += 1"
+
+	set "%~2=_G.NS[!_G.NSP!]"
 %-|%
 
 :NSUTIL_HasField *NS -> Bool
-	for %%. in (_T.HF.) do (
+	rem 显式命名 `_T.HF.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	set "_T.HF.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		if defined %~1.Target (
-			set "%%.NSBody=!%~1.Target!"
-		) else (
-			%&% "!%~1!.Target" "%%.NSBody"
-		)
-		if defined !%%.NSBody!.Data.Key[%~2] (
-			set "%%.Res=1"
-		) else (
-			set "%%.Res=0"
-		)
-		%<-% "%%.Res"
+	if defined %~1.Target (
+		set "_T.HF.NSBody=!%~1.Target!"
+	) else (
+		%&% "!%~1!.Target" "_T.HF.NSBody"
 	)
+	if defined !_T.HF.NSBody!.Data.Key[%~2] (
+		set "_T.HF.Res=1"
+	) else (
+		set "_T.HF.Res=0"
+	)
+	%<-% "_T.HF.Res"
 %-|%
 
 :NSUTIL_Get *NS Field *Val
-	for %%. in (_T.AV.) do (
+	rem 显式命名 `_T.AV.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-	
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
-		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
+	set "_T.AV.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+	%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
-		if defined %~1.Target (
-			set "%%.NSBody=!%~1.Target!"
-		) else (
-			call set "%%.NSBody=%%!%~1!.Target%%"
-		)
-		set "%%.ValName=!%%.NSBody!.Data.Value[%~2]"
-		if defined %%.ValName (
-			call :NSUTIL_IndirectGet "%%.ValName" "%~3"
-		)
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+
+	if defined %~1.Target (
+		set "_T.AV.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.AV.NSBody=%%!%~1!.Target%%"
+	)
+	set "_T.AV.ValName=!_T.AV.NSBody!.Data.Value[%~2]"
+	if defined _T.AV.ValName (
+		call :NSUTIL_IndirectGet "_T.AV.ValName" "%~3"
 	)
 %-|%
 
@@ -320,161 +310,157 @@ exit /b 0
 %-|%
 
 :NSUTIL_Free *NS
-	for %%. in (_T.FR.) do (
+	rem 显式命名 `_T.FR.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	set "_T.FR.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
-				%&% _G.RET %%.RetBackup
+			%&% _G.RET _T.FR.RetBackup
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
 
-		if defined %~1.Target (
-			set "%%.NSBody=!%~1.Target!"
-			set "%~1.Type="
-			set "%~1.Target="
-		) else (
-			%&% "!%~1!.Target" "%%.NSBody"
-			set "!%~1!.Type="
-			set "!%~1!.Target="
-		)
-
-		call NSUTIL :NSUTIL_FreeNSBody "%%.NSBody"
-
-		%&% %%.RetBackup _G.RET
+	if defined %~1.Target (
+		set "_T.FR.NSBody=!%~1.Target!"
+		set "%~1.Type="
+		set "%~1.Target="
+	) else (
+		%&% "!%~1!.Target" "_T.FR.NSBody"
+		set "!%~1!.Type="
+		set "!%~1!.Target="
 	)
+
+	call NSUTIL :NSUTIL_FreeNSBody "_T.FR.NSBody"
+
+	%&% _T.FR.RetBackup _G.RET
 %-|%
 
 :NSUTIL_FreeNSBody *NS
-	for %%. in (_T.FB.) do (
+	rem 显式命名 `_T.FB.`（弃用 .for-var 域，内嵌 for /f %%a 保留）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
+	set "_T.FB.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
+
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 	
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
-		
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
 
-		%&% "!%~1!.RefCnt" "%%.RefCnt"
+	%&% "!%~1!.RefCnt" "_T.FB.RefCnt"
 
-		if !%%.RefCnt! gtr 1 (
-			set /a "!%~1!.RefCnt -= 1"
-		) else (
-			if !%%.RefCnt! lss 1 (
-				%?|% "double free detected."
-			)
+	if !_T.FB.RefCnt! gtr 1 (
+		set /a "!%~1!.RefCnt -= 1"
+	) else (
+		if !_T.FB.RefCnt! lss 1 (
+			%?|% "double free detected."
+		)
 
-			set "!%~1!.Type="
-			set "!%~1!.RefCnt="
+		set "!%~1!.Type="
+		set "!%~1!.RefCnt="
 
-			( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
-			for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
-				set "!%~1!.Data.Value[!%%a!]="
-				set "%%a="
-			)
+		( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
+		for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
+			set "!%~1!.Data.Value[!%%a!]="
+			set "%%a="
 		)
 	)
 %-|%
 
 :NSUTIL_CloneBody *NS *NewNS
-	for %%. in (_T.CB.) do (
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-	
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'NewNS' undefined."
+	rem 显式命名 `_T.CB.`（弃用 .for-var 域，内嵌 for /f %%a 保留）
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'NewNS' undefined."
 
-		set /a "_G.NSP += 1"
-		set "%%.NewBody=_G.NS[!_G.NSP!]"
-		set "!%%.NewBody!.Type=NSBody"
-		set "!%%.NewBody!.RefCnt=1"
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
 
-		( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
-		for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
-			set "!%%.NewBody!.Data.Key[!%%a!]=!%%a!"
+	set /a "_G.NSP += 1"
+	set "_T.CB.NewBody=_G.NS[!_G.NSP!]"
+	set "!_T.CB.NewBody!.Type=NSBody"
+	set "!_T.CB.NewBody!.RefCnt=1"
 
-			call NSUTIL :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% %%.IsMeta
-			if "!%%.IsMeta!" == "1" (
-				call NSUTIL :NSUTIL_CloneMeta "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]"%
-			) else (
-				%&% "!%~1!.Data.Value[!%%a!]" "!%%.NewBody!.Data.Value[!%%a!]"
-			)
+	( set "!%~1!.Data.Key" ) > "%TEMP%\mal_f.txt" 2>nul
+	for /f "usebackq delims==" %%a in ("%TEMP%\mal_f.txt") do (
+		set "!_T.CB.NewBody!.Data.Key[!%%a!]=!%%a!"
+
+		call NSUTIL :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% _T.CB.IsMeta
+		if "!_T.CB.IsMeta!" == "1" (
+			call NSUTIL :NSUTIL_CloneMeta "!%~1!.Data.Value[!%%a!]" "!_T.CB.NewBody!.Data.Value[!%%a!]"%
+		) else (
+			%&% "!%~1!.Data.Value[!%%a!]" "!_T.CB.NewBody!.Data.Value[!%%a!]"
 		)
-
-		%&% "%%.NewBody" "%~2"
 	)
+
+	%&% "_T.CB.NewBody" "%~2"
 %-|%
 
 :NSUTIL_Set *NS Field *Val
-	for %%. in (_T.AB.) do (
+	rem 显式命名 `_T.AB.`（弃用 .for-var 域）
 
-		set "%%.T=%~1"
-		%_G.SKIPTHIS% if not defined _G.NSUTIL (
-		%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
-		%_G.SKIPTHIS% 	2>con >&2 pause
-		%_G.SKIPTHIS% 	exit 1
-		%_G.SKIPTHIS% )
-	
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
-		%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
-		%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
+	set "_T.AB.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
 
-		%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+	%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
+	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+
+	if defined %~1.Target (
+		set "_T.AB.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.AB.NSBody=%%!%~1!.Target%%"
+	)
+
+	call set "_T.AB.RefCnt=%%!_T.AB.NSBody!.RefCnt%%"
+	if !_T.AB.RefCnt! gtr 1 (
+		set /a "!_T.AB.NSBody!.RefCnt -= 1"
+		call NSUTIL :NSUTIL_CloneBody "_T.AB.NSBody" "_T.AB.NewBody"
+		call set "_T.AB.NSBody=%%!_T.AB.NewBody!%%"
 		if defined %~1.Target (
-			set "%%.NSBody=!%~1.Target!"
+			set "!%~1!.Target=!_T.AB.NewBody!"
 		) else (
-			call set "%%.NSBody=%%!%~1!.Target%%"
+			call set "!%~1!.Target=%%!_T.AB.NewBody!%%"
 		)
+	)
 
-		call set "%%.RefCnt=%%!%%.NSBody!.RefCnt%%"
-		if !%%.RefCnt! gtr 1 (
-			set /a "!%%.NSBody!.RefCnt -= 1"
-			call NSUTIL :NSUTIL_CloneBody "%%.NSBody" "%%.NewBody"
-			call set "%%.NSBody=%%!%%.NewBody!%%"
-			if defined %~1.Target (
-				set "!%~1!.Target=!%%.NewBody!"
-			) else (
-				call set "!%~1!.Target=%%!%%.NewBody!%%"
-			)
+	set "_T.AB.V=%~3"
+
+	call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
+	if "!_T.AB.HasField!" == "1" (
+		call set "_T.AB.OldVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
+		if "!_T.AB.OldVal!" == "!_T.AB.V!" (
+			%-|%
 		)
-
-		set "%%.V=%~3"
-
-		call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% "%%.HasField"
-		if "!%%.HasField!" == "1" (
-			call set "%%.OldVal=%%!%%.NSBody!.Data.Value[%~2]%%"
-			if "!%%.OldVal!" == "!%%.V!" (
-				%-|%
-			)
-			%{% NSUTIL IsValidNS "!%%.OldVal!" %}% %->% "%%.IsMeta"
-			if "!%%.IsMeta!" == "1" (
-				call NSUTIL :NSUTIL_Free "%%.OldVal"
-			)
+		%{% NSUTIL IsValidNS "!_T.AB.OldVal!" %}% %->% "_T.AB.IsMeta"
+		if "!_T.AB.IsMeta!" == "1" (
+			call NSUTIL :NSUTIL_Free "_T.AB.OldVal"
 		)
+	)
 
-		set "!%%.NSBody!.Data.Key[%~2]=%~2"
-		call NSUTIL :NSUTIL_IsValidNS "!%%.V!" %->% "%%.IsNS"
-		if "!%%.IsNS!" == "1" (
-			call NSUTIL :NSUTIL_CloneMeta "!%%.V!" "!%%.NSBody!.Data.Value[%~2]"
-		) else (
-			set "!%%.NSBody!.Data.Value[%~2]=!%%.V!"
-		)
+	set "!_T.AB.NSBody!.Data.Key[%~2]=%~2"
+	call NSUTIL :NSUTIL_IsValidNS "!_T.AB.V!" %->% "_T.AB.IsNS"
+	if "!_T.AB.IsNS!" == "1" (
+		call NSUTIL :NSUTIL_CloneMeta "!_T.AB.V!" "!_T.AB.NSBody!.Data.Value[%~2]"
+	) else (
+		set "!_T.AB.NSBody!.Data.Value[%~2]=!_T.AB.V!"
 	)
 %-|%
 
