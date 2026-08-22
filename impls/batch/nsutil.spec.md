@@ -35,6 +35,11 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
 3. **句柄即值**：NS 变量存的是 Meta 句柄字符串（如 `_G.NS[5]`），`!NSVar!.Target`/`!NSVar!.Type`
    是指向 Body/元数据的隐式函数。
 4. `NSUTIL_IndirectGet` 的 `call set` 双层解析是按动态名的唯一可靠读取方式（`%![VarName]!%`）。
+5. **环境规模动态受限（本版新增）**：`NSUTIL_Init` 在未预置 `_G.NSMAX` 时默认设为 8000（可被外部
+   `set _G.NSMAX=…` 覆盖，适配不同机器，见 readme §0 准则4）；`NSUTIL_New` 每次分配前用
+   `if !_G.NSP! geq !_G.NSMAX!` 校验，超限立即 `Fatal` 终止而非继续膨胀。每次 New 消耗 2 个 NSP 槽
+   （NSBody+NSMeta），默认 8000 约容纳 4000 个活跃对象。该守卫为后续"小对象内联/行数换变量"
+   可能引入的更多局部变量提供兜底。抛错语句内不可含圆括号（否则提前闭合 `if` 块，readme 坑5）。
 
 ## 边界与异常用例
 
@@ -46,3 +51,4 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
 | 写已存在 NS 字段 | 旧值为 NS | 旧值被 Free，新值按 CloneMeta 入表 |
 | 释放最后引用 | RefCnt 归 0 | 递归释放 Body 与其嵌套 NS，两级句柄置空 |
 | 未初始化调用 | 未 `NSUTIL_Init` | 记录并继续（FAST 下为 rem），不崩溃 |
+| 超过 NSMAX | 设 `_G.NSMAX=4` 后连开 2 个 NS | 第 3 次 `NSUTIL_New` 时 NSP 达 4，触发 Fatal 并 exit=1 |
