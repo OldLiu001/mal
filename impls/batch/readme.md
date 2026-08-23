@@ -188,14 +188,13 @@ Set 覆盖已有 NS 值字段时：先 Free 旧值，再 IsValidNS 新值——*
 - 架构缺陷与性能改进分析报告已并入本文档（3.5 性能方案、6 架构缺陷清单）。
 
 TODO：
-- [x] step1 全量（含 map/错误用例）
-- [x] step2_eval 验证通过
+- [x] step1 全量（含 map/错误用例，121/121）
+- [x] step2_eval 验证通过（16/16）
+- [x] 弃用 `.for-var` 域：util/nsutil 完成；reader/str/types/printer **定稿为不可行**（见 §8.4.4，保留 level 作用域）
 - [ ] step3_env 剩余 4 个 non-optional + DEBUG-EVAL（optional）
-- [x] 性能优化 P1（NSUTIL 直调：宏 {n/{s/{g/{c 直调 + _T. 前缀局部变量 + 内层 9 处直调；123 2.8→2.5s、列表 12.3→10.0s，回归跑批中）
-- [ ] 性能优化 P2（GetRet 并入 Invoke）
+- [ ] 性能优化 P2（GetRet 并入 Invoke）；消除每 Invoke 临时文件 GC（#2）
 - [ ] step4_if_fn_do / step5_tco（链式 env 前置）
 - [ ] step6_file ~ step9_try / stepA_self-host
-- [ ] git 提交
 
 ---
 ---
@@ -406,6 +405,26 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
    每 Invoke 的 `mal_gc.txt`/`mal_l.txt` 临时文件 GC），与列表长度无关，与 §8.4.0 画像一致。原子已较优、
    列表仍被"跨文件子进程 + 环境快照 GC"钉死——**只有消除跨文件子进程（PACKED 方向）才能根治，而该方向被
    §8.4.3.4 冻结**，需先重设计对象模型。任何不根治此点的微内联收益有限。
+
+### 8.4.4 `.for-var` 弃用的可行性边界（2026-08-23 定稿，阻断全量推广）
+
+用户指令"先弃用 `.for-var` 域"。`util`/`nsutil`（flat `_T.<FN>.` 前缀，函数不自递归）已干净完成
+（commit `3ac3bb8`）。但**对 reader/str/types/printer 做同款机械展开不可行**，控制实验结论如下：
+
+1. **直接嵌套读必然坏**：`!_L[!_G.LEVEL!].X` 会让 cmd 的 `!` 配对错位（`!_L[!` 先闭合），读到空/垃圾。
+   控制实验实证：`set "_T.L=!_G.LEVEL!"`（钉层）后 `call set "_T.R=%%_L[!_T.L!].X%%"` 才能读到值。
+2. **读要付 `call set` 的代价**：每次读取一次 `call`（≈1.8ms）。tokenizer 每个循环迭代要读 `!%%.Line:~,1!`、
+   `!%%.Line:~2!` 等**子串/拼接**，str 还要 `set "%%.Result=!%%.Result!!%%.Line!"` 双读拼接——这些不可能用
+   单一 `call set` 表达（子串须先整体读入临时再切）。在**非 PACKED 下这只会更慢**，收益仅取决于重开 PACKED。
+3. **跨 `call` 存活不可靠**：`for %%` 元变量跨 `call` 往返是否保持取值，实测版本依赖（同字母/异字母/无 for 的
+   callee 三种结果不一致），因此工程上**不能依赖元变量跨调用存活**，这正是 PACKED 同进程根因项之一。
+4. **TYPES_CopyMal 自递归**：对嵌套 MalLst/MalVec/MalMap 递归调用自身，必须 level 级作用域，属同一不可行类。
+
+**结论**：把 §8.4.3.4 的"冻结论"与 §0 准则落实到行动——**reader/str/types/printer 保留 level 作用域 `.for-var`
+（这是 cmd 里表达"level 级 + 子串/拼接读"的唯一可靠形式）；只对不自递归的扁平模块做 flat 展开（已做 util/nsutil）。
+重开 PACKED 的唯一前提是：让 reader 成为全库唯一用 `.for-var` 的模块（其余全部 flat/显式），并实测 `call :label`
+往返不再破坏其 `%%`。在满足该前提前，任何机械展开都是**负收益**（非 PACKED 更慢）。`_check.py` 回归网关
+（job `1449` 用改后版本 PASS=121/121 wall=336s）保持守门。**
 
 > 事故止损经验：批量批处理测试在该环境必须**单进程、短超时、不并行后台**，出现进程数快速增长时立即 `Stop-Process`
 > 全量清理并断根（进程树可能脱离后台 job 自我繁殖）。
