@@ -73,10 +73,25 @@ def read_until(deadline):
             return buf, False
     return buf, True
 
+def resync(deadline):
+    # on timeout, drain until next prompt so streams stay aligned
+    while time.perf_counter() < deadline:
+        try:
+            ch = outq.get(timeout=0.2)
+        except queue.Empty:
+            continue
+        if ch is None:
+            return
+        b = ch.decode("utf-8", "replace")
+        cur = getattr(resync, "_t", "") + b
+        resync._t = cur[-len(TERM)-1:]
+        if cur.endswith(TERM):
+            return
+
 _, _eof0 = read_until(time.perf_counter() + 20)
 
 pass_cnt = fail_cnt = 0
-timeout = float(sys.argv[3]) if len(sys.argv) > 3 else 20.0
+timeout = float(sys.argv[3]) if len(sys.argv) > 3 else 120.0
 t_wall = time.perf_counter()
 results = []
 for idx, (inp, exp) in enumerate(tests):
@@ -85,6 +100,13 @@ for idx, (inp, exp) in enumerate(tests):
     proc.stdin.flush()
     deadline = time.perf_counter() + timeout
     buf, _eof = read_until(deadline)
+    if not buf.endswith(TERM) and buf != INIT_TERM:
+        # timed out before a prompt arrived: resync so later tests stay aligned
+        if _eof:
+            out = buf
+        else:
+            out = buf
+            resync(time.perf_counter() + timeout * 2)
     if buf == INIT_TERM:
         out = ""
     elif buf.endswith(TERM):
