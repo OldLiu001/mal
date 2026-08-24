@@ -19,6 +19,7 @@ if not defined _G.PACKED (
 	if not defined _G.ENV (
 		%{% TYPES NewMalMap %}% %->% _G.ENV
 		%{% MAIN RegisterBuiltins _G.ENV %}%
+		%{% MAIN EncKey DEBUG-EVAL %}% %->% _G.DEBUGKEY
 	)
 	if "%~1" == "READALL" goto MAIN_ReadAll
 	:MAIN_REPL_Loop
@@ -137,6 +138,32 @@ exit /b 0
 
 		set "%%.EnvBody=!%%.Env!"
 		if defined !%%.Env!.Target %&% "!%%.Env!.Target" "%%.EnvBody"
+
+		set "%%.DbgOn=0"
+		%{% NSUTIL HasField "!%%.Env!" "Item[!_G.DEBUGKEY!].Count" %}% %->% %%.DbgHas
+		if "!%%.DbgHas!" == "1" (
+			%{g% "!%%.Env!" "Item[!_G.DEBUGKEY!].Item[1].Value" %%.DbgVal %}%
+			%{g% "!%%.DbgVal!" Type %%.DbgTy %}%
+			if "!%%.DbgTy!" == "MalNil" (
+				set "%%.DbgOn=0"
+			) else if "!%%.DbgTy!" == "MalBool" (
+				%{g% "!%%.DbgVal!" Value %%.DbgBv %}%
+				if "!%%.DbgBv!" == "false" (
+					set "%%.DbgOn=0"
+				) else (
+					set "%%.DbgOn=1"
+				)
+			) else (
+				set "%%.DbgOn=1"
+			)
+		)
+		if "!%%.DbgOn!" == "1" (
+			%{% PRINTER PrintMalType "!%%.ObjMal!" %}% %->% %%.DbgStr
+			%{% STR GetStr %%.DbgStr %}% %->% %%.DbgRead
+			set "%%.DbgLine=EVAL: !%%.DbgRead!"
+			%{% IO WriteEncLine %%.DbgLine %}%
+		)
+
 		if "!%%.Type!" == "MalSym" (
 			%{g% "!%%.ObjMal!" Value %%.Val %}%
 			%{% MAIN EncKey "!%%.Val!" %}% %->% %%.Enc

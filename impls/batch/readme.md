@@ -677,3 +677,31 @@ exit /b 0
   自然放行（其输出值已由探针逐行验证正确）。
 - 验证: `python _runall.py step3_env.bat ..\tests\step3_env.mal 420 --readall`
   → `PASS=38 FAIL=0`。
+
+## 11. 补齐 soft/可选/延迟测试要求（2026-08-24 定稿）
+
+### 11.1 现状盘点：reader/printer/eval 早已支持集合
+- 抽查 `reader.bat`/`printer.bat`/`step3_env.bat`：`[...]`/`{...}`/`:kwd` 的 token 化、
+  可读渲染、以及 `MAIN_Eval` 对 `MalVec`/`MalMap` 的逐项求值，在 step3 基线已**全部实现**；
+  `MLet` 也接受 `MalVec` 绑定表。因此 step2/step3 的 deferrable 集合用例本应通过。
+- 真正缺失的只有 **step3 可选 DEBUG-EVAL 追踪**（`;/regex/` 用例如今靠“跳过断言”放行，
+  并未真通过）。
+
+### 11.2 DEBUG-EVAL 追踪（step3_env.bat）
+- 语义（对齐官方）：MAIN_Eval 入口查当前 env 的符号 `DEBUG-EVAL`；非 `nil` 且非 `false`
+  即视为**真值**（`0`/`""`/`()` 均为真），打印 `EVAL: <可读形式>` 一行后再求值。
+- 实现：Main 初始化把 `DEBUG-EVAL` 的编码键预计算进 `_G.DEBUGKEY`，避免每次 eval 重算；
+  入口先 `HasField` 探键，命中再 `PrintMalType` 取可读形式打 `EVAL:` 行。递归覆盖子形式
+  （运算符/参数符号也会被追踪），与官方含 `\n` 的正则期望行为一致。
+- 验证：step3 官方 38 用例 `--readall` 以**真实正则断言**（不再跳过）→ `PASS=38 FAIL=0`。
+
+### 11.3 测试驱动诚实化（_runall.py / _check.py）
+- `_runall.py`：`;/regex/` 从「跳过断言」改为**真实断言**——`re.DOTALL` 跨行匹配，吸收递归
+  DEBUG-EVAL 的 `EVAL:` 子行；README提取增加「`EVAL:` 前缀行归并到当前表单」分组，首个非
+  `EVAL:` 行结束该表单，故每表单结果可含 `\n`。
+- `_check.py`（单会话）：解析同样跳过裸 `;` 指令/注释行，识别 `;/regex/` 期望，期望比较
+  增加 `re.DOTALL`；step2 官方 15 用例（含 deferrable 向量/哈希）单会话 → `PASS=15/15`。
+
+### 11.4 验收口径
+- step2 `_check` 15/15、step3 `_runall --readall` 38/38，均**不靠跳过断言**，soft/可选/
+  延迟要求全部真实通过。此为进入「优化（#3/#4）」前的诚实基线。

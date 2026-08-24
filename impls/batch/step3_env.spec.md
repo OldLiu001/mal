@@ -29,6 +29,7 @@
 | 嵌套 let*（`(let* (z 2) (let* (q 9) a))`） | 内层经 EnvCopyOuter 复制到全局 `a`，返回 4（本 commit 修复）|
 | 大小写敏感 | `mynum`/`MYNUM` 各自独立，不互相覆盖 |
 | 读入含 `;>>>` 指令行（测试文件元数据） | 本 bat 不做特判；由 `_runall.py` 在喂入前剔除 |
+| DEBUG-EVAL 追踪（可选功能） | MAIN_Eval 入口查当前 env 的 `DEBUG-EVAL`：非 `nil`/`false` 即真值，打印 `EVAL: <可读形式>`（递归追踪子形式）再求值结果 |
 
 ## 依赖与影响面
 
@@ -37,6 +38,10 @@
 - 影响面：仅 step3 主文件；改动以官方 `step3_env.mal` 全量 `PASS=38/38`+`_check` 回归为守门。
 
 ## 变更记录
+
+- 2026-08-24：实现可选 DEBUG-EVAL 追踪。Main 初始化预计算 `_G.DEBUGKEY`；MAIN_Eval 入口按
+  当前 env 查 `DEBUG-EVAL`，非 `nil`/`false` 即真值，经 printer 取可读形式打印 `EVAL: <form>`
+  行（递归覆盖子形式，与官方含换行正则相匹配）。官方 38 用例 READALL 真实断言 PASS=38/38。
 
 - 2026-08-24：修复嵌套 let* 外层 env 失序查找。EnvCopyOuter 现在为每个 let* env **自持一份全新
   RawKeys**（含已拷贝外层键），MLet 再把本地绑定追加；修掉 `:MAIN_ENV`/MAIN EncKey 编码问题。
