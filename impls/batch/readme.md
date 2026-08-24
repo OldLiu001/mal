@@ -192,7 +192,8 @@ TODO：
 - [x] step2_eval 验证通过（16/16）
 - [x] 弃用 `.for-var` 域：util/nsutil 完成；reader/str/types/printer **定稿为不可行**（见 §8.4.4，保留 level 作用域）
 - [ ] step3_env 剩余 4 个 non-optional + DEBUG-EVAL（optional）
-- [ ] 性能优化 P2（GetRet 并入 Invoke）；消除每 Invoke 临时文件 GC（#2）
+- [ ] 性能优化 P2（GetRet 并入 Invoke）
+- [x] #2 消除每 Invoke 临时文件 GC —— **已实测：无收益并回退**（2026-08-24，详见 §8.2.2-2）
 - [ ] step4_if_fn_do / step5_tco（链式 env 前置）
 - [ ] step6_file ~ step9_try / stepA_self-host
 
@@ -236,7 +237,7 @@ TODO：
 | # | 优化点 | 位置 | ROI |
 |---|---|---|---|
 | 1 | eval 递归改同文件/PACKED，消除跨文件子进程 | `util.bat:UTIL_Invoke` | 🔥🔥🔥 |
-| 2 | 消除每个 Invoke 的临时文件枚举 GC | `util.bat:102-121` | 🔥🔥🔥 |
+| ~~2~~ | ~~消除每个 Invoke 的临时文件枚举 GC~~ —— **已实测：无收益，回退** | `util.bat` | ~~🔥🔥🔥~~ |
 | 3 | NS 写时复制改已知索引直写、少深拷贝 | `nsutil.bat:*` | 🔥🔥🔥 |
 | 4 | 控制环境膨胀（及时 Free / 短名局部变量） | `nsutil.bat:_G.NS[_G.NSP++]` | 🔥🔥 |
 | 5 | reader 29 个 goto 改括号块/for | `reader.bat` | 🔥🔥 |
@@ -286,6 +287,12 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 
 **方案**：GC 集合若生成期可知 → `for /l` 索引直写（t32，40µs/变量，省临时文件、省磁盘）；
 无法预知时，把"逐层清扫"改为"层结束一次性清理"，降低调用频次。
+
+**实测（2026-08-24）：无收益，方案回退**。
+- 做法：为每个 `for %%. in (_L[level].)` 建帧点加 `_G.LLV[level]=1` 标记，`UTIL_Invoke` 退出时仅当 `_G.LLV[level]` 已定义才做临时文件枚举清理，flat 模块（util/nsutil 无帧）直接跳过。
+- 结果：flat 密集种子（7 行嵌套/长列表）4 表单 guard-ON `115.7s` vs 无条件 guard-OFF `114.3s` —— **差量落在噪声内，无任何收益**。
+- 根因：解析/打印热路径里 reader/printer/str/types 都开 `_L` 帧，清理照跑；util/nsutil 的 flat 跳过次数有限，而每次跳过省下的磁盘 IO（`_L[level]` 本就没几个变量）远小于每次 `Invoke` 的调用分发/参数传递本体成本。**瓶颈在 call 密度，不在临时文件 GC**。
+- 教训：该项 8.x 表格里标注的 ROI 原判过高；真实大头是 #1 call 密度 / #3 COW / #5 reader goto。**不要再单点做临时文件守卫**，除非配合 #3 的"已知索引直写"整体替换磁盘枚举。
 
 ### #3 NS 写时复制（COW）深拷贝是 GC 放大器
 
