@@ -47,6 +47,11 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
    要求各模块与 nsutil.bat 同目录。实测 step1 121/121，随 #7 壁钟 128.7s 验证通过。
 2. **写时复制**：`NSUTIL_Set` 当 `RefCnt>1`（被共享）时先 `CloneBody` 深拷贝出独立 Body 再写，
    复用旧值若为 NS 则释放。字段多时每次写都 O(字段数) 深拷贝——这是主要 GC 放大器（优化点 #3）。
+2b. **同值短路前置（#3 首片，本版新增）**：`NSUTIL_Set` 把 `HasField`+当前字段值判等提前到 `CloneBody`
+   深拷贝之前——新值与现值相同则直接返回，不触发 COW 深拷贝（原实现先克隆重指再做判等，白白深拷贝）。
+   Free 步在 COW 之后**重新读当前（重指后）Body 的字段值**再释放，语义与原「释放新 Body 中旧引用」一致，
+   避免了移到浅读旧 Body 引用会误伤仍被旧 Body 持有的 Meta 的问题。改字段名 `_T.AB.OldVal`→`_T.AB.CurVal`。
+   实测 step1 121/121、step2 16/16 通过，wall 无回退。
 3. **句柄即值**：NS 变量存的是 Meta 句柄字符串（如 `_G.NS[5]`），`!NSVar!.Target`/`!NSVar!.Type`
    是指向 Body/元数据的隐式函数。
 4. `NSUTIL_IndirectGet` 的 `call set` 双层解析是按动态名的唯一可靠读取方式（`%![VarName]!%`）。

@@ -357,6 +357,14 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 - 单 owner 对象用 move 而非 clone；减少 COW 触发面（不要为每个只读共享就复制）；
 - `Free` 用索引直清，避免临时文件。
 
+**已落地（2026-08-24，#3 首片：收窄 COW 触发面）**：`NSUTIL_Set` 把「同值短路」前置到 `CloneBody`
+深拷贝**之前**——先 `HasField` + 读当前字段值判等，若新值与现值相同则直接返回，完全跳过深拷贝。
+原实现在先完成整 body 深拷贝、重指 Target 之后才做同值判等，导致「写一个与本值相同的字段」也白付
+一次 O(字段数) 拷贝。改动仅重排旧值判等次序，Free 步随后**重新读当前（COW 后）字段值**再释放，保持
+原「释放新 Body 中该字段旧引用」语义不变。实测 step1 smoke 11/11、step2 官方 16/16、step1 官方
+121/121 均通过，wall 无回退。其余片（紧凑数组 for /l 直写、单 owner move）待 stepA 数组/表对象
+就位后一并落地。
+
 ### #4 环境膨胀是二次方放大器
 
 **现象**：`_G.NS[_G.NSP++]` 无上限分配（`nsutil.bat:NSUTIL_New/Clone`），每个 NS 占 Meta+Body 两槽，每字段两变量；程序越跑环境表越大。

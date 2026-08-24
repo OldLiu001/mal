@@ -429,6 +429,18 @@ exit /b 0
 		call set "_T.AB.NSBody=%%!%~1!.Target%%"
 	)
 
+	set "_T.AB.V=%~3"
+
+	rem 收窄 COW 触发面（#3）：同值短路前置——在深拷贝之前判等，值未变时直接返回，
+	rem 避免无谓的 CloneBody 全字段深拷贝。Free 步随后重新读当前字段值，保持原语义。
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
+	if "!_T.AB.HasField!" == "1" (
+		call set "_T.AB.CurVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
+		if "!_T.AB.CurVal!" == "!_T.AB.V!" (
+			%-|%
+		)
+	)
+
 	call set "_T.AB.RefCnt=%%!_T.AB.NSBody!.RefCnt%%"
 	if !_T.AB.RefCnt! gtr 1 (
 		set /a "!_T.AB.NSBody!.RefCnt -= 1"
@@ -441,17 +453,11 @@ exit /b 0
 		)
 	)
 
-	set "_T.AB.V=%~3"
-
-	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
 	if "!_T.AB.HasField!" == "1" (
-		call set "_T.AB.OldVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
-		if "!_T.AB.OldVal!" == "!_T.AB.V!" (
-			%-|%
-		)
-		call :NSUTIL_IsValidNS "!_T.AB.OldVal!" %->% "_T.AB.IsMeta"
+		call set "_T.AB.CurVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.AB.CurVal!" %->% "_T.AB.IsMeta"
 		if "!_T.AB.IsMeta!" == "1" (
-			call :NSUTIL_Free "_T.AB.OldVal"
+			call :NSUTIL_Free "_T.AB.CurVal"
 		)
 	)
 
