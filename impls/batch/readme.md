@@ -194,6 +194,7 @@ TODO：
 - [ ] step3_env 剩余 4 个 non-optional + DEBUG-EVAL（optional）
 - [ ] 性能优化 P2（GetRet 并入 Invoke）
 - [x] #2 消除每 Invoke 临时文件 GC —— **已实测：无收益并回退**（2026-08-24，详见 §8.2.2-2）
+- [x] #1 PACKED 单文件消子进程 —— **已实测：blocker 修复（FAST 顺序）+ _pack.py 修复产物可用，但 naive 单文件更慢，暂回退**（2026-08-24，详见 §8.2.1）
 - [ ] step4_if_fn_do / step5_tco（链式 env 前置）
 - [ ] step6_file ~ step9_try / stepA_self-host
 
@@ -236,7 +237,7 @@ TODO：
 
 | # | 优化点 | 位置 | ROI |
 |---|---|---|---|
-| 1 | eval 递归改同文件/PACKED，消除跨文件子进程 | `util.bat:UTIL_Invoke` | 🔥🔥🔥 |
+| 1 | ~~eval 递归改同文件/PACKED 消子进程~~ —— **已测：blocker 修复但 naive 单文件更慢，回退** | `util.bat:UTIL_Invoke` | ~~🔥🔥🔥~~ |
 | ~~2~~ | ~~消除每个 Invoke 的临时文件枚举 GC~~ —— **已实测：无收益，回退** | `util.bat` | ~~🔥🔥🔥~~ |
 | 3 | NS 写时复制改已知索引直写、少深拷贝 | `nsutil.bat:*` | 🔥🔥🔥 |
 | 4 | 控制环境膨胀（及时 Free / 短名局部变量） | `nsutil.bat:_G.NS[_G.NSP++]` | 🔥🔥 |
@@ -268,6 +269,12 @@ if /i "%~1" == "MAIN" (
 - 或按既定"生成式扁平单文件 + 热路径内联"路线，让 eval 主循环在**同一个 `/L` 循环 + 括号块**内完成，彻底去掉逐节点子进程。
 
 **收益**：每节点差 ~640µs，且消除环境拷贝放大（t15：膨胀环境跨文件 call 慢 3.4x）。
+
+**实测（2026-08-24）：blocker 已破 + FAST 顺序修复，但 naive 单文件 perf 不升反降**。
+- **破 blocker**：packed 单文件此前一进 reader 就报 `'NS' undefined`。根因是**头部初始化顺序 bug**——头部在 `set _G.FAST=1` 之前就 `call :NSUTIL_Init`→`UTIL_Init`，导致 `_G.SKIPTHIS/_G.DOTHIS` 走了非 fast 分支、所有冗余 assert 生效，reader 在 packed 单进程下误报空 NS。一行修复：头部在 `NSUTIL_Init` 前 `set _G.FAST=1`（对齐非 packed：step1 先设 FAST 再 init）。已折进 `_pack.py`，产物 `user> 1` / `user> (a b)` 等全部正确。
+- **perf**：修复后 smoke 11 表单 `51.5s`（非 packed ~40s）；flat 密集 4 表单 `148.8s`（非 packed ~115s）。**packed 反而慢 ~30%**。
+- **根因**：消除跨文件子进程后每节点变同文件 `call :label`，但单文件 56KB 使**标签扫描**变贵（§8 速查：文件越大 call/goto 标签定位越贵）；且 packed 每行 readline/writeall 用 `call "%~s0" CALL_READLINE` 让**整个文件**当子进程跑（非 packed 是几十行的轻量 `call READLINE`），一次 REPL 行 IO 就昂贵得多。
+- 结论：**扁平单文件不是银弹**；要想赢需"热标签靠前 + 控制行数 + readline/writeall 不整文件自重启"。真实瓶颈转向 #3/#4/#5（对象模型 env 膨胀 + reader goto），见下方新结论。
 
 ### #2 每次 `UTIL_Invoke` 的临时文件枚举 GC
 

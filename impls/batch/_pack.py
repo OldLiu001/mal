@@ -56,6 +56,7 @@ header = (
     "if \"%~1\" equ \"CALL_READLINE\" call :READLINE & exit /b 0\n"
     "if \"%~1\" equ \"CALL_WRITEALL\"  call :WRITEALL & exit /b 0\n"
     "if \"%~1\" equ \"CALL_SELF\"      shift & goto :ENTRY_CALLER\n"
+    "set _G.FAST=1\n"
     "call :NSUTIL_Init %~n0\n"
     "call :MAIN_Main\n"
     "exit /b 0\n"
