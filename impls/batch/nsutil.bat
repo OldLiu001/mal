@@ -432,7 +432,7 @@ exit /b 0
 	call set "_T.AB.RefCnt=%%!_T.AB.NSBody!.RefCnt%%"
 	if !_T.AB.RefCnt! gtr 1 (
 		set /a "!_T.AB.NSBody!.RefCnt -= 1"
-		call NSUTIL :NSUTIL_CloneBody "_T.AB.NSBody" "_T.AB.NewBody"
+		call :NSUTIL_CloneBody "_T.AB.NSBody" "_T.AB.NewBody"
 		call set "_T.AB.NSBody=%%!_T.AB.NewBody!%%"
 		if defined %~1.Target (
 			set "!%~1!.Target=!_T.AB.NewBody!"

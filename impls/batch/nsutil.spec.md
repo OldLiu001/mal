@@ -30,6 +30,13 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
    语义等价，剪掉每次字段读的一次跨文件子进程。`NSUTIL_Get`/`NSUTIL_Set` 内读取
    `Target`/`RefCnt`/`OldVal`/`NewBody` 等动态名一律用 `call set` 间接读取，替代 `%&%` 跨文件 Copy
    子调用（每处省一次跨文件 call）。
+1b. **内部自调用同进程化（本版新增）**：nsutil.bat 内对自家函数（`HasField`/`IsValidNS`/`IsNSMeta`/
+   `CloneMeta`/`CloneBody`/`Free`/`FreeNSBody`/`IndirectGet`）一律改 `call :NSUTIL_*`（同进程标签跳转），
+   取代原 `call NSUTIL :NSUTIL_*`（跨文件＝新起 cmd.exe 子进程）。各函数参数互不冲突靠「显式唯一
+   命名 `_T.<FN>.` 前缀」即弃用 .for-var 域的设计保证，同进程调用安全。一个 `NSUTIL_Set` 扇出的
+   HasField+IsValidNS×2+CloneMeta 等原本各再起一个子进程，现收敛进当前实例，实测 step1 密集表单
+   快 ~10%（18.72s→16.84s），官方 121/121 无回归。`%{% NSUTIL AssertValid* %}%` 等 FAST 下为 rem 的
+   断言保持不变；`IndirectGet` 本就是 `call :`。
 2. **写时复制**：`NSUTIL_Set` 当 `RefCnt>1`（被共享）时先 `CloneBody` 深拷贝出独立 Body 再写，
    复用旧值若为 NS 则释放。字段多时每次写都 O(字段数) 深拷贝——这是主要 GC 放大器（优化点 #3）。
 3. **句柄即值**：NS 变量存的是 Meta 句柄字符串（如 `_G.NS[5]`），`!NSVar!.Target`/`!NSVar!.Type`
