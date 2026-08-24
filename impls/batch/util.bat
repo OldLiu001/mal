@@ -38,8 +38,8 @@ exit /b 0
 		set "_T.UTIL="
 		if not defined _G.PACKED set "_T.UTIL=!_G.UTIL!"
 		
-		set "<-=call !_T.UTIL! :UTIL_SetRet"
-		set "->=& call !_T.UTIL! :UTIL_GetRet"
+		set "<-=call :UTIL_SetRet"
+		set "->=& call :UTIL_GetRet"
 		set "|->=call !_T.UTIL! :UTIL_GetRet"
 		set "??=call !_T.UTIL! :UTIL_Throw"		
 		set "?|=call !_T.UTIL! :UTIL_Fatal"

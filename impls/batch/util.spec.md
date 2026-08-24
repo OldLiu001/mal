@@ -30,6 +30,12 @@ util.bat 是 MAL batch 实现的**调度与返回值交接核心**：定义全�
    每次使用前必先赋值再读，残留无功能影响。SetRet 读 `!%~1!.Type` 用 `call set` 间接读取替代 `%&%`
    跨文件 Copy 子调用（省一次跨文件 call）。实测真 step1 12 个 form 从 13.49s→10.39s(~23%)，官方
    step1_read_print 120/120 通过、0 失败，行为等价。
+2b. **返回值交接同进程化（本版新增）**：`%<-%`/`%->%` 两个宏改指向裸 `call :UTIL_SetRet`/`call :UTIL_GetRet`，
+   不再 `call !_T.UTIL! :...`。为此在每个模块文件（util/nsutil/types/reader/printer/str/io/env/step*）末尾
+   内置一份 `:UTIL_SetRet`/`:UTIL_GetRet` 小标签（SetRet 用独立临时前缀 `_T.SR.*` 防串扰）。`call :label`
+   为同进程标签跳转，彻底消除每次函数返回+取结果各起的 1 个 cmd 子进程。宏定义只需改动 util.bat 一处，
+   各模块标签由脚本统一追加。语义与集中版完全一致（含 NSMeta 跨层句柄记账）。实测 step1 密集表单
+   18.72s→13.99s（累计 -25%），官方 step1 121/121、step2 16/16 均无回归。
 3. `_G.SKIPTHIS/_G.DOTHIS`：按 `_G.FAST` 决定校验语句是否编译为 `rem`（FAST 下跳过错位校验，保性能）。
 4. `UTIL_Invoke` 非 PACKED 走跨文件 `call ModName :Fn`；PACKED 走同文件 `call :Fn`，省子进程（见 OPTIMIZATION.md #1）。
 5. NS GC：Invoke 退出在 `if defined _G.NSUTIL` 下经临时文件枚举释放当前 LEVEL 命名空间。NSUTIL 分支内

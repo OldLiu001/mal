@@ -192,7 +192,9 @@ TODO：
 - [x] step2_eval 验证通过（16/16）
 - [x] 弃用 `.for-var` 域：util/nsutil 完成；reader/str/types/printer **定稿为不可行**（见 §8.4.4，保留 level 作用域）
 - [ ] step3_env 剩余 4 个 non-optional + DEBUG-EVAL（optional）
-- [ ] 性能优化 P2（GetRet 并入 Invoke）
+- [x] 性能优化 P2（GetRet 并入 Invoke）—— **改为：#10 GetRet/SetRet 同进程化已落地，实测密集表单 -25%**（2026-08-24，详见 §8.2.3 / §8.2.4）
+- [x] #9 模块内部自调用 `call SELF:`→`call :` —— **已落地：nsutil 内部同进程化，密集表单 -10%**（2026-08-24，详见 §8.2.3）
+- [x] #10 SetRet/GetRet 各模块内 `call :label` —— **已落地：密集表单再 -17%**（2026-08-24，详见 §8.2.4）
 - [x] #2 消除每 Invoke 临时文件 GC —— **已实测：无收益并回退**（2026-08-24，详见 §8.2.2-2）
 - [x] #1 PACKED 单文件消子进程 —— **已实测：blocker 修复（FAST 顺序）+ _pack.py 修复产物可用，但 naive 单文件更慢，暂回退**（2026-08-24，详见 §8.2.1）
 - [ ] step4_if_fn_do / step5_tco（链式 env 前置）
@@ -245,6 +247,8 @@ TODO：
 | 6 | `ENV_Find` 的 goto 链 + 每层线性扫 | `env.bat:48-74` | 🔥🔥 |
 | 7 | 裸名 `call NSUTIL/...` 改 `%~dp0` 全路径 | 全库 `call XXX :...` | 🔥 |
 | 8 | PACKED 单文件后热标签靠前、控行数 | `pack.bat` | 🔥 |
+| 9 | ~~模块内部嵌套自调用 `call SELF:`→`call :`~~ —— 同进程，实测密集表单 18.72→16.84s（见 §8.2.3） | `nsutil.bat:*` | 🔥🔥🔥 |
+| 10 | ~~SetRet/GetRet 每返回+每取结果各起子进程改造为各模块内 `call :label`~~ —— 实测 16.84→13.99s（见 §8.2.4） | `util.bat` 宏 + 各模块尾标签 | 🔥🔥🔥 |
 
 ## 8.2 逐条方案
 
@@ -300,6 +304,35 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 - 结果：flat 密集种子（7 行嵌套/长列表）4 表单 guard-ON `115.7s` vs 无条件 guard-OFF `114.3s` —— **差量落在噪声内，无任何收益**。
 - 根因：解析/打印热路径里 reader/printer/str/types 都开 `_L` 帧，清理照跑；util/nsutil 的 flat 跳过次数有限，而每次跳过省下的磁盘 IO（`_L[level]` 本就没几个变量）远小于每次 `Invoke` 的调用分发/参数传递本体成本。**瓶颈在 call 密度，不在临时文件 GC**。
 - 教训：该项 8.x 表格里标注的 ROI 原判过高；真实大头是 #1 call 密度 / #3 COW / #5 reader goto。**不要再单点做临时文件守卫**，除非配合 #3 的"已知索引直写"整体替换磁盘枚举。
+
+### #9 模块内部嵌套自调用 `call SELF:` → `call :`（同进程）
+
+**现象**：`nsutil.bat` 内部对自家函数（`Set`→`HasField/IsValidNS/CloneMeta/Free`，`CloneBody`→`IsNSMeta/CloneMeta`，
+`Free`→`FreeNSBody`）虽都在同一文件，却统一写成跨文件风格 `call NSUTIL :NSUTIL_*`。cmd 中 `call` 一个
+`.bat` 会**新起一个 cmd.exe 子进程**（约 2.9ms/个）。于是每写一个字段的 `NSUTIL_Set` 就要额外扇出 4+ 个
+子进程——这是读+打印热路径上的重复开销大头。
+
+**改法**：`nsutil.bat` 内对自家函数的调用一律改 `call :NSUTIL_*`（同进程标签跳转），`%{% NSUTIL IsValidNS %}%`
+宏调用改为直接 `call :NSUTIL_IsValidNS`。参数互不冲突由「弃用 .for-var 域」后的显式唯一 `_T.<FN>.` 前缀保证，
+同进程调用安全。FAST 下为 rem 的 `AssertValid*` 断言不改。
+
+**实测（2026-08-24）**：官方 step1 121/121、step2 16/16 无回归；step1 密集表单 `(a b (c d) (e (f g)))`
+**18.72s→16.84s（-10%）**。剩余跨文件子进程仍有 Invoke 分发 + SetRet/GetRet + 模块分发，见 #10 与后续。
+
+### #10 SetRet/GetRet 每返回+每取结果各起子进程 → 各模块内 `call :label`
+
+**现象**：`%<-% Var`（=SetRet）与 `%->% Out`（=GetRet）在非 PACKED 下展开为 `call !_T.UTIL! :UTIL_SetRet/GetRet`。
+`!_T.UTIL!`=模块名 `util` → `call util :UTIL_SetRet` 即**跨文件起子进程**。每个函数返回写 `_G.RET` 一次、
+每个调用方取结果一次，是逐逻辑调用必付的 2 个子进程。
+
+**改法**（0 架构改动）：`util.bat` 内 `%<-%`/`%->%` 两宏改指裸 `call :UTIL_SetRet`/`call :UTIL_GetRet`；在每个
+模块文件（util/nsutil/types/reader/printer/str/io/env/step*）末尾内置一份同进程小标签（SetRet 用独立临时前缀
+`_T.SR.*` 防与调用栈串扰；语义含 NSMeta 跨层句柄记账，与集中版逐字一致）。宏只改 util.bat 一处，各模块标签
+由脚本统一追加（保证 CRLF 与不重复）。
+
+**实测（2026-08-24）**：官方 step1 121/121、step2 16/16 无回归；step1 密集表单 **16.84s→13.99s（再 -17%，累计
+18.72→13.99 = -25%）**。宏机制验证：每逻辑调用 Subprocess 从 ~4（Invoke+分发+SetRet+GetRet）降至 ~2
+（Invoke+分发），接近子进程减半。
 
 ### #3 NS 写时复制（COW）深拷贝是 GC 放大器
 
