@@ -171,7 +171,7 @@ exit /b 0
 	)
 
 	if "%~1" == "" %?|% "'NS' undefined."
-	%{% NSUTIL IsValidNS "!_T.V.T!" %}% %->% _T.V.Res
+	call :NSUTIL_IsValidNS "!_T.V.T!" %->% _T.V.Res
 	if not "!_T.V.Res!" == "1" %?|% "not a valid NS."
 %-|%
 
@@ -187,7 +187,7 @@ exit /b 0
 	)
 
 	if "%~1" == "" %?|% "'NS' undefined."
-	%{% NSUTIL IsNSBody "!_T.IM.T!" %}% %->% _T.IM.Res
+	call :NSUTIL_IsNSBody "!_T.IM.T!" %->% _T.IM.Res
 	if not "!_T.IM.Res!" == "1" %?|% "not a valid NS."
 %-|%
 
@@ -203,7 +203,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	set /a "_G.NSP += 1"
 	set "_G.NS[!_G.NSP!].Type=NSMeta"
@@ -233,7 +233,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'From' undefined."
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'To' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	set /a "_G.NSP += 1"
 	set "_G.NS[!_G.NSP!].Type=NSMeta"
@@ -262,7 +262,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	if defined %~1.Target (
 		set "_T.HF.NSBody=!%~1.Target!"
@@ -291,7 +291,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 	%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	if defined %~1.Target (
 		set "_T.AV.NSBody=!%~1.Target!"
@@ -323,7 +323,7 @@ exit /b 0
 
 			%&% _G.RET _T.FR.RetBackup
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	if defined %~1.Target (
 		set "_T.FR.NSBody=!%~1.Target!"
@@ -335,7 +335,7 @@ exit /b 0
 		set "!%~1!.Target="
 	)
 
-	call NSUTIL :NSUTIL_FreeNSBody "_T.FR.NSBody"
+	call :NSUTIL_FreeNSBody "_T.FR.NSBody"
 
 	%&% _T.FR.RetBackup _G.RET
 %-|%
@@ -352,7 +352,7 @@ exit /b 0
 
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 	
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNSBody "%~1"
 
 	%&% "!%~1!.RefCnt" "_T.FB.RefCnt"
 
@@ -385,7 +385,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'NewNS' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNSBody "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNSBody "%~1"
 
 	set /a "_G.NSP += 1"
 	set "_T.CB.NewBody=_G.NS[!_G.NSP!]"
@@ -396,9 +396,9 @@ exit /b 0
 	for /f "usebackq delims==" %%a in ("%TEMP%\mal_f_!_G.LEVEL!.txt") do (
 		set "!_T.CB.NewBody!.Data.Key[!%%a!]=!%%a!"
 
-		call NSUTIL :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% _T.CB.IsMeta
+		call :NSUTIL_IsNSMeta "!%~1!.Data.Value[!%%a!]" %->% _T.CB.IsMeta
 		if "!_T.CB.IsMeta!" == "1" (
-			call NSUTIL :NSUTIL_CloneMeta "!%~1!.Data.Value[!%%a!]" "!_T.CB.NewBody!.Data.Value[!%%a!]"%
+			call :NSUTIL_CloneMeta "!%~1!.Data.Value[!%%a!]" "!_T.CB.NewBody!.Data.Value[!%%a!]"%
 		) else (
 			%&% "!%~1!.Data.Value[!%%a!]" "!_T.CB.NewBody!.Data.Value[!%%a!]"
 		)
@@ -421,7 +421,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
 	%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
 
-	%_G.SKIPTHIS% %{% NSUTIL AssertValidNS "%~1" %}%
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
 
 	if defined %~1.Target (
 		set "_T.AB.NSBody=!%~1.Target!"
@@ -443,22 +443,22 @@ exit /b 0
 
 	set "_T.AB.V=%~3"
 
-	call NSUTIL :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
 	if "!_T.AB.HasField!" == "1" (
 		call set "_T.AB.OldVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
 		if "!_T.AB.OldVal!" == "!_T.AB.V!" (
 			%-|%
 		)
-		%{% NSUTIL IsValidNS "!_T.AB.OldVal!" %}% %->% "_T.AB.IsMeta"
+		call :NSUTIL_IsValidNS "!_T.AB.OldVal!" %->% "_T.AB.IsMeta"
 		if "!_T.AB.IsMeta!" == "1" (
-			call NSUTIL :NSUTIL_Free "_T.AB.OldVal"
+			call :NSUTIL_Free "_T.AB.OldVal"
 		)
 	)
 
 	set "!_T.AB.NSBody!.Data.Key[%~2]=%~2"
-	call NSUTIL :NSUTIL_IsValidNS "!_T.AB.V!" %->% "_T.AB.IsNS"
+	call :NSUTIL_IsValidNS "!_T.AB.V!" %->% "_T.AB.IsNS"
 	if "!_T.AB.IsNS!" == "1" (
-		call NSUTIL :NSUTIL_CloneMeta "!_T.AB.V!" "!_T.AB.NSBody!.Data.Value[%~2]"
+		call :NSUTIL_CloneMeta "!_T.AB.V!" "!_T.AB.NSBody!.Data.Value[%~2]"
 	) else (
 		set "!_T.AB.NSBody!.Data.Value[%~2]=!_T.AB.V!"
 	)
