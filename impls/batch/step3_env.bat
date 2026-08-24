@@ -12,7 +12,7 @@ if not defined _G.PACKED (
 	call :NSUTIL_Init %~n0
 )
 
-%{% MAIN Main %}%
+%{% MAIN Main %~1 %}%
 %-|%
 
 :MAIN_Main
@@ -20,6 +20,7 @@ if not defined _G.PACKED (
 		%{% TYPES NewMalMap %}% %->% _G.ENV
 		%{% MAIN RegisterBuiltins _G.ENV %}%
 	)
+	if "%~1" == "READALL" goto MAIN_ReadAll
 	:MAIN_REPL_Loop
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Prompt=user> "
@@ -35,8 +36,8 @@ if not defined _G.PACKED (
 				) else (
 					%?|% "Error type '!_G.ERR.Type!' not support."
 				)
-				( set _G.ERR ) > "%TEMP%\mal_e.txt" 2>nul
-				for /f "usebackq delims==" %%a in ("%TEMP%\mal_e.txt") do set "%%a="
+				( set _G.ERR ) > "%TEMP%\mal_e_!_G.LEVEL!.txt" 2>nul
+				for /f "usebackq delims==" %%a in ("%TEMP%\mal_e_!_G.LEVEL!.txt") do set "%%a="
 			)
 		) else (
 			exit /b 0
@@ -45,6 +46,33 @@ if not defined _G.PACKED (
 	goto MAIN_REPL_Loop
 %-|%
 
+:MAIN_ReadAll
+	for /f "tokens=* eol=" %%a in (
+		'readall.bat RAW'
+	) do (
+		set "_M.RDALL.Line=%%a"
+		call !_T.UTIL! :UTIL_Invoke MAIN REP _M.RDALL.Line
+		%?% (
+			if "!_G.ERR.Type!" == "Exception" (
+				call !_T.UTIL! :UTIL_Invoke IO WriteErrLineVar _G.ERR.Msg
+			)
+			( set _G.ERR ) > "%TEMP%\mal_e_!_G.LEVEL!.txt" 2>nul
+			for /f "usebackq delims==" %%b in ("%TEMP%\mal_e_!_G.LEVEL!.txt") do set "%%b="
+		)
+	)
+	%<-% ""
+%-|%
+
+:MAIN_ReadAll_Encode Raw OutVar
+	setlocal disabledelayedexpansion
+	set "_ENC_RAW=%~1"
+	set "_ENC_OUT="
+	for /f "tokens=* eol=" %%b in (
+		'echo."%_ENC_RAW%"^| call "%~dp0readline.bat"'
+	) do set "_ENC_OUT=%%~b"
+	endlocal & set "%~2=%_ENC_OUT%"
+exit /b 0
+
 :MAIN_RegisterBuiltins Env
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Env=%~1"
@@ -52,40 +80,40 @@ if not defined _G.PACKED (
 		%{% TYPES NewBatFn MAIN MAdd True %}% %->% %%.Fn
 		%{s% "!%%.Env!" Item[+1].Count 1 %}%
 		%{s% "!%%.Env!" Item[+1].Item[1].Key + %}%
-		%{s% "!%%.Env!" Item[+].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[+1].Item[1].Value !%%.Fn! %}%
 
 		%{% TYPES NewBatFn MAIN MSub True %}% %->% %%.Fn
 		%{s% "!%%.Env!" Item[-1].Count 1 %}%
 		%{s% "!%%.Env!" Item[-1].Item[1].Key - %}%
-		%{s% "!%%.Env!" Item[-].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[-1].Item[1].Value !%%.Fn! %}%
 
 		%{% TYPES NewBatFn MAIN MMul True %}% %->% %%.Fn
 		%{s% "!%%.Env!" Item[*1].Count 1 %}%
 		%{s% "!%%.Env!" Item[*1].Item[1].Key * %}%
-		%{s% "!%%.Env!" Item[*].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[*1].Item[1].Value !%%.Fn! %}%
 
 		%{% TYPES NewBatFn MAIN MDiv True %}% %->% %%.Fn
 		%{s% "!%%.Env!" Item[/1].Count 1 %}%
 		%{s% "!%%.Env!" Item[/1].Item[1].Key / %}%
-		%{s% "!%%.Env!" Item[/].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[/1].Item[1].Value !%%.Fn! %}%
 
 		%{% TYPES NewBatFn MAIN MDef False %}% %->% %%.Fn
-		%{s% "!%%.Env!" Item[d0e0f1$1E1].Count 1 %}%
-		%{s% "!%%.Env!" Item[def$E].Item[1].Key def! %}%
-		%{s% "!%%.Env!" Item[def$E].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[d0e0f0$1E1].Count 1 %}%
+		%{s% "!%%.Env!" Item[d0e0f0$1E1].Item[1].Key def$E %}%
+		%{s% "!%%.Env!" Item[d0e0f0$1E1].Item[1].Value !%%.Fn! %}%
 
 		%{% TYPES NewBatFn MAIN MLet False %}% %->% %%.Fn
-		%{s% "!%%.Env!" Item[l0e0t1*1].Count 1 %}%
-		%{s% "!%%.Env!" Item[l0e0t1*1].Item[1].Key let* %}%
-		%{s% "!%%.Env!" Item[let*].Item[1].Value !%%.Fn! %}%
+		%{s% "!%%.Env!" Item[l0e0t0*1].Count 1 %}%
+		%{s% "!%%.Env!" Item[l0e0t0*1].Item[1].Key let* %}%
+		%{s% "!%%.Env!" Item[l0e0t0*1].Item[1].Value !%%.Fn! %}%
 
 		%{g% "!%%.Env!" RawKeys %%.RawKeys %}%
 		%{s% "!%%.RawKeys!" Key[1] +1 %}%
 		%{s% "!%%.RawKeys!" Key[2] -1 %}%
 		%{s% "!%%.RawKeys!" Key[3] *1 %}%
 		%{s% "!%%.RawKeys!" Key[4] /1 %}%
-		%{s% "!%%.RawKeys!" Key[5] d0e0f1$1E1 %}%
-		%{s% "!%%.RawKeys!" Key[6] l0e0t1*1 %}%
+		%{s% "!%%.RawKeys!" Key[5] d0e0f0$1E1 %}%
+		%{s% "!%%.RawKeys!" Key[6] l0e0t0*1 %}%
 		%{s% "!%%.Env!" RawKeyCount 6 %}%
 	)
 %-|%
@@ -326,11 +354,19 @@ if not defined _G.PACKED (
 		if defined %%.S (
 			set "%%.Ch=!%%.S:~,1!"
 			set "%%.S=!%%.S:~1!"
-			if "!%%.Ch!" geq "a" if "!%%.Ch!" leq "z" (
-				set "%%.Enc=!%%.Enc!!%%.Ch!0"
-			) else (
-				set "%%.Enc=!%%.Enc!!%%.Ch!1"
+			set "%%.IsLo=0"
+			for %%l in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do (
+				if "!%%.Ch!" == "%%l" set "%%.IsLo=1"
 			)
+			if "!%%.IsLo!" == "1" (
+				set "%%.Enc=!%%.Enc!!%%.Ch!0"
+				goto MAIN_EncKey_Loop
+			)
+			if "!%%.Ch!" equ "!" (
+				set "%%.Enc=!%%.Enc!$E"
+				goto MAIN_EncKey_Loop
+			)
+			set "%%.Enc=!%%.Enc!!%%.Ch!1"
 			goto MAIN_EncKey_Loop
 		)
 		%<-% %%.Enc
@@ -403,13 +439,20 @@ if not defined _G.PACKED (
 			if "!%%.IsSym!" == "0" %??% "Invalid binding list key type, expect 'MalSym'."
 			if "!%%.IsSym!" == "0" %-|%
 			%{g% "!%%.Key!" Value %%.RawKey %}%
+			%{% MAIN EncKey "!%%.RawKey!" %}% %->% %%.RepKey
 			%{% MAIN Eval "!%%.Val!" "!%%.NewEnv!" %}% %->% %%.NewVal
 			%?% (
 				%-|%
 			)
-			%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Count 1 %}%
-			%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Item[1].Key "!%%.RawKey!" %}%
-			%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Item[1].Value "!%%.NewVal!" %}%
+			%{s% "!%%.NewEnv!" Item[!%%.RepKey!].Count 1 %}%
+			%{s% "!%%.NewEnv!" Item[!%%.RepKey!].Item[1].Key "!%%.RawKey!" %}%
+			%{s% "!%%.NewEnv!" Item[!%%.RepKey!].Item[1].Value "!%%.NewVal!" %}%
+			%{g% "!%%.NewEnv!" RawKeys %%.Keys %}%
+			%{g% "!%%.NewEnv!" RawKeyCount %%.KC %}%
+			if "!%%.KC!" == "" set "%%.KC=0"
+			set /a %%.KC += 1
+			%{s% "!%%.Keys!" Key[!%%.KC!] "!%%.RepKey!" %}%
+			%{s% "!%%.NewEnv!" RawKeyCount "!%%.KC!" %}%
 		)
 		%{g% "!%%.Mal!" Item[3] %%.Body %}%
 		%{% MAIN Eval "!%%.Body!" "!%%.NewEnv!" %}% %->% %%.RetMal
@@ -424,8 +467,11 @@ if not defined _G.PACKED (
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Env=%~1"
 		set "%%.NewEnv=%~2"
+		%{% TYPES NewMalMap %}% %->% %%.NewKeys
 		%{g% "!%%.Env!" RawKeyCount %%.KeyCount %}%
+		if "!%%.KeyCount!" == "" set "%%.KeyCount=0"
 		%{g% "!%%.Env!" RawKeys %%.Keys %}%
+		set "%%.Idx=0"
 		for /l %%i in (1 1 !%%.KeyCount!) do (
 			%{g% "!%%.Keys!" Key[%%i] %%.RawKey %}%
 			if defined %%.RawKey (
@@ -434,13 +480,17 @@ if not defined _G.PACKED (
 					for /l %%j in (1 1 !%%.SameCnt!) do (
 						%{g% "!%%.Env!" "Item[!%%.RawKey!].Item[%%j].Key" %%.KeyMal %}%
 						%{g% "!%%.Env!" "Item[!%%.RawKey!].Item[%%j].Value" %%.ValMal %}%
-						%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Item[%%j].Key "!%%.KeyMal!" %}%
-						%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Item[%%j].Value "!%%.ValMal!" %}%
+						%{s% "!%%.NewEnv!" "Item[!%%.RawKey!].Item[%%j].Key" "!%%.KeyMal!" %}%
+						%{s% "!%%.NewEnv!" "Item[!%%.RawKey!].Item[%%j].Value" "!%%.ValMal!" %}%
 					)
-					%{s% "!%%.NewEnv!" Item[!%%.RawKey!].Count "!%%.SameCnt!" %}%
+					%{s% "!%%.NewEnv!" "Item[!%%.RawKey!].Count" "!%%.SameCnt!" %}%
 				)
+				set /a %%.Idx += 1
+				%{s% "!%%.NewKeys!" Key[!%%.Idx!] "!%%.RawKey!" %}%
 			)
 		)
+		%{s% "!%%.NewEnv!" RawKeyCount "!%%.Idx!" %}%
+		%{s% "!%%.NewEnv!" RawKeys "!%%.NewKeys!" %}%
 	)
 %-|%
 :UTIL_SetRet
