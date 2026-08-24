@@ -23,15 +23,20 @@ while i < len(lines):
         continue
     # input line (may have leading/trailing spaces that matter)
     inp = ln.rstrip("\r")
+    # skip pure comment/directive lines (e.g. ";>>> deferrable=True", ";; comment")
+    s = ln.strip()
+    if not s or (s.startswith(";") and not s.startswith(";=>") and not s.startswith(";/")):
+        i += 1
+        continue
     # find following ;=> expect
     j = i + 1
     expected = None
     while j < len(lines):
         es = lines[j].strip()
-        if es.startswith(";=>"):
+        if es.startswith(";=>") or (es.startswith(";/") and es.endswith("/")):
             expected = lines[j]
             break
-        elif es == "" or es.startswith(";;"):
+        elif es == "" or (es.startswith(";") and not es.startswith(";=>") and not es.startswith(";/")):
             j += 1
             continue
         else:
@@ -118,12 +123,17 @@ for idx, (inp, exp) in enumerate(tests):
     if exp is None:
         ok = True  # no assertion
     else:
-        expval = exp[3:]
+        if exp.startswith(";=>"):
+            expval = exp[3:]
+        elif exp.startswith(";/"):
+            expval = exp[2:]
+        else:
+            expval = exp
         if expval == "":
             ok = (out == "")
         elif expval.startswith("/") and expval.endswith("/"):
             rx = expval[1:-1]
-            ok = (re.search(rx, out) is not None)
+            ok = (re.search(rx, out, re.DOTALL) is not None)
         else:
             ok = (out == expval.strip())
     if not ok:

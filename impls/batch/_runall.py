@@ -58,14 +58,23 @@ raw = p.stdout.decode("utf-8", "replace")
 print("[runall] rc=%s wall=%.2fs" % (p.returncode, dt), flush=True)
 
 if use_readall:
-    # READALL mode: one output line per input form
+    # READALL mode: one result per input form. DEBUG-EVAL traces print one or
+    # more "EVAL: ..." lines before the result line, so group: EVAL lines belong
+    # to the current form; the first non-"EVAL:" line closes its result.
     results = []
+    buf = []
     for ln in raw.split("\n"):
-        ln = ln.rstrip("\r").strip()
-        results.append(ln)
-    # trim trailing empty lines
-    while results and results[-1] == "":
-        results.pop()
+        t = ln.rstrip("\r").strip()
+        if t == "":
+            continue
+        if t.startswith("EVAL:"):
+            buf.append(t)
+        else:
+            buf.append(t)
+            results.append("\n".join(buf))
+            buf = []
+    if buf:
+        results.append("\n".join(buf))
 else:
     # parse output: split on prompt marker "user> "
     PROMPT = "user> "
@@ -97,7 +106,7 @@ for n, (inp, exp) in enumerate(tests):
         if expval == "":
             ok = (out == "")
         elif expval.startswith("/") and expval.endswith("/"):
-            ok = (re.search(expval[1:-1], out) is not None)
+            ok = (re.search(expval[1:-1], out, re.DOTALL) is not None)
         else:
             ok = (out == expval.strip())
     if ok:
