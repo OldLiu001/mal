@@ -88,9 +88,9 @@ exit /b 0
 		)
 	) else (
 		if /i "%~1" == "MAIN" (
-			call !_G.MAIN! CALL_SELF :MAIN_%~2 %3 %4 %5 %6 %7 %8 %9
+			call "%~dp0!_G.MAIN!.bat" CALL_SELF :MAIN_%~2 %3 %4 %5 %6 %7 %8 %9
 		) else (
-			call %~1 :%~1_%~2 %3 %4 %5 %6 %7 %8 %9
+			call "%~dp0%~1.bat" :%~1_%~2 %3 %4 %5 %6 %7 %8 %9
 		)
 	)
 	
@@ -104,7 +104,7 @@ exit /b 0
 			if defined _G.PACKED (
 				call :NSUTIL_Free "%%a"
 			) else (
-				call NSUTIL :NSUTIL_Free "%%a"
+				call "%~dp0NSUTIL.bat" :NSUTIL_Free "%%a"
 			)
 			set "%%a="
 		)

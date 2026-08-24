@@ -197,6 +197,7 @@ TODO：
 - [x] #10 SetRet/GetRet 各模块内 `call :label` —— **已落地：密集表单再 -17%**（2026-08-24，详见 §8.2.4）
 - [x] #2 消除每 Invoke 临时文件 GC —— **已实测：无收益并回退**（2026-08-24，详见 §8.2.2-2）
 - [x] #1 PACKED 单文件消子进程 —— **已实测：blocker 修复（FAST 顺序）+ _pack.py 修复产物可用，但 naive 单文件更慢，暂回退**（2026-08-24，详见 §8.2.1）
+- [x] #7 裸名跨文件 `call XXX` 改 `%~dp0` 全路径 —— **已落地：Invoke 分发/对象宏/init 链跳 PATH 查找，官方 121/121**
 - [ ] step4_if_fn_do / step5_tco（链式 env 前置）
 - [ ] step6_file ~ step9_try / stepA_self-host
 
@@ -381,6 +382,12 @@ for /f "usebackq delims==" %%a in ("%TEMP%\mal_l.txt") do set "%%a="
 **现象**：全库大量 `call NSUTIL :NSUTIL_Get`、`call UTIL :UTIL_Invoke`（无扩展名、无路径）——cmd 需先在当前目录再沿 PATH 解析该 `.bat`。PATH 越长越贵（t41，长 PATH 外部解析 152ms/次）。
 
 **方案**：统一 `call "%~dp0NSUTIL.bat" :...`（绝对路径，跳过 PATH 查找）；PACKED 同文件后天然消除。
+
+**已落地（2026-08-24）**：`%~dp0` 只在**定义宏/分发**的 set/call 语句内展开（此时 `%~0`=本文件），因此 `set "{s=call "%~dp0NSUTIL.bat" :NSUTIL_Set"` 存入的是运行时的绝对路径，调用点直接可用、不坠 `%~0` 错位坑。改动三处：
+- `util.bat` Invoke 分发（非 PACKED）：`call %~1 :%~1_%~2` → `call "%~dp0%~1.bat" :%~1_%~2`；MAIN 分支 → `call "%~dp0!_G.MAIN!.bat" CALL_SELF ...`——覆盖**每个逻辑调用**的跨模块分发（热路径）。
+- `util.bat` Invoke 退出 NS GC：`call NSUTIL :NSUTIL_Free` → `call "%~dp0NSUTIL.bat" :NSUTIL_Free`。
+- `nsutil.bat` 对象宏 `{n/{c/{g/{s` 与 init 链 `call UTIL :UTIL_Init` 同改全路径。
+`if defined _G.PACKED` 分支保持 `call :` 不受影响。**实测**：官方 step1 121/121 通过，**wall 128.7s（较 270–336s 基线明显下降）**——PATH 查找在逐 Invoke 分发上的累计开销显著。注意 `%~dp0%~1` 要求各模块与 util.bat 同目录（本实现成立）。
 
 ### #8 PACKED 单文件的"标签定位"新代价
 

@@ -41,6 +41,10 @@ nsutil.bat 提供 MAL batch 实现的**对象内存模型**：一切 Mal 值（�
    `Free`/`FreeNSBody`、`IsNSMeta`/`CloneMeta` 等，共 11 处），nsutil 内部自此**零跨文件自调用**——
    `Set` 尾部与 `CloneBody`/`FreeNSBody`/`Free` 等写/释放热路径不再发子进程。配合 impls/batch 全
    .bat CRLF 统一（cmd 对 LF 大括号块解析错乱，git 以 autocrlf 归一），官方 step1 121/121 双重 PASS 无回归。
+1c. **对象宏与 init 链全路径化（#7，本版新增）**：非 PACKED 下宏 `{n/{c/{g/{s` 与 `NSUTIL_Init` 内
+   `call UTIL :UTIL_Init` 改为 `call "%~dp0…bat" :…`。`%~dp0` 在该 set/call 语句内（`%~0`=本文件 nsutil.bat）
+   展开为运行时绝对路径，调用点直接可用、不坠宏调用点 `%~0` 错位坑。PACKED 分支 `call :NSUTIL_*` 不变。
+   要求各模块与 nsutil.bat 同目录。实测 step1 121/121，随 #7 壁钟 128.7s 验证通过。
 2. **写时复制**：`NSUTIL_Set` 当 `RefCnt>1`（被共享）时先 `CloneBody` 深拷贝出独立 Body 再写，
    复用旧值若为 NS 则释放。字段多时每次写都 O(字段数) 深拷贝——这是主要 GC 放大器（优化点 #3）。
 3. **句柄即值**：NS 变量存的是 Meta 句柄字符串（如 `_G.NS[5]`），`!NSVar!.Target`/`!NSVar!.Type`

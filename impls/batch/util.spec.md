@@ -36,6 +36,11 @@ util.bat 是 MAL batch 实现的**调度与返回值交接核心**：定义全�
    为同进程标签跳转，彻底消除每次函数返回+取结果各起的 1 个 cmd 子进程。宏定义只需改动 util.bat 一处，
    各模块标签由脚本统一追加。语义与集中版完全一致（含 NSMeta 跨层句柄记账）。实测 step1 密集表单
    18.72s→13.99s（累计 -25%），官方 step1 121/121、step2 16/16 均无回归。
+2c. **跨模块全路径分发（#7，本版新增）**：`UTIL_Invoke` 非 PACKED 分支 `call %~1 :%~1_%~2` →
+   `call "%~dp0%~1.bat" :%~1_%~2`，MAIN 分支 `call "%~dp0!_G.MAIN!.bat" CALL_SELF ...`；Invoke 退出
+   NS GC 的 `call NSUTIL :NSUTIL_Free "%%a"` → `call "%~dp0NSUTIL.bat" :NSUTIL_Free "%%a"`。`%~dp0`
+   在 util.bat 内展开（`%~0`=本文件）即运行时绝对路径，跳过 PATH 查找；PACKED 分支仍 `call :` 不变。
+   要求各模块与 util.bat 同目录。实测 step1 官方 121/121，壁钟 128.7s（较基线 270–336s 明显下降）。
 3. `_G.SKIPTHIS/_G.DOTHIS`：按 `_G.FAST` 决定校验语句是否编译为 `rem`（FAST 下跳过错位校验，保性能）。
 4. `UTIL_Invoke` 非 PACKED 走跨文件 `call ModName :Fn`；PACKED 走同文件 `call :Fn`，省子进程（见 OPTIMIZATION.md #1）。
 5. NS GC：Invoke 退出在 `if defined _G.NSUTIL` 下经临时文件枚举释放当前 LEVEL 命名空间。NSUTIL 分支内

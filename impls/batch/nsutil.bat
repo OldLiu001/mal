@@ -25,7 +25,7 @@ exit /b 0
 		if defined _G.PACKED (
 			call :UTIL_Init "%~1"
 		) else (
-			call UTIL :UTIL_Init "%~1"
+			call "%~dp0UTIL.bat" :UTIL_Init "%~1"
 		)
 
 		set "_G.NSUTIL=%~n0"
@@ -42,10 +42,10 @@ exit /b 0
 			set "{g=call :NSUTIL_Get"
 			set "{s=call :NSUTIL_Set"
 		) else (
-			set "{n=call NSUTIL :NSUTIL_New"
-			set "{c=call NSUTIL :NSUTIL_Clone"
-			set "{g=call NSUTIL :NSUTIL_Get"
-			set "{s=call NSUTIL :NSUTIL_Set"
+			set "{n=call "%~dp0NSUTIL.bat" :NSUTIL_New"
+			set "{c=call "%~dp0NSUTIL.bat" :NSUTIL_Clone"
+			set "{g=call "%~dp0NSUTIL.bat" :NSUTIL_Get"
+			set "{s=call "%~dp0NSUTIL.bat" :NSUTIL_Set"
 		)
 	)
 %-|%
