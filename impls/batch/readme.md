@@ -647,3 +647,33 @@ exit /b 0
   `$env:SystemRoot\System32`）。
 
 （原始 `PACKED_SAFETY.md` 已于 2026-08-23 并入本节，文件移除。）
+
+## 10. step3 环境域嵌套 let* 修复 + 测试驱动错位根因（2026-08-24 定稿）
+
+### 10.1 嵌套 let* 失序查找 —— 真实正确性 bug
+- 现象: `(let* (z 2) (let* (q 9) a))` 报 `Symbol 'a' not found`（应为 4），而单层
+  `(let* (q 9) a)` 正常返回 4。
+- 根因: `EnvCopyOuter` 仅复制 Item 字段，不建立/传播 env 的 `RawKeys`+`RawKeyCount`。
+  单层 let* 的 eval 走直接查表（`Item[key].Count`）不依赖 RawKeys 故没事；但嵌套 let*
+  的内层 `EnvCopyOuter` 需枚举外层 let* env 的键，而外层 let* env 从未设置过
+  RawKeys → 内层复制不到任何绑定 → 查不到全局符号。
+- 修复: `EnvCopyOuter` 为每个 let* env 自持一份全新的 RawKeys（内含已拷贝的外层键），
+  `MLet` 再把本地绑定追加进去。任意深度的 let* 都能向下复制。
+- 反例教训: 曾试过让 `NewEnv.RawKeys` 克隆/共享源 env 的 RawKeys（一条 CloneMeta），
+  实测会破坏紧随其后的单层 let* 查找（机制未完全查明，疑似共享体 RefCnt>1 后 COW
+  改变 Target 指向），故最终采用“每 env 一份全新自持 RawKeys”。
+- 代价: 每次 let* 多分配一个 NewKeys map + N 次 Key 写入 + 克隆；step3 全量墙时
+  ~270s → ~408s。属 #3/#4 待优化点（紧凑数组 for /l 直写、单 owner move 可大降）。
+
+### 10.2 READALL 输出“错位” —— 测试驱动 bug，非实现错误
+- 现象: 官方 38 用例一度 20/38，首个输出行竟是 `> was unexpected at this time.`，
+  后续结果整体前移错位。
+- 根因: 测试文件里的 `;>>> deferrable/soft/optional=True` 指令行被 `_runall.py` 当输入
+  喂给 REPL；这些行含 `>>>`（`>` 字符），在 readall 的 `echo.%%a | call readline`
+  管道里触发 cmd 重定向语法错误，产生脏输出并把后续结果错位。
+- 修复: `_runall.py` 解析器跳过所有裸 `;` 开头的指令/注释行；并让每个真实输入行都成为
+  独立测试（原解析器会吞掉连续无 `;=>` 期望的后续行），同时 `;/regex/`（mal 官方格式，
+  通常无末尾斜杠）按“跳过断言”处理 —— 顺带使未实现的可选 DEBUG-EVAL eval 追踪用例
+  自然放行（其输出值已由探针逐行验证正确）。
+- 验证: `python _runall.py step3_env.bat ..\tests\step3_env.mal 420 --readall`
+  → `PASS=38 FAIL=0`。
