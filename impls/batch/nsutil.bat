@@ -62,18 +62,28 @@ exit /b 0
 	
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
 
-	rem 环境规模动态受限：分配前校验，超限立即终止而非默默膨胀。
-	if !_G.NSP! geq !_G.NSMAX! (
-		>&2 echo [%~n0] Fatal: NS count !_G.NSP! at cap !_G.NSMAX! - env growth guard.
-		2>con >&2 pause
-		exit 1
+	if defined _G.NXFREE (
+		rem 复用空闲槽：弹出 [meta,body] 对，不动 _G.NSP（①：复用不增长高水位）
+		set "_T.NW.MI=_G.NXFREE"
+		set "_G.NXFREE=!_G.NSFREENEXT[!_T.NW.MI!]!"
+		set "_G.NSFREENEXT[!_T.NW.MI!]="
+		set "_T.NW.BI=_G.NXFREE"
+		set "_G.NXFREE=!_G.NSFREENEXT[!_T.NW.BI!]!"
+		set "_G.NSFREENEXT[!_T.NW.BI!]="
+		set "_T.NW.NSMeta=_G.NS[!_T.NW.MI!]"
+		set "_T.NW.NSBody=_G.NS[!_T.NW.BI!]"
+	) else (
+		if !_G.NSP! geq !_G.NSMAX! (
+			>&2 echo [%~n0] Fatal: NS count !_G.NSP! at cap !_G.NSMAX! - env growth guard.
+			2>con >&2 pause
+			exit 1
+		)
+		set /a "_G.NSP += 1"
+		set "_T.NW.NSBody=_G.NS[!_G.NSP!]"
+		set /a "_G.NSP += 1"
+		set "_T.NW.NSMeta=_G.NS[!_G.NSP!]"
 	)
-
-	set /a "_G.NSP += 1"
-	set "_T.NW.NSBody=_G.NS[!_G.NSP!]"
 	set "!_T.NW.NSBody!.Type=NSBody"
-	set /a "_G.NSP += 1"
-	set "_T.NW.NSMeta=_G.NS[!_G.NSP!]"
 	set "!_T.NW.NSMeta!.Type=NSMeta"
 
 	set "!_T.NW.NSBody!.RefCnt=1"
@@ -329,15 +339,30 @@ exit /b 0
 
 	if defined %~1.Target (
 		set "_T.FR.NSBody=!%~1.Target!"
+		set "_T.FR.H=%~1"
 		set "%~1.Type="
 		set "%~1.Target="
 	) else (
 		%&% "!%~1!.Target" "_T.FR.NSBody"
+		set "_T.FR.H=!%~1!"
 		set "!%~1!.Type="
 		set "!%~1!.Target="
 	)
 
 	call :NSUTIL_FreeNSBody "_T.FR.NSBody"
+
+	rem 槽位回收：_G.RECYCLE 开时把自有 body 对压入空闲链表（TCO 循环作用域）
+	if defined _G.RECYCLE if "!_T.FR.H:~0,6!" == "_G.NS[" (
+		set "_T.FR.MI=!_T.FR.H:~6,-1!"
+		set "_T.FR.BI=!_T.FR.NSBody:~6,-1!"
+		set /a "_T.FR.CK = _T.FR.MI - 1"
+		if "!_T.FR.BI!" == "!_T.FR.CK!" (
+			set "_G.NSFREENEXT[!_T.FR.BI!]=!_G.NXFREE!"
+			set "_G.NXFREE=!_T.FR.BI!"
+			set "_G.NSFREENEXT[!_T.FR.MI!]=!_G.NXFREE!"
+			set "_G.NXFREE=!_T.FR.MI!"
+		)
+	)
 
 	%&% _T.FR.RetBackup _G.RET
 %-|%
