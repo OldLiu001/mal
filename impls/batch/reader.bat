@@ -598,19 +598,24 @@ exit /b 0
 			set "%%.Line=!%%.Line:~1!"
 			goto READER_Tokenizing_Loop
 		) else (
-			if "!%%.Line:~,4!" == "\\\\$D" (
-				set "%%.Line=!%%.Line:~4!"
-				set "%%.StrToken=!%%.StrToken!\\$D"
-				goto READER_Tokenizing_Loop
-			)
 			if "!%%.Line:~,2!" == "\\" (
 				set "%%.Line=!%%.Line:~2!"
-				set "%%.StrToken=!%%.StrToken!\\"
+				set "%%.StrToken=!%%.StrToken!\"
 				goto READER_Tokenizing_Loop
 			)
 			if "!%%.Line:~,3!" == "\$D" (
 				set "%%.Line=!%%.Line:~3!"
-				set "%%.StrToken=!%%.StrToken!\$D"
+				set "%%.StrToken=!%%.StrToken!$D"
+				goto READER_Tokenizing_Loop
+			)
+			if "!%%.Line:~,2!" == "\n" (
+				set "%%.Line=!%%.Line:~2!"
+				set "%%.StrToken=!%%.StrToken!$N"
+				goto READER_Tokenizing_Loop
+			)
+			if "!%%.Line:~,1!" == "\" (
+				set "%%.StrToken=!%%.StrToken!!%%.Line:~1,1!"
+				set "%%.Line=!%%.Line:~2!"
 				goto READER_Tokenizing_Loop
 			)
 			if "!%%.Line:~,2!" == "$D" (

@@ -20,7 +20,7 @@ if "%~1" neq "" (
 )
 exit /b 0
 
-:PRINTER_PrintMalType &Mal -> Str
+:PRINTER_PrintMalType &Mal Mode -> Str
 	for %%. in (_L[!_G.LEVEL!].) do (
 		%{g% "%~1" Type %%.Type %}%
 		if "!%%.Type!" == "MalNum" (
@@ -39,14 +39,14 @@ exit /b 0
 			%{% STR FromVar %%.Val %}% %->% %%.StrMal
 		) else if "!%%.Type!" == "MalStr" (
 			%{g% "%~1" Value %%.Val %}
-			%{% STR FromVar %%.Val %}% %->% %%.StrMal
+			%{% PRINTER PrintMalStr "!%%.Val!" "%~2" %}% %->% %%.StrMal
 		) else if "!%%.Type!" == "MalLst" (
 			%{% STR New %}% %->% %%.StrMal
 			%{% STR AppendVal %%.StrMal "(" %}
 			%{g% "%~1" Count %%.Count %}
 			for /l %%i in (1 1 !%%.Count!) do (
 				%{g% "%~1" Item[%%i] %%.ItemMal %}
-				%{% PRINTER PrintMalType "!%%.ItemMal!" %}% %->% %%.RetStrMal
+				%{% PRINTER PrintMalType "!%%.ItemMal!" "%~2" %}% %->% %%.RetStrMal
 				%{% STR AppendStr %%.StrMal %%.RetStrMal %}
 				if "%%i" neq "!%%.Count!" (
 					%{% STR AppendVal %%.StrMal " " %}
@@ -59,7 +59,7 @@ exit /b 0
 			%{g% "%~1" Count %%.Count %}
 			for /l %%i in (1 1 !%%.Count!) do (
 				%{g% "%~1" Item[%%i] %%.ItemMal %}
-				%{% PRINTER PrintMalType "!%%.ItemMal!" %}% %->% %%.RetStrMal
+				%{% PRINTER PrintMalType "!%%.ItemMal!" "%~2" %}% %->% %%.RetStrMal
 				%{% STR AppendStr %%.StrMal %%.RetStrMal %}
 				if "%%i" neq "!%%.Count!" (
 					%{% STR AppendVal %%.StrMal " " %}
@@ -67,7 +67,7 @@ exit /b 0
 			)
 			%{% STR AppendVal %%.StrMal "]" %}
 		) else if "!%%.Type!" == "MalMap" (
-			%{% PRINTER PrintMalMap "%~1" %}% %->% %%.StrMal
+			%{% PRINTER PrintMalMap "%~1" "%~2" %}% %->% %%.StrMal
 		) else if "!%%.Type!" == "MalFn" (
 			%{% STR FromVal "#<function>" %}% %->% %%.StrMal
 		) else (
@@ -77,7 +77,54 @@ exit /b 0
 	)
 %-|%
 
-:PRINTER_PrintMalMap &MalMap -> Str
+:PRINTER_PrintMalStr Val Mode -> Str
+	for %%. in (_L[!_G.LEVEL!].) do (
+		set "%%.V=%~1"
+		set "%%.V=!%%.V:~2!"
+		set "%%.V=!%%.V:~0,-2!"
+		%{% STR New %}% %->% %%.StrMal
+		if "%~2" == "R" (
+			%{% STR AppendVal %%.StrMal "$D" %}
+			call :PRINTER_EscapeStr %%.StrMal "!%%.V!"
+			%{% STR AppendVal %%.StrMal "$D" %}
+		) else (
+			%{% STR AppendVal %%.StrMal "!%%.V!" %}
+		)
+		%<-% %%.StrMal
+	)
+%-|%
+
+:PRINTER_EscapeStr Str Val
+	for %%. in (_L[!_G.LEVEL!].) do (
+		set "%%.ES=%~2"
+	)
+	:PRINTER_EscapeStr_Loop
+	for %%. in (_L[!_G.LEVEL!].) do (
+		if defined %%.ES (
+			if "!%%.ES:~,2!" == "$D" (
+				%{% STR AppendVal "%~1" "\$D" %}
+				set "%%.ES=!%%.ES:~2!"
+				goto PRINTER_EscapeStr_Loop
+			)
+			if "!%%.ES:~,2!" == "$N" (
+				%{% STR AppendVal "%~1" "\n" %}
+				set "%%.ES=!%%.ES:~2!"
+				goto PRINTER_EscapeStr_Loop
+			)
+			if "!%%.ES:~,1!" == "\" (
+				%{% STR AppendVal "%~1" "\\" %}
+				set "%%.ES=!%%.ES:~1!"
+				goto PRINTER_EscapeStr_Loop
+			)
+			%{% STR AppendVal "%~1" "!%%.ES:~,1!" %}
+			set "%%.ES=!%%.ES:~1!"
+			goto PRINTER_EscapeStr_Loop
+		)
+	)
+	%-|%
+%-|%
+
+:PRINTER_PrintMalMap &MalMap Mode -> Str
 	for %%. in (_L[!_G.LEVEL!].) do (
 		%{% STR New %}% %->% %%.Str
 		%{% STR AppendVal %%.Str "{" %}
@@ -89,8 +136,8 @@ exit /b 0
 			for /l %%j in (1 1 !%%.SameKeyCount!) do (
 				%{g% "%~1" Item[!%%.RawKey!].Item[%%j].Key %%.KeyMal %}
 				%{g% "%~1" Item[!%%.RawKey!].Item[%%j].Value %%.ValMal %}
-				%{% PRINTER PrintMalType "!%%.KeyMal!" %}% %->% %%.StrKey
-				%{% PRINTER PrintMalType "!%%.ValMal!" %}% %->% %%.StrVal
+				%{% PRINTER PrintMalType "!%%.KeyMal!" "%~2" %}% %->% %%.StrKey
+				%{% PRINTER PrintMalType "!%%.ValMal!" "%~2" %}% %->% %%.StrVal
 				%{% STR AppendStr %%.Str %%.StrKey %}
 				%{% STR AppendVal %%.Str " " %}
 				%{% STR AppendStr %%.Str %%.StrVal %}

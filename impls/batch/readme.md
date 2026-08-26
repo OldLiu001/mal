@@ -185,6 +185,10 @@ Set 覆盖已有 NS 值字段时：先 Free 旧值，再 IsValidNS 新值——*
 - step2（step2_eval.mal）：**16/16 全通过**（算术/集合求值/错误用例；`_check.py` 2026-08）。
 - step3（step3_env.mal）：**26/35**——剩 4 个 non-optional（mynum/w/y 大小写编码一致性、嵌套 let*）+ 5 个 optional DEBUG-EVAL。
   已修：def!/let*（AutoEval=False）、EnvCopyOuter（Get 路径）、EncKey 大小写编码、meta/body 句柄。
+- step4（step4_if_fn_do.mal）：**179/179 全通过**（强制段 87 + deferrable 92；`_runall.py` 分块 fresh 进程回归，2026-08-26）。
+  修复 let* 闭包环境捕获 bug（MLet 绑定与 RawKeyCount 全走 SetDirect，COW-free——闭包捕获的环境不再被 COW 克隆分裂）；
+  完成 deferrable：pr-str/str/println、prn/REPL 可读打印、变参 `&`、列表/向量序列相等、字符串转义（`\\` `\"` `\n` `\X`）。
+  递归表单固有极慢（fib4≈205s、sumdown6≈154s），分块 fresh 进程是唯一可行回归姿势。
 - 架构缺陷与性能改进分析报告已并入本文档（3.5 性能方案、6 架构缺陷清单）。
 
 TODO：
@@ -198,8 +202,8 @@ TODO：
 - [x] #2 消除每 Invoke 临时文件 GC —— **已实测：无收益并回退**（2026-08-24，详见 §8.2.2-2）
 - [x] #1 PACKED 单文件消子进程 —— **已实测：blocker 修复（FAST 顺序）+ _pack.py 修复产物可用，但 naive 单文件更慢，暂回退**（2026-08-24，详见 §8.2.1）
 - [x] #7 裸名跨文件 `call XXX` 改 `%~dp0` 全路径 —— **已落地：Invoke 分发/对象宏/init 链跳 PATH 查找，官方 121/121**
-- [ ] step4_if_fn_do / step5_tco（链式 env 前置）
-- [ ] step6_file ~ step9_try / stepA_self-host
+- [x] step4_if_fn_do（2026-08-26：179/179，分块 fresh 进程回归；let* 闭包修复 + deferrable 全实现）→ 下一步 step5_tco
+- [ ] step5_tco ~ step9_try / stepA_self-host（链式 env / TCO 前置）
 
 ---
 ---

@@ -41,11 +41,13 @@ exit /b 0
 			set "{c=call :NSUTIL_Clone"
 			set "{g=call :NSUTIL_Get"
 			set "{s=call :NSUTIL_Set"
+			set "{d=call :NSUTIL_SetDirect"
 		) else (
 			set "{n=call "%~dp0NSUTIL.bat" :NSUTIL_New"
 			set "{c=call "%~dp0NSUTIL.bat" :NSUTIL_Clone"
 			set "{g=call "%~dp0NSUTIL.bat" :NSUTIL_Get"
 			set "{s=call "%~dp0NSUTIL.bat" :NSUTIL_Set"
+			set "{d=call "%~dp0NSUTIL.bat" :NSUTIL_SetDirect"
 		)
 	)
 %-|%
@@ -445,11 +447,11 @@ exit /b 0
 	if !_T.AB.RefCnt! gtr 1 (
 		set /a "!_T.AB.NSBody!.RefCnt -= 1"
 		call :NSUTIL_CloneBody "_T.AB.NSBody" "_T.AB.NewBody"
-		call set "_T.AB.NSBody=%%!_T.AB.NewBody!%%"
+		set "_T.AB.NSBody=!_T.AB.NewBody!"
 		if defined %~1.Target (
-			set "!%~1!.Target=!_T.AB.NewBody!"
+			set "%~1.Target=!_T.AB.NewBody!"
 		) else (
-			call set "!%~1!.Target=%%!_T.AB.NewBody!%%"
+			call set "%~1.Target=%%!_T.AB.NewBody!%%"
 		)
 	)
 
@@ -467,6 +469,50 @@ exit /b 0
 		call :NSUTIL_CloneMeta "!_T.AB.V!" "!_T.AB.NSBody!.Data.Value[%~2]"
 	) else (
 		set "!_T.AB.NSBody!.Data.Value[%~2]=!_T.AB.V!"
+	)
+%-|%
+
+:NSUTIL_SetDirect *NS Field *Val
+	rem 环境直写（#step4 递归修复）：def! 修改共享环境时绕过 COW，
+	rem 保持 MAL 引用语义——所有捕获该环境的闭包都能看到新绑定。
+	rem 显式命名 `_T.SD.`（弃用 .for-var 域）
+
+	set "_T.SD.T=%~1"
+	%_G.SKIPTHIS% if not defined _G.NSUTIL (
+	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
+	%_G.SKIPTHIS% 	2>con >&2 pause
+	%_G.SKIPTHIS% 	exit 1
+	%_G.SKIPTHIS% )
+
+	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
+	%_G.SKIPTHIS% if "%~2" == "" %?|% "'Field' undefined."
+	%_G.SKIPTHIS% if "%~3" == "" %?|% "'Val' undefined."
+
+	%_G.SKIPTHIS% call :NSUTIL_AssertValidNS "%~1"
+
+	if defined %~1.Target (
+		set "_T.SD.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.SD.NSBody=%%!%~1!.Target%%"
+	)
+
+	set "_T.SD.V=%~3"
+
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.SD.HasField"
+	if "!_T.SD.HasField!" == "1" (
+		call set "_T.SD.CurVal=%%!_T.SD.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.SD.CurVal!" %->% "_T.SD.IsMeta"
+		if "!_T.SD.IsMeta!" == "1" (
+			call :NSUTIL_Free "_T.SD.CurVal"
+		)
+	)
+
+	set "!_T.SD.NSBody!.Data.Key[%~2]=%~2"
+	call :NSUTIL_IsValidNS "!_T.SD.V!" %->% "_T.SD.IsNS"
+	if "!_T.SD.IsNS!" == "1" (
+		call :NSUTIL_CloneMeta "!_T.SD.V!" "!_T.SD.NSBody!.Data.Value[%~2]"
+	) else (
+		set "!_T.SD.NSBody!.Data.Value[%~2]=!_T.SD.V!"
 	)
 %-|%
 :UTIL_SetRet

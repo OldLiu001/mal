@@ -28,7 +28,7 @@ while i < len(lines):
             expected = lines[i]
             i += 1
             break
-        elif es.startswith(";/") and es.endswith("/"):
+        elif es.startswith(";/"):
             expected = lines[i]
             i += 1
             break
@@ -50,31 +50,49 @@ if use_readall:
     cmd.append("READALL")
 p = subprocess.run(
     cmd, input=stdin_data,
-    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     cwd=here, timeout=wtimeout,
 )
 dt = time.perf_counter() - t0
 raw = p.stdout.decode("utf-8", "replace")
+if p.stderr:
+    err_raw = p.stderr.decode("utf-8", "replace")
+    print("[runall] stderr: %d bytes (cmd 层噪音/调试输出，不并入结果解析)" % len(p.stderr), flush=True)
+    try:
+        with open(os.path.join(here, "_runall_stderr.log"), "wb") as f:
+            f.write(p.stderr)
+    except OSError:
+        pass
 print("[runall] rc=%s wall=%.2fs" % (p.returncode, dt), flush=True)
 
 if use_readall:
-    # READALL mode: one result per input form. DEBUG-EVAL traces print one or
-    # more "EVAL: ..." lines before the result line, so group: EVAL lines belong
-    # to the current form; the first non-"EVAL:" line closes its result.
+    # READALL mode: the batch emits "user> " before each form's REP, so split
+    # on the prompt to group every form's output (prn/println side outputs +
+    # the result line, DEBUG-EVAL traces included) into one result per form.
+    PROMPT = "user> "
     results = []
-    buf = []
-    for ln in raw.split("\n"):
-        t = ln.rstrip("\r").strip()
-        if t == "":
-            continue
-        if t.startswith("EVAL:"):
-            buf.append(t)
-        else:
-            buf.append(t)
+    if PROMPT in raw:
+        rest = raw[raw.find(PROMPT) + len(PROMPT):]
+        for part in rest.split(PROMPT):
+            results.append(part.replace("\r", "").strip("\n").strip())
+        while results and results[-1] == "":
+            results.pop()
+    else:
+        # fallback: one result per non-empty line (old per-line grouping)
+        results = []
+        buf = []
+        for ln in raw.split("\n"):
+            t = ln.rstrip("\r").strip()
+            if t == "":
+                continue
+            if t.startswith("EVAL:"):
+                buf.append(t)
+            else:
+                buf.append(t)
+                results.append("\n".join(buf))
+                buf = []
+        if buf:
             results.append("\n".join(buf))
-            buf = []
-    if buf:
-        results.append("\n".join(buf))
 else:
     # parse output: split on prompt marker "user> "
     PROMPT = "user> "
@@ -100,15 +118,12 @@ for n, (inp, exp) in enumerate(tests):
         ok = True
     else:
         if exp.startswith(";=>"):
-            expval = exp[3:]
+            ok = (out == exp[3:].strip())
         else:
-            expval = exp[2:]
-        if expval == "":
-            ok = (out == "")
-        elif expval.startswith("/") and expval.endswith("/"):
-            ok = (re.search(expval[1:-1], out, re.DOTALL) is not None)
-        else:
-            ok = (out == expval.strip())
+            body = exp[2:]
+            if len(body) >= 2 and body.startswith("/") and body.endswith("/"):
+                body = body[1:-1]
+            ok = (re.search(body, out, re.DOTALL) is not None)
     if ok:
         pass_cnt += 1
     else:

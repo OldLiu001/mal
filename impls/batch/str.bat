@@ -61,6 +61,10 @@ exit /b 0
 				set "%%.NewLine=!%%.Line!!%%.Line2!"
 				%{s% "%~1" Line[!%%.LineCount!] "!%%.NewLine!" %}
 			)
+		) else if !%%.LineCount2! geq 1 (
+			%{g% "%~2" Line[1] %%.Line2 %}
+			%{s% "%~1" Line[1] "!%%.Line2!" %}
+			set "%%.LineCount=1"
 		)
 		for /l %%i in (2 1 !%%.LineCount2!) do (
 			set /a %%.LineCount += 1

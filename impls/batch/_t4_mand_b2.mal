@@ -1,0 +1,20 @@
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(sumdown 1)
+;=>1
+(sumdown 2)
+;=>3
+(sumdown 6)
+;=>21
+(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(fib 1)
+;=>1
+(fib 2)
+;=>2
+(fib 4)
+;=>5
+(let* (f (fn* () x) x 3) (f))
+;=>3
+(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
+;=>nil
+(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))
+;=>0

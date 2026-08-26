@@ -92,7 +92,7 @@ if not defined _G.PACKED (
 
 :MAIN_Read Mal -> Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
-		set "%%.Str=!%~1!"
+		set "%%.Str=%~1"
 		%{% READER ReadString "!%%.Str!" %}% %->% %%.Mal
 		%?% (
 			%-|%

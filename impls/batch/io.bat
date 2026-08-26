@@ -46,12 +46,14 @@ exit /b 0
 
 :IO_WriteEncLine Line
 	for %%. in (_L[!_G.LEVEL!].) do (
-		%_G.SKIPTHIS% if "%~1" == "" %?|% "Arg 'Line' is empty."
-
-		if not defined _G.PACKED (
-			echo."!%~1!"| call WRITEALL
+		if defined %~1 (
+			if not defined _G.PACKED (
+				echo."!%~1!"| call WRITEALL
+			) else (
+				echo."!%~1!"| call "%~s0" CALL_WRITEALL
+			)
 		) else (
-			echo."!%~1!"| call "%~s0" CALL_WRITEALL
+			echo.
 		)
 	)
 %-|%
