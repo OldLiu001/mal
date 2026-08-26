@@ -88,6 +88,7 @@ exit /b 0
 
 	set "!_T.NW.NSBody!.RefCnt=1"
 	set "!_T.NW.NSMeta!.Target=!_T.NW.NSBody!"
+	set "!_T.NW.NSMeta!.RC=1"
 	
 	set "_G.LEVEL[!_G.LEVEL!][!_T.NW.NSMeta!]=!_T.NW.NSMeta!"
 	
@@ -219,6 +220,7 @@ exit /b 0
 
 	set /a "_G.NSP += 1"
 	set "_G.NS[!_G.NSP!].Type=NSMeta"
+	set "_G.NS[!_G.NSP!].RC=1"
 	if defined %~1.Target (
 		set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
 		set "_T.IB.NSBody=!%~1.Target!"
