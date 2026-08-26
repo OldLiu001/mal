@@ -17,16 +17,23 @@
 
 ## 1. 关键发现（先记录，避免重复踩坑）
 
-### 1.7 【重大】层级 GC 因 `2>nul` 一直是静默 no-op（2026-08-26 实测）
-- **现象**：`( set "_G.LEVEL[3]" ) > file 2>nul` 的枚举结果是**空文件**；去掉 `2>nul` 或写成 `set X>file`（无空格）则正常。实测矩阵：`set AAA > file 2>nul`→0B；`set AAA>file`→9B；`( set "AAA" ) > file`→9B；`( set "AAA" ) > file 2>nul`→0B。**`2>nul` 与 `set` 枚举重定向组合会吞掉 stdout 输出**（cmd 怪癖，Win11 26200 复现）。
-- **影响**：util.bat 的层级 GC（`( set "_G.LEVEL[prev]" ) > mal_gc_*.txt 2>nul`）与 _L 清理（同形式）**在这台机器上从未生效**——meta 从不被层级回收，NSP 单调增长，`_G.NSMAX=8000` 成为真正的硬顶（每次 New 前检查，超限 fatal）。这解释了全部"环境膨胀"现象与分块回归的必要性。
-- **警告**：直接删掉 `2>nul`"修复"GC 会**破坏现有语义**——当前代码大量依赖"已释放 meta 的 Value 字段残留仍可读"（Free 只清 Type/Target，Value 保留；AST/返回值的存活依赖此）。修复 GC 必须同时做完整的引用计数/槽位复用（即 #4）。
-- **踩坑记录**：探针写文件时 `%TEMP%\nsp.log` 里的 `\n` 会被 Python 转义成换行拆行——必须用 raw string；`.cmd` 探针必须 CRLF（LF 会被 cmd 乱解析）；块内 `>&2 echo` 会解析崩（rc=255），用 `>>file echo` 子程序形式。
+### 1.7 层级 GC 与内存生命周期实况（2026-08-26 修正定论）
+- **更正**：早前"枚举重定向被 `2>nul` 吞掉、GC 静默 no-op"的结论**作废**——那批微测试被 python 字符串转义污染（`%TEMP%\xxx.log` 里的 `\x` 组合、f-string 的 `\v` 等）。干净复测 + 删除 mal_*.txt 后重跑验证：**util.bat 层级 GC、_L 清理、nsutil CloneBody/FreeNSBody 字段枚举在真实运行时全部正常工作**（mal_gc_*.txt 有内容）。
+- **两个关键认知（#4 设计必读）**：
+  1. **mal 层的"类型"是 body 字段**（`Data.Value[Type]=MalFn`），meta 自身的 `.Type` 只是结构标记（NSMeta/NSBody）。因此 `UTIL_SetRet` 的 `Type==NSMeta` promote 分支**对所有 mal 对象都命中**——返回值的层级注册本来就随调用链上移（所有权转移链完整、闭包跨表单存活实测成立）。
+  2. `_T.<FN>.*` 临时域**函数级共享、非再入安全**：在 FreeNSBody 里递归释放字段 meta（→再入 Free→再入 FreeNSBody）会覆写外层 `%~1`/`_T.FR.NSBody`/`_T.FB.*` → 嵌套结构（列表的列表）释放必错。递归 teardown 前必须解决再入安全（独立槽位/显式工作队列）。
+- **踩坑记录（工具层）**：给批次写探针 .cmd 必须 CRLF；python 字符串里 `%TEMP%\nsp.log` 的 `\n` 会被转义（用 raw string）；Bash 工具会把脚本内容里的 `>nul` 重写为 `>/dev/null`（构造含 nul 的批处理文本需用 `'2'+chr(62)+'nul'` 拼接）；块内 `>&2 echo` 会解析崩 rc=255，用 `>>file echo` 子程序形式。
+
+### 1.9 #4 设计蓝图（下次会话可直接实施）
+- **目标**：NSP 有界 → 深递归可行 + 环境表不膨胀（顺带解锁性能——当前 set 变慢的根因是单调膨胀的环境表）。
+- **完整方案（引用计数）**：meta 加 `.RC`（NSUTIL_New/Clone/CloneMeta 初始 1=层级注册引用）；Set/SetDirect 存 meta 句柄时字段引用 `RC+1`（CloneMeta 包裹路径天然由 wrapper 承载）；覆盖旧值 / FreeNSBody 死体 / 层级 GC 释放时 `RC-1`；`RC==0` 才真正清 meta + 回收 (meta,body) 槽位对（空闲链表 `_G.NXFREE/_G.NSFREENEXT[]`，New 优先弹出、NSMAX 检查移入新分配分支）；SetRet promote=注册上移（RC 不变）。递归 teardown 需先解决 §1.7-2 的再入安全。**验证门槛**：step1→step2→step3→step4 分块全绿（~1.5h 回归/轮）。
+- **低风险替代（step5 优先走这条）**：**循环局部回收**——TCO 循环在循环点显式 Free 本轮 env/keys/args/参数值（死亡由循环构造保证：仅被 env+args 引用），且**仅此显式路径**推空闲链表（全局 GC/Set 行为完全不变→step1-4 零风险）。每轮净增≈内层帧临时对象，若仍超限再扩到"水位+同形复用"。已知限制：参数值逃逸（循环体 `(def! saved n)` 跨轮读）会悬垂——官方 step5 用例不涉及，文档标注即可。
+- 全量槽位复用曾实测破坏 step1（GC/Set 旧值释放的槽位仍被引用），印证完整方案必须先有正确 RC 与再入安全。
 
 ### 1.8 【step5 阻塞】NSMAX 单调上限 vs 10000 层尾递归（2026-08-26 实测）
 - **每层递归调用消耗 ≈ 60 NS 槽位**（实测：`(sumdown 1)` NSP +126、`(sumdown 2)` +189 → 每多一层 +63；含 eager 实参求值、EnvCopyOuter 复制全局环境 ~30 键、`>`/`-`/`+` 各建结果 meta）。
 - **NSMAX=8000 → 单进程最多 ~130 层尾递归**。`(sum2 10000 0)` 需 ~120K 槽位（即使 TCO 循环内复用 env/args，仅算术结果 meta 就 6 槽/层 = 60K）→ **架构性不可行**。
-- 槽位复用（New/Free 加空闲链表）**实测破坏现有代码**（step1 立即崩）：GC 是 no-op + 已释放 meta 仍被引用（Value 残留语义），复用槽位即改值 → 污染。**必须先做 #4**（真实引用计数 + 槽位回收 + 修 GC 枚举），这是 step5 的前置，工作量大且需全量回归。
+- 槽位复用（New/Free 加空闲链表，未配 RC 时）**实测破坏现有代码**（step1 立即崩）：GC/Set 旧值释放的槽位仍可能被其它层局部变量引用，复用槽位即改值 → 污染。**必须先做 #4**（见 §1.9 蓝图），这是 step5 的前置，工作量大且需全量回归。
 - TCO 跳板机制验证：Eval 加 Tail 参数 + 尾位置 closure 调用改"登记全局 _G.TCO.* + 返回 marker" + ApplyClosure 循环驱动，**直接尾调用（函数体最后表单即自调用）可无限循环**（TCO 生效，无栈增长）；但 **if 分支路径的 marker 生命周期有 bug**（尾 Args 列表的 Target 在返回路径中被清空，禁用 promotion 与清理后仍复现——根因未定位，怀疑与 invoke 退出的 `_T` 清理/SetRet 交互有关）。step5_tco.bat WIP 已移入 .trash 备查。
 
 ### 1.6 step4 完成记录（2026-08-26）
