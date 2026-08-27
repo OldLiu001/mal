@@ -596,10 +596,22 @@ exit /b 0
 		%{g% "!%%.Fn!" Body %%.Body %}%
 		%{g% "!%%.Obj!" Count %%.ArgN %}%
 		%{g% "!%%.Binds!" Count %%.BindN %}%
-		%{% TYPES NewMalMap %}% %->% %%.NewEnv
-		%{% MAIN EnvCopyOuter "!%%.CapEnv!" "!%%.NewEnv!" %}%
-		%?% (
-			%-|%
+		rem —— 帧复用：同形状（同捕获环境 + 同参数个数）的尾调用复用同一 env，
+		rem 不再每轮 NewMalMap+EnvCopyOuter 重拷 ~30 全局键（+60/轮 的主因）。 ——
+		set "%%.Reusing="
+		if defined %%.CachedEnv if "!%%.CapEnv!" == "!%%.EnvCap!" if "!%%.Binds!" == "!%%.CachedBinds!" set "%%.Reusing=1"
+		if defined %%.Reusing (
+			set "%%.NewEnv=!%%.CachedEnv!"
+		) else (
+			%{% TYPES NewMalMap %}% %->% %%.NewEnv
+			%{% MAIN EnvCopyOuter "!%%.CapEnv!" "!%%.NewEnv!" %}%
+			%?% (
+				%-|%
+			)
+			set "%%.CachedEnv=!%%.NewEnv!"
+			set "%%.EnvCap=!%%.CapEnv!"
+			set "%%.CachedBinds=!%%.Binds!"
+			set "%%.EnvBindN=!%%.BindN!"
 		)
 		rem 扫描变参标记 '&'（MalSym Value == '&'）
 		set "%%.Amp="
@@ -642,7 +654,12 @@ exit /b 0
 				%{g% "!%%.Param!" Value %%.PName %}%
 				%{% MAIN EncKey "!%%.PName!" %}% %->% %%.PEnc
 				%{g% "!%%.Obj!" Item[!%%.ArgIdx!] %%.ArgVal %}%
-				call :MAIN_BindOne "!%%.NewEnv!" "!%%.PName!" "!%%.PEnc!" "!%%.ArgVal!"
+				if defined %%.Reusing (
+					rem 复用：仅覆盖参数值字段（Set 释放旧值，单一所有者；RawKeys 不动）
+					%{s% "!%%.NewEnv!" "Item[!%%.PEnc!].Item[1].Value" "!%%.ArgVal!" %}%
+				) else (
+					call :MAIN_BindOne "!%%.NewEnv!" "!%%.PName!" "!%%.PEnc!" "!%%.ArgVal!"
+				)
 				%?% (
 					%-|%
 				)
@@ -687,30 +704,18 @@ exit /b 0
 					%-|%
 				)
 				if defined _G.TCO.Pending (
-					rem —— 尾调用发生：不递归，回收本轮帧对象后 goto 循环标签复用 ——
+					rem —— 尾调用：复用帧。env/keys 不动；参数值归 env 所有（下轮 Set 覆盖时释放）。
+					rem 仅回收上一轮的 args 列表容器（其 items 已绑定进 env，随 env 生命周期）。 ——
 					set "%%.NextFn=!_G.TCO.Fn!"
 					set "%%.NextArgs=!_G.TCO.Args!"
 					set "_G.TCO.Pending="
 					set "_G.TCO.Fn="
 					set "_G.TCO.Args="
-					set "_G.RECYCLE=1"
-					%{g% "!%%.NewEnv!" RawKeys %%.NewKeys %}%
-					set "_G.LEVEL[!_G.LEVEL!][!%%.NewEnv!]="
-					call :NSUTIL_Free "!%%.NewEnv!"
-					set "_G.LEVEL[!_G.LEVEL!][!%%.NewKeys!]="
-					call :NSUTIL_Free "!%%.NewKeys!"
-					if defined %%.RestList (
-						set "_G.LEVEL[!_G.LEVEL!][!%%.RestList!]="
-						call :NSUTIL_Free "!%%.RestList!"
-					)
 					if defined %%.TCOOwn (
-						for /l %%k in (2 1 !%%.ArgN!) do (
-							%{g% "!%%.Obj!" Item[%%k] %%.OldItem %}%
-							call :NSUTIL_Free "!%%.OldItem!"
-						)
+						set "_G.RECYCLE=1"
 						call :NSUTIL_Free "!%%.Obj!"
+						set "_G.RECYCLE="
 					)
-					set "_G.RECYCLE="
 					set "%%.TCOOwn=1"
 					set "%%.Fn=!%%.NextFn!"
 					set "%%.Obj=!%%.NextArgs!"
@@ -718,6 +723,22 @@ exit /b 0
 				)
 				set "%%.RetMal=!%%.NewForm!"
 			)
+		)
+		rem —— 帧退出：回收复用的 env（其 RawKeys 随 body 一并释放；参数值经 Set 归 env） ——
+		if defined %%.CachedEnv (
+			%{g% "!%%.CachedEnv!" RawKeys %%.CKeys %}%
+			set "_G.LEVEL[!_G.LEVEL!][!%%.CachedEnv!]="
+			call :NSUTIL_Free "!%%.CachedEnv!"
+			if defined %%.CKeys (
+				set "_G.LEVEL[!_G.LEVEL!][!%%.CKeys!]="
+				call :NSUTIL_Free "!%%.CKeys!"
+			)
+		)
+		rem 若最后持有的是 TCO args 容器（非首轮），回收之
+		if defined %%.TCOOwn (
+			set "_G.RECYCLE=1"
+			call :NSUTIL_Free "!%%.Obj!"
+			set "_G.RECYCLE="
 		)
 		%<-% %%.RetMal
 	)
