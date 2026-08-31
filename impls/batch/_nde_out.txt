@@ -1,0 +1,7 @@
+T0=_L[5].TokenPtr
+T1=_G.LEVEL
+T3 tmp field, now try cond
+T4=defined
+--- two-step with call set ---
+T5 v=HELLO-PTR
+T6 Count=10

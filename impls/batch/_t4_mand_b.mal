@@ -1,0 +1,81 @@
+(<= 1 2)
+;=>true
+(= 1 1)
+;=>true
+(= 0 0)
+;=>true
+(= 1 0)
+;=>false
+(= true true)
+;=>true
+(= false false)
+;=>true
+(= nil nil)
+;=>true
+(= (list) (list))
+;=>true
+(= (list) ())
+;=>true
+(= (list 1 2) (list 1 2))
+;=>true
+(= (list 1) (list))
+;=>false
+(= (list) (list 1))
+;=>false
+(= 0 (list))
+;=>false
+(= (list) 0)
+;=>false
+(= (list nil) (list))
+;=>false
+(+ 1 2)
+;=>3
+( (fn* (a b) (+ b a)) 3 4)
+;=>7
+( (fn* () 4) )
+;=>4
+( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
+;=>8
+( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+;=>12
+(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+(def! plus5 (gen-plus5))
+(plus5 7)
+;=>12
+(def! gen-plusX (fn* (x) (fn* (b) (+ x b))))
+(def! plus7 (gen-plusX 7))
+(plus7 8)
+;=>15
+(do (prn 101))
+;/101
+(do (prn 102) 7)
+;/102
+(do (prn 101) (prn 102) (+ 1 2))
+;/101
+(do (def! a 6) 7 (+ a 8))
+;=>14
+a
+;=>6
+(def! DO (fn* (a) 7))
+(DO 3)
+;=>7
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(sumdown 1)
+;=>1
+(sumdown 2)
+;=>3
+(sumdown 6)
+;=>21
+(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(fib 1)
+;=>1
+(fib 2)
+;=>2
+(fib 4)
+;=>5
+(let* (f (fn* () x) x 3) (f))
+;=>3
+(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
+;=>nil
+(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))
+;=>0

@@ -1,0 +1,8 @@
+(def! f (fn* (a) a))
+f
+;=>#<function>
+(f 5)
+;=>5
+(def! g (fn* (a b) (+ b a)))
+(g 3 4)
+;=>7

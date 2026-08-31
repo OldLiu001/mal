@@ -1,0 +1,4 @@
+[runall] parsed 44 tests
+[runall] rc=0 wall=317.01s
+PASS=44 FAIL=0 total=44
+EXIT=0

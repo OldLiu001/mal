@@ -1,0 +1,6 @@
+[runall] parsed 43 tests
+[runall] stderr: 161115 bytes (cmd 层噪音/调试输出，不并入结果解析)
+[runall] rc=0 wall=395.13s
+PASS=43 FAIL=0 total=43
+
+wall 395.2

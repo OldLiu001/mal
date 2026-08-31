@@ -1,0 +1,260 @@
+:UTIL_GetRet
+
+	if not defined _G.ERR (
+
+		set "%~1=!_G.RET!"
+
+	)
+
+	set "_G.RET="
+
+exit /b 0
+
+%-|%
+
+
+rem ============================================================
+rem  第6轮 B 原子引用计数重构（RCMODE=on 分支）
+rem  round5.md 六落点：存储+1 / 覆盖-1 / Free 两式 DecRef /
+rem  FreeNSBody 逐字段 DecRef(经 DESTROY 队列) / 工作队列规避再入 /
+rem  decref 下穿断言。默认 off：上述原函数保持逐字节行为不变。
+rem ============================================================
+
+:NSUTIL_IncRef *NS
+	rem RCMODE 文献：对 NS 的引用 +1（两式：直接句柄 / 注册变量）
+	set "_T.IR.Q=%~1"
+	if defined %~1.Target (
+		call set "_T.IR.RC=%%%~1.RC%%"
+	) else (
+		call set "_T.IR.Q=%%!%~1!%%"
+		if not defined _T.IR.Q %?|% "IncRef: not a valid NS ref."
+		call set "_T.IR.RC=%%!_T.IR.Q!.RC%%"
+	)
+	if not defined _T.IR.RC set "_T.IR.RC=0"
+	set /a "_T.IR.RC += 1"
+	set "!_T.IR.Q!.RC=!_T.IR.RC!"
+	set "_T.IR.Q="
+	set "_T.IR.RC="
+%-|%
+
+:NSUTIL_DecRef *NS
+	rem RCMODE 文献：引用 -1；归零压入 _G.DESTROY 销毁队列（DrainDestroy 集中清理，规避再入）。
+	rem 下穿 0 立即炸（双 Free / 竞态引用计数错误暴露点）。
+	set "_T.DC.Q=%~1"
+	if defined %~1.Target (
+		call set "_T.DC.RC=%%%~1.RC%%"
+	) else (
+		call set "_T.DC.Q=%%!%~1!%%"
+		if not defined _T.DC.Q %?|% "DecRef: not a valid NS ref."
+		call set "_T.DC.RC=%%!_T.DC.Q!.RC%%"
+	)
+	if not defined _T.DC.RC set "_T.DC.RC=0"
+	if !_T.DC.RC! lss 1 %?|% "decref underflow on [%~1]."
+	set /a "_T.DC.RC -= 1"
+	set "!_T.DC.Q!.RC=!_T.DC.RC!"
+	if "!_T.DC.RC!" == "0" (
+		set /a "_G.DESTROY.C += 1"
+		set "_G.DESTROY[!_G.DESTROY.C!]=!_T.DC.Q!"
+	)
+	set "_T.DC.Q="
+	set "_T.DC.RC="
+%-|%
+
+:NSUTIL_DrainDestroy
+	rem RCMODE 文献：排空 _G.DESTROY 队列。每项销毁序列：
+	rem ①meta→body 断链（body RefCnt-1） ②body 死则逐字段 DecRef+清字段
+	rem ③清 meta/body 槽 ④RECYCLE=on 且相邻对时压入 NXFREE（仅 body 死亡才复用）。
+	set "_T.DR.H="
+	:NSUTIL_DrainDestroy_Loop
+	if defined _G.DESTROY.C (
+		set "_T.DR.H=!_G.DESTROY[!_G.DESTROY.C!]!"
+		set "_G.DESTROY[!_G.DESTROY.C!]="
+		set /a "_G.DESTROY.C -= 1"
+		if "!_G.DESTROY.C!" == "0" set "_G.DESTROY.C="
+		set "_T.DR.B="
+		set "_T.DR.REF="
+		if defined _T.DR.H (
+			call set "_T.DR.B=%%!_T.DR.H!.Target%%"
+			if defined _T.DR.B (
+				call set "_T.DR.BR=%%!_T.DR.B!.RefCnt%%"
+				if not defined _T.DR.BR set "_T.DR.BR=0"
+				set /a "_T.DR.BR -= 1"
+				set "!_T.DR.B!.RefCnt=!_T.DR.BR!"
+				if "!_T.DR.BR!" == "0" (
+					rem body 死亡：逐字段 DecRef+清字段，标记可回收
+					( set "!_T.DR.B!.Data.Key" ) > "%TEMP%\mal_rb_!_G.LEVEL!.txt" 2>nul
+					for /f "usebackq delims==" %%k in ("%TEMP%\mal_rb_!_G.LEVEL!.txt") do (
+						call set "_T.DR.FV=%%!_T.DR.B!.Data.Value[!%%k!]%%"
+						if defined _T.DR.FV (
+							call :NSUTIL_IsValidNS "!_T.DR.FV!" %->% _T.DR.FM
+							if "!_T.DR.FM!" == "1" (
+								call :NSUTIL_DecRef "!_T.DR.FV!"
+							)
+						)
+						set "!_T.DR.B!.Data.Value[!%%k!]="
+						set "%%k="
+					)
+					set "!_T.DR.B!.Type="
+					set "!_T.DR.B!.RefCnt="
+					set "_T.DR.REF=1"
+				)
+			)
+			rem 清 meta 槽
+			set "!_T.DR.H!.Type="
+			set "!_T.DR.H!.Target="
+			set "!_T.DR.H!.RC="
+			rem 相邻对回收（仅 body 死亡才入链表，避免复用仍被引用的 body 槽）
+			if defined _T.DR.REF if defined _G.RECYCLE if "!_T.DR.H:~0,6!" == "_G.NS[" if "!_T.DR.B:~0,6!" == "_G.NS[" (
+				set "_T.DR.MI=!_T.DR.H:~6,-1!"
+				set "_T.DR.BI=!_T.DR.B:~6,-1!"
+				set /a "_T.DR.CK = _T.DR.MI - 1"
+				if "!_T.DR.BI!" == "!_T.DR.CK!" (
+					set "_G.NSFREENEXT[!_T.DR.BI!]=!_G.NXFREE!"
+					set "_G.NXFREE=!_T.DR.BI!"
+					set "_G.NSFREENEXT[!_T.DR.MI!]=!_G.NXFREE!"
+					set "_G.NXFREE=!_T.DR.MI!"
+				)
+			)
+			set "_T.DR.B="
+			set "_T.DR.REF="
+			set "_T.DR.FV="
+			set "_T.DR.FM="
+			set "_T.DR.BR="
+		)
+		set "_T.DR.H="
+		goto :NSUTIL_DrainDestroy_Loop
+	)
+%-|%
+
+:NSUTIL_FreeRC *NS
+	rem RCMODE Free = DecRef：RC-1，归零才真销毁；随后排空销毁队列。
+	%&% _G.RET _T.RF.RetBackup
+	call :NSUTIL_DecRef "%~1"
+	if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+	%&% _T.RF.RetBackup _G.RET
+	set "_T.RF.RetBackup="
+%-|%
+
+:NSUTIL_SetRC *NS Field *Val
+	rem RCMODE Set：①COW 共享 body 时 CloneBodyRC（字段引用+1）②覆盖旧字段 DecRef
+	rem ③存储原句柄+IncRef（替代 CloneMeta wrapper）④覆盖下穿可能入队，排空。
+	set "_T.S2.T=%~1"
+	set "_T.S2.F=%~2"
+	set "_T.S2.V=%~3"
+
+	if defined %~1.Target (
+		set "_T.S2.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.S2.NSBody=%%!%~1!.Target%%"
+	)
+
+	rem 同值短路（#3 语义保留：值未变时直接返回）
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.S2.HasField"
+	if "!_T.S2.HasField!" == "1" (
+		call set "_T.S2.CurVal=%%!_T.S2.NSBody!.Data.Value[%~2]%%"
+		if defined %~3.Target (
+			set "_T.S2.VH=%~3"
+		) else (
+			call set "_T.S2.VH=%%!%~3!%%"
+		)
+		if not defined _T.S2.VH set "_T.S2.VH=%~3"
+		if "!_T.S2.CurVal!" == "!_T.S2.VH!" %-|%
+	)
+
+	call set "_T.S2.RefCnt=%%!_T.S2.NSBody!.RefCnt%%"
+	if !_T.S2.RefCnt! gtr 1 (
+		set /a "!_T.S2.NSBody!.RefCnt -= 1"
+		call :NSUTIL_CloneBodyRC "_T.S2.NSBody" "_T.S2.NewBody"
+		set "_T.S2.NSBody=!_T.S2.NewBody!"
+		if defined %~1.Target (
+			set "%~1.Target=!_T.S2.NewBody!"
+		) else (
+			call set "%~1.Target=%%!_T.S2.NewBody!%%"
+		)
+	)
+
+	if "!_T.S2.HasField!" == "1" (
+		call set "_T.S2.CurVal=%%!_T.S2.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.S2.CurVal!" %->% "_T.S2.IsMeta"
+		if "!_T.S2.IsMeta!" == "1" (
+			call :NSUTIL_DecRef "!_T.S2.NSBody!.Data.Value[%~2]"
+		)
+	)
+
+	set "!_T.S2.NSBody!.Data.Key[%~2]=%~2"
+	call :NSUTIL_IsValidNS "!_T.S2.V!" %->% "_T.S2.IsNS"
+	if "!_T.S2.IsNS!" == "1" (
+		if defined %~3.Target (
+			set "_T.S2.VH=%~3"
+		) else (
+			call set "_T.S2.VH=%%!%~3!%%"
+		)
+		if not defined _T.S2.VH %?|% "SetRC: V not resolvable."
+		set "!_T.S2.NSBody!.Data.Value[%~2]=!_T.S2.VH!"
+		call :NSUTIL_IncRef "!_T.S2.VH!"
+	) else (
+		set "!_T.S2.NSBody!.Data.Value[%~2]=!_T.S2.V!"
+	)
+	if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+%-|%
+
+:NSUTIL_SetDirectRC *NS Field *Val
+	rem RCMODE SetDirect：直写共享环境（def! 语义），无 COW；覆盖 DecRef + 存原句柄+IncRef。
+	set "_T.SD2.T=%~1"
+	set "_T.SD2.F=%~2"
+	set "_T.SD2.V=%~3"
+
+	if defined %~1.Target (
+		set "_T.SD2.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.SD2.NSBody=%%!%~1!.Target%%"
+	)
+
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.SD2.HasField"
+	if "!_T.SD2.HasField!" == "1" (
+		call set "_T.SD2.CurVal=%%!_T.SD2.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.SD2.CurVal!" %->% "_T.SD2.IsMeta"
+		if "!_T.SD2.IsMeta!" == "1" (
+			call :NSUTIL_DecRef "!_T.SD2.NSBody!.Data.Value[%~2]"
+		)
+	)
+
+	set "!_T.SD2.NSBody!.Data.Key[%~2]=%~2"
+	call :NSUTIL_IsValidNS "!_T.SD2.V!" %->% "_T.SD2.IsNS"
+	if "!_T.SD2.IsNS!" == "1" (
+		if defined %~3.Target (
+			set "_T.SD2.VH=%~3"
+		) else (
+			call set "_T.SD2.VH=%%!%~3!%%"
+		)
+		if not defined _T.SD2.VH %?|% "SetDirectRC: V not resolvable."
+		set "!_T.SD2.NSBody!.Data.Value[%~2]=!_T.SD2.VH!"
+		call :NSUTIL_IncRef "!_T.SD2.VH!"
+	) else (
+		set "!_T.SD2.NSBody!.Data.Value[%~2]=!_T.SD2.V!"
+	)
+	if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+%-|%
+
+:NSUTIL_CloneBodyRC *NS *NewNS
+	rem RCMODE CloneBody：分配新 body，字段改为共享句柄引用（原句柄+IncRef），不再深拷 wrapper。
+	set /a "_G.NSP += 1"
+	set "_T.C2.NewBody=_G.NS[!_G.NSP!]"
+	set "!_T.C2.NewBody!.Type=NSBody"
+	set "!_T.C2.NewBody!.RefCnt=1"
+
+	( set "!%~1!.Data.Key" ) > "%TEMP%\mal_c_!_G.LEVEL!.txt" 2>nul
+	for /f "usebackq delims==" %%a in ("%TEMP%\mal_c_!_G.LEVEL!.txt") do (
+		set "!_T.C2.NewBody!.Data.Key[!%%a!]=!%%a!"
+		call set "_T.C2.FV=%%!%~1!.Data.Value[!%%a!]%%"
+		if defined _T.C2.FV (
+			call :NSUTIL_IsValidNS "!_T.C2.FV!" %->% _T.C2.FM
+			if "!_T.C2.FM!" == "1" (
+				call :NSUTIL_IncRef "!_T.C2.FV!"
+			)
+		)
+		set "!_T.C2.NewBody!.Data.Value[!%%a!]=!_T.C2.FV!"
+	)
+
+	%&% "_T.C2.NewBody" "%~2"
+%-|%

@@ -1,0 +1,133 @@
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=336.1s
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=36.6s
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=148.5s
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=38.3s
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=41.6s
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=39.8s
+[check] parsed 4 tests
+PASS=4 FAIL=0 total=4 wall=119.6s
+[check] parsed 4 tests
+PASS=4 FAIL=0 total=4 wall=115.7s
+[check] parsed 4 tests
+PASS=4 FAIL=0 total=4 wall=114.3s
+[check] parsed 11 tests
+[check] parsed 11 tests
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=51.5s
+[check] parsed 4 tests
+PASS=4 FAIL=0 total=4 wall=148.8s
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=150.7s
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=145.1s
+[check] parsed 16 tests
+PASS=16 FAIL=0 total=16 wall=83.6s
+[check] parsed 11 tests
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=66.6s
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=270.3s
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=128.7s
+[check] parsed 11 tests
+PASS=11 FAIL=0 total=11 wall=31.3s
+[check] parsed 16 tests
+PASS=16 FAIL=0 total=16 wall=63.5s
+[check] parsed 38 tests
+  FAIL t0 in='(+ 1 2)'            exp=';=>3' got="[step3_env] Exception: Symbol '+' not found."
+  FAIL t1 in='(/ (- (+ 5 (* 2 3)) 3) 4)' exp=';=>2' got="[step3_env] Exception: Symbol '/' not found."
+  FAIL t2 in='(def! x 3)'         exp=';=>3' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t3 in='x'                  exp=';=>3' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t4 in='(def! x 4)'         exp=';=>4' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t5 in='x'                  exp=';=>4' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t6 in='(def! y (+ 1 7))'   exp=';=>8' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t7 in='y'                  exp=';=>8' got="[step3_env] Exception: Symbol 'y' not found."
+  FAIL t8 in='(def! mynum 111)'   exp=';=>111' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t9 in='(def! MYNUM 222)'   exp=';=>222' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t10 in='mynum'              exp=';=>111' got="[step3_env] Exception: Symbol 'mynum' not found."
+  FAIL t11 in='MYNUM'              exp=';=>222' got="[step3_env] Exception: Symbol 'MYNUM' not found."
+  FAIL t14 in='w'                  exp=';=>123' got="[step3_env] Exception: Symbol 'w' not found."
+  FAIL t15 in='(let* (z 9) z)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t16 in='(let* (x 9) x)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t17 in='x'                  exp=';=>4' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t18 in='(let* (z (+ 2 3)) (+ 1 z))' exp=';=>6' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t19 in='(let* (p (+ 2 3) q (+ 2 p)) (+ p q))' exp=';=>12' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t26 in='(let* [z 9] z)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t27 in='(let* [p (+ 2 3) q (+ 2 p)] (+ p q))' exp=';=>12' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t28 in='(let* (a 5 b 6) [3 4 a [b 7] 8])' exp=';=>[3 4 5 [6 7] 8]' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t30 in='(let* (x 2 x 3) x)' exp=';=>3' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t31 in='(let* (DEBUG-EVAL false) (- 3 1))' exp=';=>2' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t32 in='(let* (DEBUG-EVAL nil) (- 3 1))' exp=';=>2' got="[step3_env] Exception: Symbol 'let*' not found."
+PASS=14 FAIL=24 total=38 wall=150.5s
+  FAIL t0 in='(+ 1 2)'            exp=';=>3' got="[step3_env] Exception: Symbol '+' not found."
+  FAIL t1 in='(/ (- (+ 5 (* 2 3)) 3) 4)' exp=';=>2' got="[step3_env] Exception: Symbol '/' not found."
+  FAIL t2 in='(def! x 3)'         exp=';=>3' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t3 in='x'                  exp=';=>3' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t4 in='(def! x 4)'         exp=';=>4' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t5 in='x'                  exp=';=>4' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t6 in='(def! y (+ 1 7))'   exp=';=>8' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t7 in='y'                  exp=';=>8' got="[step3_env] Exception: Symbol 'y' not found."
+  FAIL t8 in='(def! mynum 111)'   exp=';=>111' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t9 in='(def! MYNUM 222)'   exp=';=>222' got="[step3_env] Exception: Symbol 'def$E' not found."
+  FAIL t10 in='mynum'              exp=';=>111' got="[step3_env] Exception: Symbol 'mynum' not found."
+  FAIL t11 in='MYNUM'              exp=';=>222' got="[step3_env] Exception: Symbol 'MYNUM' not found."
+  FAIL t14 in='w'                  exp=';=>123' got="[step3_env] Exception: Symbol 'w' not found."
+  FAIL t15 in='(let* (z 9) z)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t16 in='(let* (x 9) x)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t17 in='x'                  exp=';=>4' got="[step3_env] Exception: Symbol 'x' not found."
+  FAIL t18 in='(let* (z (+ 2 3)) (+ 1 z))' exp=';=>6' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t19 in='(let* (p (+ 2 3) q (+ 2 p)) (+ p q))' exp=';=>12' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t26 in='(let* [z 9] z)'     exp=';=>9' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t27 in='(let* [p (+ 2 3) q (+ 2 p)] (+ p q))' exp=';=>12' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t28 in='(let* (a 5 b 6) [3 4 a [b 7] 8])' exp=';=>[3 4 5 [6 7] 8]' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t30 in='(let* (x 2 x 3) x)' exp=';=>3' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t31 in='(let* (DEBUG-EVAL false) (- 3 1))' exp=';=>2' got="[step3_env] Exception: Symbol 'let*' not found."
+  FAIL t32 in='(let* (DEBUG-EVAL nil) (- 3 1))' exp=';=>2' got="[step3_env] Exception: Symbol 'let*' not found."
+[check] parsed 121 tests
+PASS=121 FAIL=0 total=121 wall=118.9s
+[check] parsed 1 tests
+PASS=1 FAIL=0 total=1 wall=3.2s
+[check] parsed 15 tests
+PASS=15 FAIL=0 total=15 wall=94.8s
+[check] parsed 18 tests
+  FAIL t0 in='( (fn* (a) a) 5)'   exp=';=>5' got=''
+  FAIL t1 in='( (fn* (a b) (+ b a)) 3 4)' exp=';=>7' got='5'
+  FAIL t2 in='( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)' exp=';=>8' got='[step4_if_fn_do] Exception: Invalid argument type.'
+  FAIL t3 in='( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)' exp=';=>12' got=''
+  FAIL t5 in='(plus5 7)'          exp=';=>12' got='#<function>'
+  FAIL t7 in='(plus7 8)'          exp=';=>15' got="[step4_if_fn_do] Exception: Symbol 'plus7' not found."
+  FAIL t12 in='(fib 1)'            exp=';=>1' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t13 in='(fib 2)'            exp=';=>2' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t14 in='(fib 4)'            exp=';=>5' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t15 in='(let* (f (fn* () x) x 3) (f))' exp=';=>3' got="[step4_if_fn_do] Exception: Symbol 'f' not found."
+  FAIL t16 in='(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))' exp=';=>nil' got="[step4_if_fn_do] Exception: Symbol 'cst' not found."
+  FAIL t17 in='(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))' exp=';=>0' got="[step4_if_fn_do] Exception: Symbol 'f' not found."
+PASS=6 FAIL=12 total=18 wall=541.8s
+  FAIL t0 in='( (fn* (a) a) 5)'   exp=';=>5' got=''
+  FAIL t1 in='( (fn* (a b) (+ b a)) 3 4)' exp=';=>7' got='5'
+  FAIL t2 in='( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)' exp=';=>8' got='[step4_if_fn_do] Exception: Invalid argument type.'
+  FAIL t3 in='( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)' exp=';=>12' got=''
+  FAIL t5 in='(plus5 7)'          exp=';=>12' got='#<function>'
+  FAIL t7 in='(plus7 8)'          exp=';=>15' got="[step4_if_fn_do] Exception: Symbol 'plus7' not found."
+  FAIL t12 in='(fib 1)'            exp=';=>1' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t13 in='(fib 2)'            exp=';=>2' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t14 in='(fib 4)'            exp=';=>5' got="[step4_if_fn_do] Exception: Symbol 'fib' not found."
+  FAIL t15 in='(let* (f (fn* () x) x 3) (f))' exp=';=>3' got="[step4_if_fn_do] Exception: Symbol 'f' not found."
+  FAIL t16 in='(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))' exp=';=>nil' got="[step4_if_fn_do] Exception: Symbol 'cst' not found."
+  FAIL t17 in='(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))' exp=';=>0' got="[step4_if_fn_do] Exception: Symbol 'f' not found."
+[check] parsed 74 tests
+  FAIL t0 in='(list)'             exp=';=>()' got=''
+  FAIL t1 in='(list? (list))'     exp=';=>true' got='()'
+[check] parsed 4 tests
+  FAIL t3 in='(g 3 4)'            exp=';=>7' got="[step4_if_fn_do] Exception: Symbol 'g' not found."
+PASS=3 FAIL=1 total=4 wall=47.5s
+  FAIL t3 in='(g 3 4)'            exp=';=>7' got="[step4_if_fn_do] Exception: Symbol 'g' not found."
+  FAIL t44 in='(= (list 1 2) (list 1 2))' exp=';=>true' got='The system cannot find the file C:\\Users\\OldLi\\AppData\\Local\\Temp\\mal_l_5.txt.\ntrue'
+  FAIL t51 in='( (fn* (a b) (+ b a)) 3 4)' exp=';=>7' got="The system cannot find the batch label specified - _\n[step4_if_fn_do] Fatal: MalType '' not support yet."
+  FAIL t52 in='( (fn* () 4) )'     exp=';=>4' got=''

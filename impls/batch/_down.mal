@@ -1,0 +1,2 @@
+(def! down (fn* (n) (if (= n 0) 0 (down (- n 1)))))
+(down 5)

@@ -1,0 +1,23 @@
+[runall] parsed 44 tests
+[runall] stderr: 174423 bytes (cmd 层噪音/调试输出，不并入结果解析)
+[runall] rc=1 wall=290.86s
+  FAIL t12 in='(= 0 (list))'       exp=';=>false' got='true'
+  FAIL t22 in='(plus5 7)'          exp=';=>12' got='<MISSING>'
+  FAIL t25 in='(plus7 8)'          exp=';=>15' got='<MISSING>'
+  FAIL t26 in='(do (prn 101))'     exp=';=>nil' got='<MISSING>'
+  FAIL t27 in='(do (prn 102) 7)'   exp=';=>7' got='<MISSING>'
+  FAIL t28 in='(do (prn 101) (prn 102) (+ 1 2))' exp=';=>3' got='<MISSING>'
+  FAIL t29 in='(do (def! a 6) 7 (+ a 8))' exp=';=>14' got='<MISSING>'
+  FAIL t30 in='a'                  exp=';=>6' got='<MISSING>'
+  FAIL t32 in='(DO 3)'             exp=';=>7' got='<MISSING>'
+  FAIL t34 in='(sumdown 1)'        exp=';=>1' got='<MISSING>'
+  FAIL t35 in='(sumdown 2)'        exp=';=>3' got='<MISSING>'
+  FAIL t36 in='(sumdown 6)'        exp=';=>21' got='<MISSING>'
+  FAIL t38 in='(fib 1)'            exp=';=>1' got='<MISSING>'
+  FAIL t39 in='(fib 2)'            exp=';=>2' got='<MISSING>'
+  FAIL t40 in='(fib 4)'            exp=';=>5' got='<MISSING>'
+  FAIL t41 in='(let* (f (fn* () x) x 3) (f))' exp=';=>3' got='<MISSING>'
+  FAIL t42 in='(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))' exp=';=>nil' got='<MISSING>'
+  FAIL t43 in='(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))' exp=';=>0' got='<MISSING>'
+PASS=26 FAIL=18 total=44
+EXIT=0

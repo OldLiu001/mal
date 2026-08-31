@@ -1,0 +1,11 @@
+[runall] parsed 8 tests
+[runall] stderr: 15529 bytes (cmd 层噪音/调试输出，不并入结果解析)
+[runall] rc=255 wall=14.37s
+  FAIL t0 in='(list)'             exp=';=>()' got='<MISSING>'
+  FAIL t1 in='(list? (list))'     exp=';=>true' got='<MISSING>'
+  FAIL t2 in='(list? nil)'        exp=';=>false' got='<MISSING>'
+  FAIL t3 in='(empty? (list))'    exp=';=>true' got='<MISSING>'
+  FAIL t4 in='(empty? (list 1))'  exp=';=>false' got='<MISSING>'
+  FAIL t5 in='(list 1 2 3)'       exp=';=>(1 2 3)' got='<MISSING>'
+  FAIL t6 in='(count (list 1 2 3))' exp=';=>3' got='<MISSING>'
+PASS=1 FAIL=7 total=8

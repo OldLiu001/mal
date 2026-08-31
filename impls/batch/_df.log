@@ -1,0 +1,121 @@
+﻿  1 FAIL  3.54s in='1'                      got='1\nuser>' exp='1'
+  2 FAIL  3.58s in='7'                      got='7\nuser>' exp='7'
+  3 FAIL  3.35s in='7'                      got='7\nuser>' exp='7'
+  4 FAIL  3.19s in='-123'                   got='-123\nuser>' exp='-123'
+  5 FAIL  3.62s in='+'                      got='+\nuser>' exp='+'
+  6 FAIL  2.99s in='abc'                    got='abc\nuser>' exp='abc'
+  7 FAIL  3.34s in='abc'                    got='abc\nuser>' exp='abc'
+  8 FAIL  3.11s in='abc5'                   got='abc5\nuser>' exp='abc5'
+  9 FAIL  3.15s in='abc-def'                got='abc-def\nuser>' exp='abc-def'
+ 10 FAIL  3.41s in='-'                      got='-\nuser>' exp='-'
+ 11 FAIL  3.58s in='-abc'                   got='-abc\nuser>' exp='-abc'
+ 12 FAIL  3.62s in='->>'                    got='->>\nuser>' exp='->>'
+ 13 FAIL 12.83s in='(+ 1 2)'                got='' exp='(+ 1 2)'
+ 14 FAIL  4.51s in='()'                     got='' exp='()'
+ 15 FAIL  5.00s in='( )'                    got='' exp='()'
+ 16 FAIL  7.31s in='(nil)'                  got='' exp='(nil)'
+ 17 FAIL 13.14s in='((3 4))'                got='' exp='((3 4))'
+ 18 FAIL  9.58s in='(+ 1 (+ 2 3))'          got='' exp='(+ 1 (+ 2 3))'
+ 19 FAIL 10.31s in='( +   1   (+   2 3   )   )' got='' exp='(+ 1 (+ 2 3))'
+ 20 FAIL 12.64s in='(* 1 2)'                got='' exp='(* 1 2)'
+ 21 FAIL 11.74s in='(** 1 2)'               got='' exp='(** 1 2)'
+ 22 FAIL 12.04s in='(* -3 6)'               got='' exp='(* -3 6)'
+ 23 FAIL 11.89s in='(()())'                 got='' exp='(() ())'
+ 24 FAIL 12.42s in='(1 2, 3,,,,),,'         got='' exp='(1 2 3)'
+ 25 OK    1.57s in=';>>> deferrable=True'   got='user>' exp=None
+ 26 OK    1.48s in=';=>nil'                 got='user>' exp=None
+ 27 OK    1.56s in=';=>true'                got='user>' exp=None
+ 28 OK    1.52s in=';=>false'               got='user>' exp=None
+ 29 OK    1.52s in=';=>"abc"'               got='user>' exp=None
+ 30 OK    1.76s in=';=>"abc"'               got='user>' exp=None
+ 31 OK    1.53s in=';=>"abc (with parens)"' got='user>' exp=None
+ 32 OK    1.57s in=';=>"abc\\"def"'         got='user>' exp=None
+ 33 OK    1.56s in=';=>""'                  got='user>' exp=None
+ 34 OK    1.76s in=';=>"\\\\"'              got='user>' exp=None
+ 35 OK    1.58s in=';=>"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"' got='user>' exp=None
+ 36 OK    1.47s in=';=>"&"'                 got='user>' exp=None
+ 37 OK    1.48s in=';=>"\'"'                got='The process cannot access the file because it is being used by another process.\nThe process cannot access the file because it is being used by another process.\nuser>' exp=None
+ 38 OK    1.54s in=';=>"("'                 got='user>' exp=None
+ 39 OK    1.52s in=';=>")"'                 got='user>' exp=None
+ 40 OK    1.55s in=';=>"*"'                 got='user>' exp=None
+ 41 OK    1.62s in=';=>"+"'                 got='user>' exp=None
+ 42 OK    1.54s in=';=>","'                 got='The system cannot find the file C:\\Users\\OldLi\\AppData\\Local\\Temp\\mal_gc.txt.\nuser>' exp=None
+ 43 OK    1.53s in=';=>"-"'                 got='user>' exp=None
+ 44 OK    1.37s in=';=>"/"'                 got='user>' exp=None
+ 45 OK    1.61s in=';=>":"'                 got='user>' exp=None
+ 46 OK    1.57s in=';=>";"'                 got='user>' exp=None
+ 47 OK    1.74s in=';=>"<"'                 got='user>' exp=None
+ 48 OK    1.42s in=';=>"="'                 got='user>' exp=None
+ 49 OK    1.54s in=';=>">"'                 got='user>' exp=None
+ 50 OK    1.52s in=';=>"?"'                 got='user>' exp=None
+ 51 OK    1.53s in=';=>"@"'                 got='user>' exp=None
+ 52 OK    1.57s in=';=>"["'                 got='user>' exp=None
+ 53 OK    1.52s in=';=>"]"'                 got='user>' exp=None
+ 54 OK    1.51s in=';=>"^"'                 got='user>' exp=None
+ 55 OK    1.50s in=';=>"_"'                 got='user>' exp=None
+ 56 OK    1.55s in=';=>"`"'                 got='user>' exp=None
+ 57 OK    1.56s in=';=>"{"'                 got='user>' exp=None
+ 58 OK    1.55s in=';=>"}"'                 got='user>' exp=None
+ 59 OK    1.82s in=';=>"~"'                 got='user>' exp=None
+ 60 OK    1.64s in=';=>"!"'                 got='user>' exp=None
+ 61 OK    1.66s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 62 OK    1.52s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 63 OK    1.77s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 64 OK    1.52s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 65 OK    1.52s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 66 OK    1.60s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 67 OK    1.57s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 68 OK    1.76s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 69 OK    1.63s in=';/.*(EOF|end of input|unbalanced).*' got='user>' exp=None
+ 70 OK    1.54s in=';=>(quote 1)'           got='user>' exp=None
+ 71 OK    1.73s in=';=>(quote (1 2 3))'     got='user>' exp=None
+ 72 OK    1.55s in=';=>(quasiquote 1)'      got='user>' exp=None
+ 73 OK    1.61s in=';=>(quasiquote (1 2 3))' got='user>' exp=None
+ 74 OK    1.61s in=';=>(quasiquote (a (b) c))' got='user>' exp=None
+ 75 OK    1.73s in=';=>(unquote 1)'         got='user>' exp=None
+ 76 OK    1.64s in=';=>(unquote (1 2 3))'   got='user>' exp=None
+ 77 OK    1.63s in=';=>(quasiquote (1 (unquote a) 3))' got='user>' exp=None
+ 78 OK    1.71s in=';=>(splice-unquote (1 2 3))' got='user>' exp=None
+ 79 OK    1.54s in=';=>:kw'                 got='user>' exp=None
+ 80 OK    1.84s in=';=>(:kw1 :kw2 :kw3)'    got='user>' exp=None
+ 81 OK    1.50s in=';=>[+ 1 2]'             got='user>' exp=None
+ 82 OK    1.43s in=';=>[]'                  got='user>' exp=None
+ 83 OK    1.51s in=';=>[]'                  got='user>' exp=None
+ 84 OK    1.53s in=';=>[[3 4]]'             got='user>' exp=None
+ 85 OK    1.48s in=';=>[+ 1 [+ 2 3]]'       got='user>' exp=None
+ 86 OK    1.46s in=';=>[+ 1 [+ 2 3]]'       got='user>' exp=None
+ 87 OK    1.50s in=';=>([])'                got='user>' exp=None
+ 88 OK    1.61s in=';=>{}'                  got='user>' exp=None
+ 89 OK    1.50s in=';=>{}'                  got='user>' exp=None
+ 90 OK    1.49s in=';=>{"abc" 1}'           got='user>' exp=None
+ 91 OK    1.55s in=';=>{"a" {"b" 2}}'       got='user>' exp=None
+ 92 OK    1.58s in=';=>{"a" {"b" {"c" 3}}}' got='The process cannot access the file because it is being used by another process.\nuser>' exp=None
+ 93 OK    1.75s in=';=>{"a" {"b" {"cde" 3}}}' got='user>' exp=None
+ 94 OK    1.76s in=';/{"a([1-3])" \\1 "a(?!\\1)([1-3])" \\2 "a(?!\\1)(?!\\2)([1-3])" \\3}' got='user>' exp=None
+ 95 OK    1.55s in=';=>{:a {:b {:cde 3}}}'  got='user>' exp=None
+ 96 OK    1.47s in=';=>{"1" 1}'             got='user>' exp=None
+ 97 OK    1.44s in=';=>({})'                got='user>' exp=None
+ 98 OK    1.35s in=';=>1'                   got='user>' exp=None
+ 99 OK    1.31s in=';=>1'                   got='user>' exp=None
+100 OK    1.42s in=';=>(deref a)'           got='user>' exp=None
+101 OK    1.32s in=';=>a:'                  got='user>' exp=None
+102 OK    1.47s in=';>>> optional=True'     got='user>' exp=None
+103 OK    1.65s in=';=>(with-meta [1 2 3] {"a" 1})' got='user>' exp=None
+104 OK    1.50s in=';=>"\\n"'               got='user>' exp=None
+105 OK    1.62s in=';=>"#"'                 got='user>' exp=None
+106 OK    1.74s in=';=>"$"'                 got='user>' exp=None
+107 OK    1.31s in=';=>"%"'                 got="'t' is not recognized as an internal or external command,\noperable program or batch file.\nuser>" exp=None
+108 OK    1.45s in=';=>"."'                 got='user>' exp=None
+109 OK    1.62s in=';=>"\\\\"'              got='user>' exp=None
+110 OK    1.44s in=';=>"|"'                 got='user>' exp=None
+111 OK    1.31s in=';=>1'                   got='user>' exp=None
+112 OK    1.41s in=';=>1'                   got='user>' exp=None
+113 OK    1.33s in=';=>1'                   got='user>' exp=None
+114 OK    1.39s in=';=>1'                   got='user>' exp=None
+115 OK    1.77s in=';=>1'                   got='user>' exp=None
+116 OK    1.71s in=';=>1'                   got='user>' exp=None
+117 OK    1.67s in=';=>1'                   got='user>' exp=None
+118 OK    1.55s in=';=>1'                   got='user>' exp=None
+119 OK    1.44s in=';=>1'                   got='user>' exp=None
+120 OK    1.47s in=';=>1'                   got='user>' exp=None
+121 OK    1.46s in=';=>1'                   got='user>' exp=None

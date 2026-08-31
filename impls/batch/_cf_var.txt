@@ -1,0 +1,5 @@
+OUTER-before: read=HELLO
+  INNER set: val=INNER
+OUTER-after:  read=HELLO
+OUTER-MATCH survived
+DONE

@@ -1,0 +1,612 @@
+@echo off
+if "%~1" neq "" (
+	call %* || (
+		if defined _G.TRACE (
+			>&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" failed.
+		) else (
+			>&2 echo [%~n0] Fatal: Call "%~nx0" failed.
+		)
+		2>con >&2 pause
+		exit 1
+	)
+) else (
+	if defined _G.TRACE (
+		>&2 echo [!_G.TRACE!] Fatal: Call "%~nx0" with nothing.
+	) else (
+		>&2 echo [%~n0] Fatal: Call "%~nx0" with nothing.
+	)
+	2>con >&2 pause
+	exit 1
+)
+exit /b 0
+
+:READER_ReadString _Str -> AST
+		set "_L[!_G.LEVEL!].Str=%~1"
+
+		%{n% _L[!_G.LEVEL!].Reader %}
+		%{s% _L[!_G.LEVEL!].Reader Type Reader %}
+		set "_L[!_G.LEVEL!].TokenCount=0"
+		set "_L[!_G.LEVEL!].TokenPtr=1"
+		%{s% _L[!_G.LEVEL!].Reader TokenCount 0 %}
+		%{s% _L[!_G.LEVEL!].Reader TokenPtr 1 %}
+
+		%{% READER Tokenize "!_L[!_G.LEVEL!].Str!" "!_L[!_G.LEVEL!].Reader!" %}%
+		%?% (
+			%-|%
+		)
+
+		%{g% _L[!_G.LEVEL!].Reader TokenCount _L[!_G.LEVEL!].TotalTokenNum %}
+		if "!_L[!_G.LEVEL!].TotalTokenNum!" == "0" (
+			%??% "" Empty
+			%-|%
+		)
+
+		%{% READER ReadForm _L[!_G.LEVEL!].Reader %}% %->% _L[!_G.LEVEL!].AST 
+		%?% (
+			%-|%
+		)
+
+		%<-% _L[!_G.LEVEL!].AST
+%-|%
+
+:READER_ReadForm *Reader -> Mal
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		%{g% "%~1" TokenCount _L[!_G.LEVEL!].TotalTokenNum %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unexpected EOF, need more token."
+			%-|%
+		)
+
+		%{g% "%~1" Token[!_L[!_G.LEVEL!].TokenPtr!] _L[!_G.LEVEL!].CurToken %}
+
+		if "!_L[!_G.LEVEL!].CurToken!" == "(" (
+			%{% READER ReadList "%~1" %}% %->% _L[!_G.LEVEL!].AST 
+			%?% (
+				%-|%
+			)
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "[" (
+			%{% READER ReadList "%~1" %}% %->% _L[!_G.LEVEL!].AST 
+			%?% (
+				%-|%
+			)
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "{" (
+			%{% READER ReadMap "%~1" %}% %->% _L[!_G.LEVEL!].AST 
+			%?% (
+				%-|%
+			)
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "'" (
+			%{% TYPES NewMal MalSym quote %}% %->% _L[!_G.LEVEL!].SymQuote 
+			%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+			set /a _L[!_G.LEVEL!].TP += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+			%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].Mal 
+			%?% (
+				%-|%
+			)
+			%{% TYPES NewMalList _L[!_G.LEVEL!].SymQuote _L[!_G.LEVEL!].Mal %}% %->% _L[!_G.LEVEL!].AST 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "`" (
+			%{% TYPES NewMal MalSym quasiquote %}% %->% _L[!_G.LEVEL!].SymQuote 
+			%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+			set /a _L[!_G.LEVEL!].TP += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+			%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].Mal 
+			%?% (
+				%-|%
+			)
+			%{% TYPES NewMalList _L[!_G.LEVEL!].SymQuote _L[!_G.LEVEL!].Mal %}% %->% _L[!_G.LEVEL!].AST 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "@" (
+			%{% TYPES NewMal MalSym deref %}% %->% _L[!_G.LEVEL!].SymQuote 
+			%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+			set /a _L[!_G.LEVEL!].TP += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+			%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].Mal 
+			%?% (
+				%-|%
+			)
+			%{% TYPES NewMalList _L[!_G.LEVEL!].SymQuote _L[!_G.LEVEL!].Mal %}% %->% _L[!_G.LEVEL!].AST 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "~" (
+			%{% TYPES NewMal MalSym unquote %}% %->% _L[!_G.LEVEL!].SymQuote 
+			%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+			set /a _L[!_G.LEVEL!].TP += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+			%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].Mal 
+			%?% (
+				%-|%
+			)
+			%{% TYPES NewMalList _L[!_G.LEVEL!].SymQuote _L[!_G.LEVEL!].Mal %}% %->% _L[!_G.LEVEL!].AST 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "~@" (
+			%{% TYPES NewMal MalSym splice-unquote %}% %->% _L[!_G.LEVEL!].SymQuote 
+			%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+			set /a _L[!_G.LEVEL!].TP += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+			%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].Mal 
+			%?% (
+				%-|%
+			)
+			%{% TYPES NewMalList _L[!_G.LEVEL!].SymQuote _L[!_G.LEVEL!].Mal %}% %->% _L[!_G.LEVEL!].AST 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "$C" (
+			%{% READER ReadMeta "%~1" %}% %->% _L[!_G.LEVEL!].AST 
+			%?% (
+				%-|%
+			)
+		) else if "!_L[!_G.LEVEL!].CurToken!" == ")" (
+			%??% "unexpected token ')'."
+			%-|%
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "]" (
+			%??% "unexpected token ']'."
+			%-|%
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "}" (
+			%??% "unexpected token '}'."
+			%-|%
+		) else if "!_L[!_G.LEVEL!].CurToken:~,1!" == ";" (
+			%??% "" Empty
+		) else (
+			%{% READER ReadAtom "%~1" %}% %->% _L[!_G.LEVEL!].AST 
+			%?% (
+				%-|%
+			)
+		)
+
+		%<-% _L[!_G.LEVEL!].AST
+%-|%
+
+:READER_ReadAtom *Reader -> Mal
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		%{g% "%~1" TokenCount _L[!_G.LEVEL!].TotalTokenNum %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unexpected EOF, need more token."
+			%-|%
+		)
+
+		%{g% "%~1" Token[!_L[!_G.LEVEL!].TokenPtr!] _L[!_G.LEVEL!].CurToken %}
+		set /a _L[!_G.LEVEL!].TokenPtr += 1
+		%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+
+		set /a _L[!_G.LEVEL!].TestNum = _L[!_G.LEVEL!].CurToken
+		if "!_L[!_G.LEVEL!].TestNum!" == "!_L[!_G.LEVEL!].CurToken!" (
+			%{% TYPES NewMal MalNum "!_L[!_G.LEVEL!].CurToken!" %}% %->% _L[!_G.LEVEL!].Mal 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "nil" (
+			%{% TYPES NewMal MalNil nil %}% %->% _L[!_G.LEVEL!].Mal 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "true" (
+			%{% TYPES NewMal MalBool true %}% %->% _L[!_G.LEVEL!].Mal 
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "false" (
+			%{% TYPES NewMal MalBool false %}% %->% _L[!_G.LEVEL!].Mal 
+		) else if "!_L[!_G.LEVEL!].CurToken:~,2!" == "$D" (
+			%{% TYPES NewMal MalStr "!_L[!_G.LEVEL!].CurToken!" %}% %->% _L[!_G.LEVEL!].Mal 
+		) else if "!_L[!_G.LEVEL!].CurToken:~,2!" == "$A" (
+			%{% TYPES NewMal MalKwd "!_L[!_G.LEVEL!].CurToken!" %}% %->% _L[!_G.LEVEL!].Mal 
+		) else (
+			%{% TYPES NewMal MalSym "!_L[!_G.LEVEL!].CurToken!" %}% %->% _L[!_G.LEVEL!].Mal 
+		)
+
+		%<-% _L[!_G.LEVEL!].Mal
+%-|%
+
+:READER_ReadList *Reader -> Mal
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		%{g% "%~1" TokenCount _L[!_G.LEVEL!].TotalTokenNum %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unbalanced parenthesis."
+			%-|%
+		)
+
+		%{g% "%~1" Token[!_L[!_G.LEVEL!].TokenPtr!] _L[!_G.LEVEL!].CurToken %}
+
+		if "!_L[!_G.LEVEL!].CurToken!" == "(" (
+			%{% TYPES NewMalList %}% %->% _L[!_G.LEVEL!].MalCode 
+			%{s% _L[!_G.LEVEL!].MalCode Type MalLst %}
+		) else if "!_L[!_G.LEVEL!].CurToken!" == "[" (
+			%{% TYPES NewMalList %}% %->% _L[!_G.LEVEL!].MalCode 
+			%{s% _L[!_G.LEVEL!].MalCode Type MalVec %}
+		) else (
+			%?|% "unexpected token '!_L[!_G.LEVEL!].CurToken!'."
+		)
+
+		set /a _L[!_G.LEVEL!].TokenPtr += 1
+		%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unbalanced parenthesis."
+			%-|%
+		)
+
+		set "_L[!_G.LEVEL!].Count=0"
+	:READER_ReadList_Loop
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unbalanced parenthesis."
+			%-|%
+		)
+
+		%{g% "%~1" Token[!_L[!_G.LEVEL!].TokenPtr!] _L[!_G.LEVEL!].CurToken %}
+
+		if "!_L[!_G.LEVEL!].CurToken!" == ")" (
+			%{g% _L[!_G.LEVEL!].MalCode Type _L[!_G.LEVEL!].Type %}
+			if "!_L[!_G.LEVEL!].Type!" neq "MalLst" (
+				%??% "unbalanced parenthesis."
+				%-|%
+			)
+			set /a _L[!_G.LEVEL!].TokenPtr += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+			goto READER_ReadList_Pass
+		)
+		if "!_L[!_G.LEVEL!].CurToken!" == "]" (
+			%{g% _L[!_G.LEVEL!].MalCode Type _L[!_G.LEVEL!].Type %}
+			if "!_L[!_G.LEVEL!].Type!" neq "MalVec" (
+				%??% "unbalanced parenthesis."
+				%-|%
+			)
+			set /a _L[!_G.LEVEL!].TokenPtr += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+			goto READER_ReadList_Pass
+		)
+		set /a _L[!_G.LEVEL!].Count += 1
+
+		%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].MalRet 
+		%?% (
+			%-|%
+		)
+		%{s% _L[!_G.LEVEL!].MalCode Item[!_L[!_G.LEVEL!].Count!] "!_L[!_G.LEVEL!].MalRet!" %}
+
+		goto READER_ReadList_Loop
+	:READER_ReadList_Pass
+		%{s% _L[!_G.LEVEL!].MalCode Count !_L[!_G.LEVEL!].Count! %}
+
+		%<-% _L[!_G.LEVEL!].MalCode
+%-|%
+
+:READER_ReadMap *Reader -> Mal
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		%{g% "%~1" TokenCount _L[!_G.LEVEL!].TotalTokenNum %}
+
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unbalanced parenthesis."
+			%-|%
+		)
+
+		set /a _L[!_G.LEVEL!].TokenPtr += 1
+		%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+
+		%{% TYPES NewMalMap %}% %->% _L[!_G.LEVEL!].MalMap 
+		%{g% _L[!_G.LEVEL!].MalMap RawKeys _L[!_G.LEVEL!].RawKeys %}
+		
+		set "_L[!_G.LEVEL!].MapKeyCount=0"
+		set "_L[!_G.LEVEL!].RawKeyCount=0"
+	:READER_ReadMap_Loop
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "unbalanced parenthesis."
+			%-|%
+		)
+		%{g% "%~1" Token[!_L[!_G.LEVEL!].TokenPtr!] _L[!_G.LEVEL!].Token %}
+												if "!_L[!_G.LEVEL!].Token!" == "}" (
+			set /a _L[!_G.LEVEL!].TokenPtr += 1
+			%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TokenPtr! %}
+			goto READER_ReadMap_Pass
+		)
+
+		%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].MalKey 
+		%?% (
+			%-|%
+		)
+
+		%{g% "!_L[!_G.LEVEL!].MalKey!" Type _L[!_G.LEVEL!].Type %}
+		if "!_L[!_G.LEVEL!].Type!" neq "MalStr" if "!_L[!_G.LEVEL!].Type!" neq "MalKwd" (
+			%??% "Map key must be 'MalStr' or 'MalKwd'."
+			%-|%
+		)
+
+		%{g% "!_L[!_G.LEVEL!].MalKey!" Value _L[!_G.LEVEL!].RawKey %}
+		
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TotalTokenNum! (
+			%??% "Unmatched map key-value pair."
+			%-|%
+		)
+
+		%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].MalVal 
+		%?% (
+			%-|%
+		)
+
+		%{g% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Count _L[!_G.LEVEL!].ExistCnt %}
+		if "!_L[!_G.LEVEL!].ExistCnt!" == "" (
+			set /a _L[!_G.LEVEL!].MapKeyCount += 1
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Count 1 %}
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Item[1].Key !_L[!_G.LEVEL!].MalKey! %}
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Item[1].Value !_L[!_G.LEVEL!].MalVal! %}
+
+			set /a _L[!_G.LEVEL!].RawKeyCount += 1
+			%{s% "!_L[!_G.LEVEL!].RawKeys!" Key[!_L[!_G.LEVEL!].RawKeyCount!] "!_L[!_G.LEVEL!].RawKey!" %}
+		) else (
+			set /a _L[!_G.LEVEL!].ExistCnt += 1
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Count !_L[!_G.LEVEL!].ExistCnt! %}
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Item[!_L[!_G.LEVEL!].ExistCnt!].Key !_L[!_G.LEVEL!].MalKey! %}
+			%{s% _L[!_G.LEVEL!].MalMap Item[!_L[!_G.LEVEL!].RawKey!].Item[!_L[!_G.LEVEL!].ExistCnt!].Value !_L[!_G.LEVEL!].MalVal! %}
+		)
+
+		goto READER_ReadMap_Loop
+	:READER_ReadMap_Pass
+				%{s% _L[!_G.LEVEL!].MalMap Count !_L[!_G.LEVEL!].MapKeyCount! %}
+		%{s% _L[!_G.LEVEL!].MalMap RawKeyCount !_L[!_G.LEVEL!].RawKeyCount! %}
+		%{s% _L[!_G.LEVEL!].MalMap RawKeys !_L[!_G.LEVEL!].RawKeys! %}
+		%<-% _L[!_G.LEVEL!].MalMap
+%-|%
+
+:READER_ReadMeta *Reader -> Mal
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TP %}
+		set /a _L[!_G.LEVEL!].TP += 1
+		%{s% "%~1" TokenPtr !_L[!_G.LEVEL!].TP! %}
+
+		%{g% "%~1" TokenPtr _L[!_G.LEVEL!].TokenPtr %}
+		%{g% "%~1" TokenCount _L[!_G.LEVEL!].TokenCount %}
+		if !_L[!_G.LEVEL!].TokenPtr! gtr !_L[!_G.LEVEL!].TokenCount! (
+			%??% "Unexpected EOF, need more token."
+			%-|%
+		)
+
+		%{% TYPES NewMal MalSym with-meta %}% %->% _L[!_G.LEVEL!].MalSym 
+		%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].MalMeta 
+		%?% (
+			%-|%
+		)
+		%{% TYPES CheckType "!_L[!_G.LEVEL!].MalMeta!" MalMap %}% %->% _L[!_G.LEVEL!].IsCorrect 
+		if "!_L[!_G.LEVEL!].IsCorrect!" == "0" (
+			%??% "Meta must be a map."
+			%-|%
+		)
+		%{% READER ReadForm "%~1" %}% %->% _L[!_G.LEVEL!].MalType 
+		%?% (
+			%-|%
+		)
+
+		%{% TYPES NewMalList _L[!_G.LEVEL!].MalSym _L[!_G.LEVEL!].MalType _L[!_G.LEVEL!].MalMeta %}% %->% _L[!_G.LEVEL!].MalRes 
+		%<-% _L[!_G.LEVEL!].MalRes
+%-|%
+
+:READER_Tokenize _Str *Reader
+		set "_L[!_G.LEVEL!].Line=%~1"
+		set "_L[!_G.LEVEL!].Reader=%~2"
+
+		%{g% "!_L[!_G.LEVEL!].Reader!" TokenCount _L[!_G.LEVEL!].CurTokenNum %}
+		set "_L[!_G.LEVEL!].ParsingStr=False"
+		set "_L[!_G.LEVEL!].NormalToken="
+	:READER_Tokenizing_Loop
+		if "!_L[!_G.LEVEL!].Line!" == "" (
+			if "!_L[!_G.LEVEL!].ParsingStr!" == "True" (
+				%??% "unexpected EOF, string is incomplete."
+				%-|%
+			)
+			goto READER_Tokenizing_Pass
+		)
+		if "!_L[!_G.LEVEL!].ParsingStr!" == "False" (
+			if "!_L[!_G.LEVEL!].Line:~,1!" == " " (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "	" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "," (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,2!" == "~@" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "~@" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~2!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "(" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "(" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == ")" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] ")" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "[" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "[" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "]" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "]" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "{" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "{" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "}" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "}" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "'" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "'" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "`" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "`" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "~" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "~" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == "@" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "@" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,2!" == "$C" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "$C" %}
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~2!"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,2!" == "$D" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~2!"
+				set "_L[!_G.LEVEL!].ParsingStr=True"
+				set "_L[!_G.LEVEL!].StrToken="
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,1!" == ";" (
+				if defined _L[!_G.LEVEL!].NormalToken (
+					set /a _L[!_G.LEVEL!].CurTokenNum += 1
+					%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+					set "_L[!_G.LEVEL!].NormalToken="
+				)
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] ";!_L[!_G.LEVEL!].Line!" %}
+				set "_L[!_G.LEVEL!].Line="
+				goto READER_Tokenizing_Loop
+			)
+
+			set "_L[!_G.LEVEL!].NormalToken=!_L[!_G.LEVEL!].NormalToken!!_L[!_G.LEVEL!].Line:~,1!"
+			set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+			goto READER_Tokenizing_Loop
+		) else (
+			if "!_L[!_G.LEVEL!].Line:~,4!" == "\\\\$D" (
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~4!"
+				set "_L[!_G.LEVEL!].StrToken=!_L[!_G.LEVEL!].StrToken!\\$D"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,2!" == "\\" (
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~2!"
+				set "_L[!_G.LEVEL!].StrToken=!_L[!_G.LEVEL!].StrToken!\\"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,3!" == "\$D" (
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~3!"
+				set "_L[!_G.LEVEL!].StrToken=!_L[!_G.LEVEL!].StrToken!\$D"
+				goto READER_Tokenizing_Loop
+			)
+			if "!_L[!_G.LEVEL!].Line:~,2!" == "$D" (
+				set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~2!"
+				set "_L[!_G.LEVEL!].ParsingStr=False"
+				set /a _L[!_G.LEVEL!].CurTokenNum += 1
+				%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "$D!_L[!_G.LEVEL!].StrToken!$D" %}
+				goto READER_Tokenizing_Loop
+			)
+			set "_L[!_G.LEVEL!].StrToken=!_L[!_G.LEVEL!].StrToken!!_L[!_G.LEVEL!].Line:~,1!"
+			set "_L[!_G.LEVEL!].Line=!_L[!_G.LEVEL!].Line:~1!"
+			goto READER_Tokenizing_Loop
+		)
+	:READER_Tokenizing_Pass
+		if defined _L[!_G.LEVEL!].NormalToken (
+			set /a _L[!_G.LEVEL!].CurTokenNum += 1
+			%{s% "!_L[!_G.LEVEL!].Reader!" Token[!_L[!_G.LEVEL!].CurTokenNum!] "!_L[!_G.LEVEL!].NormalToken!" %}
+			set "_L[!_G.LEVEL!].NormalToken="
+		)
+		%{s% "!_L[!_G.LEVEL!].Reader!" TokenCount !_L[!_G.LEVEL!].CurTokenNum! %}
+		%<-% _
+%-|%

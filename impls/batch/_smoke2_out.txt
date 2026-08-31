@@ -1,0 +1,2 @@
+[init]b'user> '
+[sent123]b'f off\r\nfff\r\n'

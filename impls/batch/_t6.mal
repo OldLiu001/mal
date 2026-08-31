@@ -1,0 +1,2 @@
+(def! t6 (fn* (n acc) (if (= n 0) acc (t6 (- n 1) acc))))
+(t6 3 7)

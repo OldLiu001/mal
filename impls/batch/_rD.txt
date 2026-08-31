@@ -1,0 +1,2 @@
+[runall] parsed 92 tests
+EXIT=127

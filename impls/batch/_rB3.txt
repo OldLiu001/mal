@@ -1,0 +1,8 @@
+[runall] parsed 44 tests
+[runall] stderr: 741501 bytes (cmd 层噪音/调试输出，不并入结果解析)
+[runall] rc=0 wall=2420.29s
+  FAIL t26 in='(do (prn 101))'     exp=';=>nil' got='101\nnil'
+  FAIL t27 in='(do (prn 102) 7)'   exp=';=>7' got='102\n7'
+  FAIL t28 in='(do (prn 101) (prn 102) (+ 1 2))' exp=';=>3' got='101\n102\n3'
+PASS=41 FAIL=3 total=44
+EXIT=0

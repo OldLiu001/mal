@@ -1,0 +1,8 @@
+[runall] parsed 88 tests
+Traceback (most recent call last):
+  File "D:\_PubCodes\mal\impls\batch\_runall.py", line 51, in <module>
+    p = subprocess.run(
+  File "subprocess.py", line 505, in run
+  File "subprocess.py", line 1154, in communicate
+  File "subprocess.py", line 1546, in _communicate
+subprocess.TimeoutExpired: Command '['cmd.exe', '/c', 'D:\\_PubCodes\\mal\\impls\\batch\\step4_if_fn_do.bat', 'READALL']' timed out after 700.0 seconds

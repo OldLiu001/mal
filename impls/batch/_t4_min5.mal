@@ -1,0 +1,16 @@
+;; -----------------------------------------------------
+(list)
+;=>()
+(list? (list))
+;=>true
+(list? nil)
+;=>false
+(empty? (list))
+;=>true
+(empty? (list 1))
+;=>false
+(list 1 2 3)
+;=>(1 2 3)
+(count (list 1 2 3))
+;=>3
+(count (list))

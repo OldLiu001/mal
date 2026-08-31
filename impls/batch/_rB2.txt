@@ -1,0 +1,19 @@
+[runall] parsed 44 tests
+[runall] stderr: 741501 bytes (cmd 层噪音/调试输出，不并入结果解析)
+[runall] rc=0 wall=2094.22s
+  FAIL t26 in='(do (prn 101))'     exp=';=>nil' got='101'
+  FAIL t27 in='(do (prn 102) 7)'   exp=';=>7' got='nil'
+  FAIL t28 in='(do (prn 101) (prn 102) (+ 1 2))' exp=';=>3' got='102'
+  FAIL t29 in='(do (def! a 6) 7 (+ a 8))' exp=';=>14' got='7'
+  FAIL t30 in='a'                  exp=';=>6' got='101'
+  FAIL t32 in='(DO 3)'             exp=';=>7' got='3'
+  FAIL t34 in='(sumdown 1)'        exp=';=>1' got='6'
+  FAIL t35 in='(sumdown 2)'        exp=';=>3' got='#<function>'
+  FAIL t36 in='(sumdown 6)'        exp=';=>21' got='7'
+  FAIL t39 in='(fib 2)'            exp=';=>2' got='3'
+  FAIL t40 in='(fib 4)'            exp=';=>5' got='21'
+  FAIL t41 in='(let* (f (fn* () x) x 3) (f))' exp=';=>3' got='#<function>'
+  FAIL t42 in='(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))' exp=';=>nil' got='1'
+  FAIL t43 in='(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))' exp=';=>0' got='2'
+PASS=30 FAIL=14 total=44
+EXIT=0

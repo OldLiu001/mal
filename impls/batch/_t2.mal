@@ -1,0 +1,2 @@
+(def! t2 (fn* (n acc) (if (= n 0) 0 (t2 (- n 1) acc)))
+(t2 3 0)

@@ -1,0 +1,3 @@
+# AI生成
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(sumdown 2)

@@ -1,0 +1,4 @@
+(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ acc n)))))
+;=>#<function>
+(sum2 100 0)
+;=>5050

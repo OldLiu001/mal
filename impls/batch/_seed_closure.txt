@@ -1,0 +1,36 @@
+( (fn* (a) a) 5)
+;=>5
+( (fn* (a b) (+ b a)) 3 4)
+;=>7
+( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
+;=>8
+( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+;=>12
+(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+(def! plus5 (gen-plus5))
+(plus5 7)
+;=>12
+(def! gen-plusX (fn* (x) (fn* (b) (+ x b))))
+(def! plus7 (gen-plusX 7))
+(plus7 8)
+;=>15
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0)))
+(sumdown 1)
+;=>1
+(sumdown 2)
+;=>3
+(sumdown 6)
+;=>21
+(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(fib 1)
+;=>1
+(fib 2)
+;=>2
+(fib 4)
+;=>5
+(let* (f (fn* () x) x 3) (f))
+;=>3
+(let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
+;=>nil
+(let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))
+;=>0

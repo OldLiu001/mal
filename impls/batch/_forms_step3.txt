@@ -1,0 +1,38 @@
+(+ 1 2)
+(/ (- (+ 5 (* 2 3)) 3) 4)
+(def! x 3)
+x
+(def! x 4)
+x
+(def! y (+ 1 7))
+y
+(def! mynum 111)
+(def! MYNUM 222)
+mynum
+MYNUM
+(abc 1 2 3)
+(def! w 123)
+(def! w (abc))
+w
+(let* (z 9) z)
+(let* (x 9) x)
+x
+(let* (z (+ 2 3)) (+ 1 z))
+(let* (p (+ 2 3) q (+ 2 p)) (+ p q))
+(def! y (let* (z 7) z))
+y
+(def! a 4)
+(let* (q 9) q)
+(let* (q 9) a)
+(let* (z 2) (let* (q 9) a))
+(let* [z 9] z)
+(let* [p (+ 2 3) q (+ 2 p)] (+ p q))
+(let* (a 5 b 6) [3 4 a [b 7] 8])
+(let* (x 2 x 3) x)
+(let* (DEBUG-EVAL false) (- 3 1))
+(let* (DEBUG-EVAL nil) (- 3 1))
+(let* (a 3 b 2 DEBUG-EVAL true) (- a b))
+(let* (DEBUG-EVAL 1) "a")
+(let* (a 3 DEBUG-EVAL ()) a)
+(let* (a 3 DEBUG-EVAL 0) a)
+(let* (a 3 DEBUG-EVAL "") a)

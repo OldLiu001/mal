@@ -1,0 +1,13 @@
+=== A: two-pass via percent prefix var ===
+A1=HELLO-PTR            (plain control: value)
+A2=HELLO-PTR            (both passes target var built in percent pass)
+A3=SYMBOL-VAL
+A4=["  abc  "]
+=== B: nested if-defined context ===
+B1=defined
+=== C: set /a arithmetic target ===
+C1 Cnt=15
+=== D: call set double expansion ===
+D1 callset=SYMBOL-VAL
+=== E: percent-prefix with numeric suffix in condition ===
+E1=cond-match

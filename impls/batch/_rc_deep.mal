@@ -1,0 +1,12 @@
+;; B-RC 定向回归夹具（第一态/第二态共用靶子）
+;; list-in-list 构造→整链释放：深结构，触发 FreeNSBody 递归/工作队列
+(def! deep (list (list 1 2 (list 3 (list 4 5))) (list (list 6)) 7))
+;=>((1 2 (3 (4 5))) ((6)) 7)
+(count deep)
+;=>3
+(count (nth-lst deep))
+;; 用 hd/tl 不便（未实现），改用嵌套取下标
+(list? deep)
+;=>true
+(empty? deep)
+;=>false

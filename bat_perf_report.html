@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cmd/batch 等价写法性能测试报告</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --border:#2a2f3a;
+    --text:#e6e9ef; --muted:#9aa3b2; --accent:#4fa3ff; --good:#4ade80; --bad:#f87171; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+  .wrap{max-width:1100px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:28px;margin:0 0 6px}
+  .sub{color:var(--muted);margin-bottom:28px}
+  h2{font-size:20px;margin:36px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--accent)}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:14px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:14px 0}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .stat .v{font-size:26px;font-weight:700;color:var(--accent)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{background:var(--panel2);color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.hl td{background:rgba(63,131,248,.10)}
+  .good{color:var(--good);font-weight:600}
+  .bad{color:var(--bad);font-weight:600}
+  .warn{color:var(--warn);font-weight:600}
+  .bar{background:#0a0c10;border:1px solid var(--border);border-radius:6px;overflow:hidden;height:22px;margin:4px 0}
+  .bar>div{height:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+  .bar.c1>div{background:linear-gradient(90deg,#22c55e,#4ade80)}
+  .bar.c2>div{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+  .bar.c3>div{background:linear-gradient(90deg,#ef4444,#f87171)}
+  code{background:#101318;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-family:Consolas,monospace;font-size:13px;color:#9fd0ff}
+  pre{background:#0a0c10;border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;font-size:13px;line-height:1.6}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+  .tag.run{background:rgba(74,222,128,.15);color:var(--good);border:1px solid rgba(74,222,128,.3)}
+  .tag.warn{background:rgba(251,191,36,.15);color:var(--warn);border:1px solid rgba(251,191,36,.3)}
+  .callout{border-left:4px solid var(--warn);background:rgba(251,191,36,.07);padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+  ol li{margin:6px 0}
+  ul li{margin:4px 0}
+  .small{color:var(--muted);font-size:13px}
+  .footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>cmd / batch 等价写法性能测试报告</h1>
+<div class="sub">为 MAL 完全重构提供量化决策依据 · 测试日期 2026-08-21 · batplayground/perf</div>
+
+<div class="callout">
+<b>重要方法学修正（产生过假数据的坑）：</b>batch 测试脚本若包含 <b>UTF-8 多字节字符（如中文注释）</b>，
+cmd 解析会出错导致被测循环<b>并未真正执行子进程</b>，测出"快得离谱"的假数据（t31 由 36ms 假值 → 修正后真实 5049ms，
+t07 由 22ms → 真实 22642ms）。<b>测试脚本必须保持纯 ASCII。</b>runner 现已内置自动拦截非 ASCII 脚本。
+</div>
+
+<div class="card">
+<h2>一、结论速览（先看这个）</h2>
+<div class="grid">
+  <div class="stat"><div class="v">~40µs</div><div class="l">单个扁平 set 语句（预解析括号块内）</div></div>
+  <div class="stat"><div class="v">≈x2.3</div><div class="l">goto 循环比等价括号块 for 慢</div></div>
+  <div class="stat"><div class="v">2868µs</div><div class="l">call 跨文件（子进程）比 call :label 贵 ~29%</div></div>
+  <div class="stat"><div class="v">~x8</div><div class="l">环境膨胀 3000 变量后，普通 set 变慢约 8 倍</div></div>
+  <div class="stat"><div class="v">3.1x</div><div class="l">子进程枚举变量 比 索引直写 慢 3.1 倍</div></div>
+  <div class="stat"><div class="v">~244µs</div><div class="l">一次 setlocal/endlocal 作用域开销</div></div>
+</div>
+<h3>给 MAL 重构的直接建议</h3>
+<ol>
+  <li><b>热路径全部用「括号块 + for /l + 延迟展开」</b>，绝不用 goto 做循环（每圈省 ~2.3 倍）。</li>
+  <li><b>GC / 局部变量清理用「已知下标索引直写」</b>（<code>for /l %%j ... do set "K[%%j]="</code>），
+      不要用临时文件枚举，更不要用 <code>for /f ('set 前缀')</code> 子进程枚举。</li>
+  <li><b>避免跨文件 call</b>（每 call 起子进程 + 复制整个环境）。MAL 改生成式扁平单文件，热路径内联。</li>
+  <li><b>环境变量保持精瘦、少而局部。</b> 用 <code>setlocal</code> 隔离局部，能用索引数组就不用数千个命名变量。</li>
+  <li><b>用变量字符串做宏分发可行</b>：<code>!cmdline!</code> 执行一条已存命令串 ≈ 原生 set 的 1.1 倍。</li>
+</ol>
+</div>
+
+<h2>二、测试方法论</h2>
+<div class="card">
+<table>
+  <tr><th style="width:180px">项目</th><td>说明</td></tr>
+  <tr><td>宿主</td><td>Windows 11 Pro · powershell runner 计时，<code>Measure-Command</code>/Stopwatch 毫秒级</td></tr>
+  <tr><td>流程</td><td>warmup 1 次 + 正式测 3 次，取 <b>最小值</b>（去冷启动/系统噪声）与平均值</td></tr>
+  <tr><td>指标</td><td><code>µs/op = min_ms × 1000 / N</code>，N 为脚本头部 <code>set _N</code> 声明的迭代次数</td></tr>
+  <tr><td>控制变量</td><td>每个脚本只测一个模式；含中文注释脚本已全部改写为纯 ASCII 并重新运行</td></tr>
+  <tr><td>数据文件</td><td>perf/results.csv（最终有效版）</td></tr>
+</table>
+<p class="small">复制：所有脚本在 <code>%TEMP%</code> 或脚本自身目录路径下运行，不影响环境实测。<br>
+说明：多数脚本仅含英文注释，规避了 UTF-8 字节干扰（见顶部告警）。</p>
+</div>
+
+<h2>三、控制流：goto vs 括号块</h2>
+<div class="card">
+<table>
+  <tr><th>用例</th><th class="num">N</th><th class="num">µs/op</th><th class="num">相对</th><th>含义</th></tr>
+  <tr class="hl"><td>t00_emptyloop <span class="tag run">基准</span></td><td class="num">400000</td><td class="num">1.3</td><td class="num">1.0x</td><td><code>for /l</code> 空循环体自身的指标开销</td></tr>
+  <tr><td>t01_loop_baseline <span class="tag run">基准</span></td><td class="num">40000</td><td class="num">41.7</td><td class="num">—</td><td>括号块内 1 条 set = 循环 + set 总和</td></tr>
+  <tr class="hl"><td>t02_paren_block <span class="tag run">推荐</span></td><td class="num">5000</td><td class="num">472.4</td><td class="num">1.0x</td><td>12 条 set 放<b>一个括号块</b>，解析一次、执行 N 圈</td></tr>
+  <tr><td>t03_goto_loop <span class="tag warn">不推荐</span></td><td class="num">2500</td><td class="num">1067.9</td><td class="num">2.26x</td><td>goto 循环：每圈重定位标签 + 逐行重解析</td></tr>
+</table>
+<div class="bar c1"><div style="width:44%"></div></div>
+<span class="small">横向：t02 括号块体量基准为 472µs/圈；t03 goto 循环体量接近，但每圈需要重解析 → 2.26x。</span>
+<p><b>解读：</b>一个扁平 <code>set x=y</code> 在预解析括号块内约 <b>40µs</b>；循环空转本身仅 ~1.3µs。
+goto 每圈都会重新定位标签并逐行重解析展开，是 <b>纯开销白付</b>，比同等工作量的括号块 for 慢 <b>2.26 倍</b>。
+这条最重要的：<b>凡是热循环，一律括号块 + for /l，不要 goto。</b></p>
+</div>
+
+<h2>四、函数调用：call / 跨文件 / setlocal</h2>
+<div class="card">
+<table>
+  <tr><th>用例</th><th class="num">N</th><th class="num">µs/op</th><th class="num">相对</th><th>含义</th></tr>
+  <tr><td>t04_call_label</td><td class="num">800</td><td class="num">2228.6</td><td class="num">1.0x</td><td><code>call :noop</code> 同文件标签子例程</td></tr>
+  <tr class="hl"><td>t05_call_otherfile <span class="tag warn">不推荐</span></td><td class="num">300</td><td class="num">2867.6</td><td class="num">1.29x</td><td><code>call 其他.bat</code> 跨文件 = 每 call 起一个 cmd 子进程</td></tr>
+  <tr><td>t15_bigenv_call <span class="tag warn">不推荐</span></td><td class="num">100</td><td class="num">9743.9</td><td class="num">4.37x</td><td>跨文件 call + 环境已膨胀 3000 变量（子进程需拷贝整个环境）</td></tr>
+  <tr><td>t06_setlocal <span class="tag warn">慎用</span></td><td class="num">4000</td><td class="num">244.3</td><td class="num">—</td><td>一次 <code>setlocal</code>+<code>endlocal</code> 作用域对的开销</td></tr>
+</table>
+<p><b>解读：</b>
+<ul>
+  <li><code>call :label</code>（同文件子例程）~2229µs/次；<code>call 跨文件.bat</code> ~2868µs/次（<b>+29%</b>），因为每次都要 <code>CreateProcess</code> 新 cmd 并把整个环境拷给孩子进程。</li>
+  <li>环境越胖，跨文件 call 越贵：膨胀到 3000 变量后飙到 <b>9744µs</b>（4.37x）。MAL 旧架构大量跨文件模块调用正踩在此处。</li>
+  <li><code>setlocal/endlocal</code> 单次 ~244µs，是「环境隔离」的价签——别在热循环里频繁进出局部作用域。</li>
+</ul></p>
+</div>
+
+<h2>五、变量操作＆宏分发</h2>
+<div class="card">
+<table>
+  <tr><th>用例</th><th class="num">N</th><th class="num">µs/op</th><th>含义</th></tr>
+  <tr><td>t01_loop_baseline</td><td class="num">40000</td><td class="num">41.7</td><td>参照：1 条扁平 set</td></tr>
+  <tr class="hl"><td>t10_var_cmdline <span class="tag run">可行</span></td><td class="num">40000</td><td class="num">45.0</td><td><code>!cmdline!</code> 执行已存命令串（MAL 宏分发模型）≈ set 的 1.1x</td></tr>
+  <tr><td>t11_appendstr</td><td class="num">6000</td><td class="num">101.2</td><td>字符串追加到变量</td></tr>
+  <tr><td>t12_plain_copy</td><td class="num">20000</td><td class="num">81.2</td><td>变量到变量拷贝</td></tr>
+</table>
+<p><b>解读：</b>用 <code>!var!</code> 延迟展开去执行一条预存的命令串仅 ~45µs，几乎与原生 set 持平——
+<b>「把相关命令拼成字符串再用延迟展开执行」的宏分发方案，性能上完全站得住脚</b>，可作为生成式扁平架构的分发手段。</p>
+</div>
+
+<h2>六、变量枚举/清理：三大模式的成本对比（MAL GC 关键）</h2>
+<div class="card">
+<p>同一目标：处理一组固定数量的已命名变量 <code>K[1..100]</code>，每 pass 处理一遍。三种等价写法：</p>
+<table>
+  <tr><th>模式</th><th class="num">N</th><th class="num">µs/pass</th><th class="num">µs/变量</th><th class="num">相对</th><th>说明</th></tr>
+  <tr class="hl"><td>t32_indexed_direct <span class="tag run">推荐</span></td><td class="num">1000</td><td class="num">4026.6</td><td class="num">40.3</td><td class="num good">1.0x</td><td><code>for /l %%j ... do set "K[%%j]="</code> 已知下标直写</td></tr>
+  <tr><td>t30_tempfile_enum <span class="tag warn">旧架构模式</span></td><td class="num">400</td><td class="num">2122.8</td><td class="num">53.1</td><td class="num warn">1.32x</td><td><code>( set "K[" ) &gt; tmp</code> + <code>for /f</code> 读回（MAL 旧 GC）</td></tr>
+  <tr><td>t31_subprocess_enum <span class="tag warn">不推荐</span></td><td class="num">400</td><td class="num">5048.6</td><td class="num">126.2</td><td class="num bad">3.13x</td><td><code>for /f ('set "K["')</code> 每 pass 起子进程枚举</td></tr>
+</table>
+<div class="bar"><div style="width:32%"></div></div> <span class="small">横向：子进程枚举（占满3.1格）vs 索引直写（占满1格）示意</span>
+<p><b>解读：</b>子进程枚举因每 pass 都 <code>CreateProcess</code> 新 cmd，是最慢（3.1x）；临时文件枚举次之（1.32x）；
+<b>已知下标索引直写最快</b>——前提是能预先知道变量名集合。<code>for /f ('set')</code> 与管道的值在这里被精准量化，
+证实 MAL 旧架构「临时文件 GC + 子进程枚举」为大杀器，新架构应改为「生成期已知数组 + for /l 索引直写」。</p>
+</div>
+
+<h2>七、环境膨胀的隐性代价</h2>
+<div class="card">
+<table>
+  <tr><th>用例</th><th class="num">N</th><th class="num">µs/op</th><th>对比</th><th>含义</th></tr>
+  <tr><td>t14_bigenv_set</td><td class="num">5000</td><td class="num">329.4</td><td>normal set 41.7µs → <span class="bad">&nbsp;x7.9&nbsp;</span></td><td>环境膨胀 3000 变量后，普通 <code>set</code> 变慢 ~8 倍</td></tr>
+  <tr><td>t13_bigenv_enum</td><td class="num">150</td><td class="num">16460.8</td><td>—</td><td>在膨胀环境上做子进程枚举 → 更慢</td></tr>
+  <tr><td>t15_bigenv_call</td><td class="num">100</td><td class="num">9743.9</td><td>call 2868 → <span class="bad">&nbsp;x3.4&nbsp;</span></td><td>跨文件 call 拷贝膨胀环境显著变慢</td></tr>
+</table>
+<p><b>解读：</b>环境变量越多，<code>set</code>、枚举、跨进程 call 全部变慢。MAL 旧架构为了存数据结构塞进大量命名变量，
+把环境撑到很大，雪上加霜。新架构应<b>控制环境规模</b>：临时/局部数据用 <code>setlocal</code> 隔离，热数据结构用紧凑的关键（少而短的命名）。</p>
+</div>
+
+<h2>八、新增假设实测（第二轮）</h2>
+
+<div class="card">
+<h3>8.1 去除 PATH 能否提速？——<span style="color:var(--muted)">仅影响外部工具解析，内部命令无影响</span></h3>
+<table>
+  <tr><th>用例</th><th class="num">µs/次</th><th>说明</th></tr>
+  <tr><td>t40_path_empty（PATH 为空）</td><td class="num">10357</td><td>以全路径调 <code>where</code> 解析「不存在的命令」，空 PATH 秒失败</td></tr>
+  <tr><td>t41_path_long（PATH≈1000 目录）</td><td class="num">152611</td><td><span class="bad">14.7x</span> 长 PATH 让外部名解析多扫约 1000 个目录</td></tr>
+</table>
+<p><b>解读：</b>cmd <b>只为「外部程序/裸名命令」扫描 PATH</b>；<code>set / for / if / echo</code> 等内部命令根本不触发 PATH 扫描。
+所以对以内部命令为主的热路径（MAL 就是），剪短 PATH <b>无任何收益</b>。只有当你按裸名高频调用外部工具
+（如 <code>findstr</code>、<code>reg</code>…）且 PATH 极长时，裁剪才可能带来提升——但那已是子进程绑定的调用，收益有限。</p>
+</div>
+
+<div class="card">
+<h3>8.2 setlocal /? 各开关能否提速？——<span style="color:var(--muted)">不能，成本固定</span></h3>
+<table>
+  <tr><th>用例</th><th class="num">µs/作用域对</th></tr>
+  <tr><td>t42_setlocal_plain（无开关）</td><td class="num">200</td></tr>
+  <tr><td>t43_setlocal_full（+EnableExtensions +EnableDelayedExpansion）</td><td class="num">199</td></tr>
+  <tr><td>t44_setlocal_extonly（+EnableExtensions DisableDelayedExpansion）</td><td class="num">201</td></tr>
+</table>
+<p><b>解读：</b>三种开关组合差异可忽略（200/199/201µs，与上轮 t06=244µs 属同量级）。
+<b>setlocal 的成本主要是「复制/恢复环境表」本身，而不是开关翻转。</b>想省钱只能少用，改不了单次开销。</p>
+</div>
+
+<div class="card">
+<h3>8.3 括号扩着一段 vs 不扩——<span style="color:var(--muted)">多套一层括号无代价</span></h3>
+<table>
+  <tr><th>用例</th><th class="num">µs/圈</th><th class="num">µs/set</th></tr>
+  <tr><td>t45_block_lvl1（20 条 set 直接作 for 体）</td><td class="num">888</td><td class="num">44</td></tr>
+  <tr><td>t46_block_lvl2（20 条 set 再套一层括号）</td><td class="num">857</td><td class="num">43</td></tr>
+</table>
+<p><b>解读：</b>额外套一层括号几乎零开销（857 vs 888µs，在噪声内）。
+即「这段要不要用 <code>( )</code> 包起来」不影响性能；真正的性能差来自<b>是进括号块（parse 一次）还是 goto 逐行重解析</b>，与括号层数无关。</p>
+</div>
+
+<div class="card">
+<h3>8.4 文件总行数影响 call/goto 标签定位——<span style="color:var(--warn)">显著</span></h3>
+<table>
+  <tr><th>用例</th><th class="num">µs/call</th><th>说明</th></tr>
+  <tr><td>t50_label_few（小文件，:work 靠前）</td><td class="num">2387</td><td>接近上轮 call :label 2229</td></tr>
+  <tr><td>t51_label_many（5009 行，:work 在尾部）</td><td class="num">18504</td><td><span class="bad">7.75x</span> cmd 需前向扫描定位深处标签</td></tr>
+</table>
+<p><b>解读：</b><b>文件越大、标签越靠后，call/goto 定位越贵</b>（本测试 5009 行 7.75x）。
+这对「生成式扁平单文件」设计是个提醒：扁平单文件虽省了跨文件子进程，但<b>要控制文件总行数</b>，
+并把高频调用的子例程标签放在文件靠前位置，避免反复长距扫描。</p>
+</div>
+
+<div class="card">
+<h3>8.5 其它等价写法（≈ 一次语句的成本基准）</h3>
+<table>
+  <tr><th>用例</th><th class="num">µs/次</th><th>说明</th></tr>
+  <tr><td>t01 基线（1 条 set）</td><td class="num">43</td><td>参照</td></tr>
+  <tr><td>t52_if_defined（<code>if defined</code>）</td><td class="num">45</td><td>存在性检查 ≈ 一次 set</td></tr>
+  <tr><td>t53_if_string_eq（<code>if "!x!"=="1"</code>）</td><td class="num">47</td><td>字符串比较 ≈ 一次 set</td></tr>
+  <tr><td>t54_seta_arith（<code>set /a C+=1</code>）</td><td class="num">43</td><td>算术 <span class="good">无额外惩罚</span> ≈ 字符串 set</td></tr>
+  <tr><td>t55_rem_inloop（块内 <code>rem</code> 注释）</td><td class="num">41</td><td>块内注释<span class="good">几乎免费</span></td></tr>
+</table>
+<p><b>解读：</b>一次 <code>set</code>、一次 <code>if</code>、一次 <code>set /a</code> 都约 40–47µs，互相等价。
+块内 <code>rem</code> 注释基本免费（41µs≈一次 set 量级但未额外叠加）。结论：<b>不必为省「一次 if 判断」或「set /a 算术」过度优化——它们都不比 set 贵。</b></p>
+</div>
+
+<h2>九、数据明细表（最终有效 results.csv）</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+  <tr><th>文件</th><th class="num">N</th><th class="num">min_ms</th><th class="num">avg_ms</th><th class="num">µs/op</th></tr>
+  <tr><td>t00_emptyloop.cmd</td><td class="num">400000</td><td class="num">498.0</td><td class="num">498.8</td><td class="num">1.25</td></tr>
+  <tr><td>t01_loop_baseline.cmd</td><td class="num">40000</td><td class="num">1668.5</td><td class="num">1674.9</td><td class="num">41.71</td></tr>
+  <tr><td>t02_paren_block.cmd</td><td class="num">5000</td><td class="num">2362.2</td><td class="num">2399.3</td><td class="num">472.44</td></tr>
+  <tr><td>t03_goto_loop.cmd</td><td class="num">2500</td><td class="num">2669.7</td><td class="num">2688.0</td><td class="num">1067.89</td></tr>
+  <tr><td>t04_call_label.cmd</td><td class="num">800</td><td class="num">1782.9</td><td class="num">1795.0</td><td class="num">2228.59</td></tr>
+  <tr><td>t05_call_otherfile.cmd</td><td class="num">300</td><td class="num">860.3</td><td class="num">864.3</td><td class="num">2867.64</td></tr>
+  <tr><td>t06_setlocal.cmd</td><td class="num">4000</td><td class="num">977.0</td><td class="num">982.5</td><td class="num">244.25</td></tr>
+  <tr><td>t07_forf_enum.cmd</td><td class="num">3000</td><td class="num">22642.7</td><td class="num">22847.2</td><td class="num">7547.57</td></tr>
+  <tr><td>t10_var_cmdline.cmd</td><td class="num">40000</td><td class="num">1798.3</td><td class="num">1835.6</td><td class="num">44.96</td></tr>
+  <tr><td>t11_appendstr.cmd</td><td class="num">6000</td><td class="num">607.2</td><td class="num">630.9</td><td class="num">101.20</td></tr>
+  <tr><td>t12_plain_copy.cmd</td><td class="num">20000</td><td class="num">1623.5</td><td class="num">1641.0</td><td class="num">81.18</td></tr>
+  <tr><td>t13_bigenv_enum.cmd</td><td class="num">150</td><td class="num">2469.1</td><td class="num">2488.0</td><td class="num">16460.82</td></tr>
+  <tr><td>t14_bigenv_set.cmd</td><td class="num">5000</td><td class="num">1647.2</td><td class="num">1699.4</td><td class="num">329.44</td></tr>
+  <tr><td>t15_bigenv_call.cmd</td><td class="num">100</td><td class="num">974.4</td><td class="num">987.3</td><td class="num">9743.92</td></tr>
+  <tr><td>t30_tempfile_enum.cmd</td><td class="num">400</td><td class="num">2122.8</td><td class="num">2183.5</td><td class="num">5307.10</td></tr>
+  <tr><td>t31_subprocess_enum.cmd</td><td class="num">400</td><td class="num">5048.6</td><td class="num">5105.7</td><td class="num">12621.61</td></tr>
+  <tr><td>t32_indexed_direct.cmd</td><td class="num">1000</td><td class="num">4062.1</td><td class="num">4107.9</td><td class="num">4026.57</td></tr>
+  <tr><td>t40_path_empty.cmd</td><td class="num">200</td><td class="num">2071.3</td><td class="num">2305.3</td><td class="num">10356.69</td></tr>
+  <tr><td>t41_path_long.cmd</td><td class="num">200</td><td class="num">30522.2</td><td class="num">30734.2</td><td class="num">152610.88</td></tr>
+  <tr><td>t42_setlocal_plain.cmd</td><td class="num">3000</td><td class="num">600.7</td><td class="num">615.6</td><td class="num">200.23</td></tr>
+  <tr><td>t43_setlocal_full.cmd</td><td class="num">3000</td><td class="num">597.9</td><td class="num">686.0</td><td class="num">199.30</td></tr>
+  <tr><td>t44_setlocal_extonly.cmd</td><td class="num">3000</td><td class="num">604.5</td><td class="num">639.4</td><td class="num">201.49</td></tr>
+  <tr><td>t45_block_lvl1.cmd</td><td class="num">2000</td><td class="num">1776.8</td><td class="num">1809.8</td><td class="num">888.39</td></tr>
+  <tr><td>t46_block_lvl2.cmd</td><td class="num">2000</td><td class="num">1713.8</td><td class="num">1729.2</td><td class="num">856.92</td></tr>
+  <tr><td>t50_label_few.cmd</td><td class="num">700</td><td class="num">1670.6</td><td class="num">1732.8</td><td class="num">2386.50</td></tr>
+  <tr><td>t51_label_many.cmd</td><td class="num">700</td><td class="num">12952.6</td><td class="num">13062.2</td><td class="num">18503.70</td></tr>
+  <tr><td>t52_if_defined.cmd</td><td class="num">40000</td><td class="num">1802.6</td><td class="num">1897.1</td><td class="num">45.07</td></tr>
+  <tr><td>t53_if_string_eq.cmd</td><td class="num">40000</td><td class="num">1872.8</td><td class="num">1881.6</td><td class="num">46.82</td></tr>
+  <tr><td>t54_seta_arith.cmd</td><td class="num">30000</td><td class="num">1302.5</td><td class="num">1334.1</td><td class="num">43.42</td></tr>
+  <tr><td>t55_rem_inloop.cmd</td><td class="num">30000</td><td class="num">1240.2</td><td class="num">1249.4</td><td class="num">41.34</td></tr>
+</table>
+<p class="small">注：t07/t13/t15 为环境膨胀或子进程枚举的代价放大场景；µs/op 计算方法见方法论。</p>
+</div>
+
+<div class="footer">生成：batplayground/perf/run_perf.ps1 + 31 个微基准脚本（两轮） · 结论已同步写入知识库《批处理cmd解析与性能.md》</div>
+</div>
+</body>
+</html>
