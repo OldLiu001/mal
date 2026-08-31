@@ -79,60 +79,60 @@ exit /b 0
 				%-|%
 			)
 		) else if "!%%.CurToken!" == "'" (
-			%{% TYPES NewMal MalSym quote %}% %->% %%.SymQuote 
+			%{% TYPES NewMal MalSym quote %}% %->% %%.SymQuote
 			%{g% "%~1" TokenPtr %%.TP %}
 			set /a %%.TP += 1
 			%{s% "%~1" TokenPtr !%%.TP! %}
 
-			%{% READER ReadForm "%~1" %}% %->% %%.Mal 
+			%{% READER ReadForm "%~1" %}% %->% %%.Mal
 			%?% (
 				%-|%
 			)
-			%{% TYPES NewMalList %%.SymQuote %%.Mal %}% %->% %%.AST 
+			%{% TYPES NewMalList "!%%.SymQuote!" "!%%.Mal!" %}% %->% %%.AST
 		) else if "!%%.CurToken!" == "`" (
-			%{% TYPES NewMal MalSym quasiquote %}% %->% %%.SymQuote 
+			%{% TYPES NewMal MalSym quasiquote %}% %->% %%.SymQuote
 			%{g% "%~1" TokenPtr %%.TP %}
 			set /a %%.TP += 1
 			%{s% "%~1" TokenPtr !%%.TP! %}
 
-			%{% READER ReadForm "%~1" %}% %->% %%.Mal 
+			%{% READER ReadForm "%~1" %}% %->% %%.Mal
 			%?% (
 				%-|%
 			)
-			%{% TYPES NewMalList %%.SymQuote %%.Mal %}% %->% %%.AST 
+			%{% TYPES NewMalList "!%%.SymQuote!" "!%%.Mal!" %}% %->% %%.AST
 		) else if "!%%.CurToken!" == "@" (
-			%{% TYPES NewMal MalSym deref %}% %->% %%.SymQuote 
+			%{% TYPES NewMal MalSym deref %}% %->% %%.SymQuote
 			%{g% "%~1" TokenPtr %%.TP %}
 			set /a %%.TP += 1
 			%{s% "%~1" TokenPtr !%%.TP! %}
 
-			%{% READER ReadForm "%~1" %}% %->% %%.Mal 
+			%{% READER ReadForm "%~1" %}% %->% %%.Mal
 			%?% (
 				%-|%
 			)
-			%{% TYPES NewMalList %%.SymQuote %%.Mal %}% %->% %%.AST 
+			%{% TYPES NewMalList "!%%.SymQuote!" "!%%.Mal!" %}% %->% %%.AST
 		) else if "!%%.CurToken!" == "~" (
-			%{% TYPES NewMal MalSym unquote %}% %->% %%.SymQuote 
+			%{% TYPES NewMal MalSym unquote %}% %->% %%.SymQuote
 			%{g% "%~1" TokenPtr %%.TP %}
 			set /a %%.TP += 1
 			%{s% "%~1" TokenPtr !%%.TP! %}
 
-			%{% READER ReadForm "%~1" %}% %->% %%.Mal 
+			%{% READER ReadForm "%~1" %}% %->% %%.Mal
 			%?% (
 				%-|%
 			)
-			%{% TYPES NewMalList %%.SymQuote %%.Mal %}% %->% %%.AST 
+			%{% TYPES NewMalList "!%%.SymQuote!" "!%%.Mal!" %}% %->% %%.AST
 		) else if "!%%.CurToken!" == "~@" (
-			%{% TYPES NewMal MalSym splice-unquote %}% %->% %%.SymQuote 
+			%{% TYPES NewMal MalSym splice-unquote %}% %->% %%.SymQuote
 			%{g% "%~1" TokenPtr %%.TP %}
 			set /a %%.TP += 1
 			%{s% "%~1" TokenPtr !%%.TP! %}
 
-			%{% READER ReadForm "%~1" %}% %->% %%.Mal 
+			%{% READER ReadForm "%~1" %}% %->% %%.Mal
 			%?% (
 				%-|%
 			)
-			%{% TYPES NewMalList %%.SymQuote %%.Mal %}% %->% %%.AST 
+			%{% TYPES NewMalList "!%%.SymQuote!" "!%%.Mal!" %}% %->% %%.AST
 		) else if "!%%.CurToken!" == "$C" (
 			%{% READER ReadMeta "%~1" %}% %->% %%.AST 
 			%?% (
@@ -388,7 +388,7 @@ exit /b 0
 			%-|%
 		)
 
-		%{% TYPES NewMalList %%.MalSym %%.MalType %%.MalMeta %}% %->% %%.MalRes 
+		%{% TYPES NewMalList "!%%.MalSym!" "!%%.MalType!" "!%%.MalMeta!" %}% %->% %%.MalRes
 		%<-% %%.MalRes
 	)
 %-|%

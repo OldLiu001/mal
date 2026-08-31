@@ -64,6 +64,10 @@ set "_M.RDALL.Line=%%a"
 			for /f "usebackq delims==" %%b in ("%TEMP%\mal_e_!_G.LEVEL!.txt") do set "%%b="
 		)
 	)
+		rem -- NSP slope dump (2nd stability state observation; skip if no TCO sampling) --
+	if defined _G.NSPOITER (
+		( set _G.NSPO[ ) > "%TEMP%\mal_nspo_!_G.LEVEL!.txt" 2>nul
+	)
 	%<-% ""
 %-|%
 
@@ -311,7 +315,7 @@ exit /b 0
 			)
 		)
 		if "!%%.DbgOn!" == "1" (
-			%{% PRINTER PrintMalType "!%%.ObjMal!" %}% %->% %%.DbgStr
+			%{% PRINTER PrintMalType "!%%.ObjMal!" R %}% %->% %%.DbgStr
 			%{% STR GetStr %%.DbgStr %}% %->% %%.DbgRead
 			set "%%.DbgLine=EVAL: !%%.DbgRead!"
 			%{% IO WriteEncLine %%.DbgLine %}%
@@ -352,8 +356,8 @@ exit /b 0
 				)
 				%{s% "!%%.Args!" Count "!%%.AI!" %}%
 				if "!%%.Tail!" == "1" (
-					rem 尾调用：不递归。把 Args 与其 items 从当前层注册中摘除（中间层返回会 GC 本层，
-					rem 单跳上移不足以穿越 if/do/let* 嵌套），改由 ApplyClosure 循环显式管理生命周期。
+						rem Tail call: no recursion. Deregister Args and its items from current level (intermediate return GC's this level,
+						rem single-hop upward shift insufficient to traverse if/do/let* nesting), ApplyClosure loop manages lifecycle explicitly instead.
 					set "_G.TCO.Fn=!%%.Fn!"
 					set "_G.TCO.Args=!%%.Args!"
 					set "_G.TCO.Pending=1"
@@ -580,7 +584,7 @@ exit /b 0
 %-|%
 
 :MAIN_ApplyClosure FnMal ObjMal -> RetMal
-	rem —— TCO 跳板：进入清全局态；循环标签重入时复用已改写的 Fn/Obj ——
+		rem -- TCO trampoline: clear global state on entry; reuse rewritten Fn/Obj on loop label re-entry --
 	set "_G.TCO.Pending="
 	set "_G.TCO.Fn="
 	set "_G.TCO.Args="
@@ -596,8 +600,8 @@ exit /b 0
 		%{g% "!%%.Fn!" Body %%.Body %}%
 		%{g% "!%%.Obj!" Count %%.ArgN %}%
 		%{g% "!%%.Binds!" Count %%.BindN %}%
-		rem —— 帧复用：同形状（同捕获环境 + 同参数个数）的尾调用复用同一 env，
-		rem 不再每轮 NewMalMap+EnvCopyOuter 重拷 ~30 全局键（+60/轮 的主因）。 ——
+			rem -- Frame reuse: tail calls with same shape (same captured env + same arg count) reuse same env,
+			rem no longer NewMalMap+EnvCopyOuter re-copy ~30 global keys per round (+60/round main cause). --
 		set "%%.Reusing="
 		if defined %%.CachedEnv if "!%%.CapEnv!" == "!%%.EnvCap!" if "!%%.Binds!" == "!%%.CachedBinds!" set "%%.Reusing=1"
 		if defined %%.Reusing (
@@ -613,7 +617,7 @@ exit /b 0
 			set "%%.CachedBinds=!%%.Binds!"
 			set "%%.EnvBindN=!%%.BindN!"
 		)
-		rem 扫描变参标记 '&'（MalSym Value == '&'）
+			rem Scan for variadic marker '&' (MalSym Value == '&').
 		set "%%.Amp="
 		for /l %%b in (1 1 !%%.BindN!) do (
 			%{g% "!%%.Binds!" Item[%%b] %%.ParamB %}%
@@ -655,7 +659,7 @@ exit /b 0
 				%{% MAIN EncKey "!%%.PName!" %}% %->% %%.PEnc
 				%{g% "!%%.Obj!" Item[!%%.ArgIdx!] %%.ArgVal %}%
 				if defined %%.Reusing (
-					rem 复用：仅覆盖参数值字段（Set 释放旧值，单一所有者；RawKeys 不动）
+						rem Reuse: only overwrite arg value fields (Set releases old value, single owner; RawKeys untouched).
 					%{s% "!%%.NewEnv!" "Item[!%%.PEnc!].Item[1].Value" "!%%.ArgVal!" %}%
 				) else (
 					call :MAIN_BindOne "!%%.NewEnv!" "!%%.PName!" "!%%.PEnc!" "!%%.ArgVal!"
@@ -698,14 +702,14 @@ exit /b 0
 				)
 				set "%%.RetMal=!%%.NewForm!"
 			) else (
-				rem 尾位置：最后一个表单以 Tail=1 求值
+					rem Tail position: last form evaluated with Tail=1.
 				%{% MAIN Eval "!%%.Form!" "!%%.NewEnv!" 1 %}% %->% %%.NewForm
 				%?% (
 					%-|%
 				)
 				if defined _G.TCO.Pending (
-					rem —— 尾调用：复用帧。env/keys 不动；参数值归 env 所有（下轮 Set 覆盖时释放）。
-					rem 仅回收上一轮的 args 列表容器（其 items 已绑定进 env，随 env 生命周期）。 ——
+						rem -- Tail call: reuse frame. env/keys untouched; arg values owned by env (released on next round Set overwrite).
+						rem Only recycle previous round's args container (its items bound into env, follow env lifecycle). --
 					set "%%.NextFn=!_G.TCO.Fn!"
 					set "%%.NextArgs=!_G.TCO.Args!"
 					set "_G.TCO.Pending="
@@ -719,12 +723,15 @@ exit /b 0
 					set "%%.TCOOwn=1"
 					set "%%.Fn=!%%.NextFn!"
 					set "%%.Obj=!%%.NextArgs!"
+						rem -- NSP slope observation: sample NSP high-water mark into _G.NSPO[] each TCO re-entry round (dump at end of MAIN_ReadAll) --
+					set /a _G.NSPOITER += 1
+					set "_G.NSPO[!_G.NSPOITER!]=!_G.NSP!"
 					goto MAIN_ApplyClosure_TCO_Loop
 				)
 				set "%%.RetMal=!%%.NewForm!"
 			)
 		)
-		rem —— 帧退出：回收复用的 env（其 RawKeys 随 body 一并释放；参数值经 Set 归 env） ——
+			rem -- Frame exit: recycle reused env (its RawKeys released with body; arg values owned by env via Set) --
 		if defined %%.CachedEnv (
 			%{g% "!%%.CachedEnv!" RawKeys %%.CKeys %}%
 			set "_G.LEVEL[!_G.LEVEL!][!%%.CachedEnv!]="
@@ -734,7 +741,7 @@ exit /b 0
 				call :NSUTIL_Free "!%%.CKeys!"
 			)
 		)
-		rem 若最后持有的是 TCO args 容器（非首轮），回收之
+			rem If last held is TCO args container (not first round), recycle it.
 		if defined %%.TCOOwn (
 			set "_G.RECYCLE=1"
 			call :NSUTIL_Free "!%%.Obj!"

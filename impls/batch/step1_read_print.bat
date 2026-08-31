@@ -63,7 +63,7 @@ if not defined _G.PACKED (
 :MAIN_Print Mal -> Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Mal=!%~1!"
-		%{% PRINTER PrintMalType "%%.Mal" %}% %->% %%.StrMal
+		%{% PRINTER PrintMalType "%%.Mal" R %}% %->% %%.StrMal
 		%?% (
 			%-|%
 		)

@@ -32,8 +32,8 @@ exit /b 0
 
 		set /a "_G.NSP = 0"
 
-		rem 环境规模动态受限（readme §0 准则4）：默认阈值可被外部 `set _G.NSMAX=…`
-		rem 覆盖以适配不同机器；超出即终止，防止环境膨胀击穿性能与稳定性。
+			rem Env scale dynamically bounded (readme sect0 rule4): default threshold overridable via external set _G.NSMAX=...
+			rem Adapt to different machines; terminate on exceed to prevent env bloat from breaking perf/stability.
 		if not defined _G.NSMAX set /a "_G.NSMAX = 8000"
 
 		if defined _G.PACKED (
@@ -53,7 +53,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_New *NSVar
-	rem 弃用 .for-var 域：显式唯一命名 `_T.NW.` 前缀，同文件内不再依赖进程隔离。
+		rem Deprecated .for-var domain: explicit unique `_T.NW.` prefix, no longer rely on process isolation within file.
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
 	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 	%_G.SKIPTHIS% 	2>con >&2 pause
@@ -63,7 +63,7 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NSVar' undefined."
 
 	if defined _G.NXFREE (
-		rem 复用空闲槽：弹出 [meta,body] 对，不动 _G.NSP（①：复用不增长高水位）
+			rem Reuse free slot: pop [meta,body] pair, don't move _G.NSP (1: reuse doesn't grow high-water mark).
 		set "_T.NW.MI=_G.NXFREE"
 		set "_G.NXFREE=!_G.NSFREENEXT[!_T.NW.MI!]!"
 		set "_G.NSFREENEXT[!_T.NW.MI!]="
@@ -96,7 +96,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_IsNSMeta *NS -> Bool
-	rem 显式命名 `_T.CL.`（弃用 .for-var 域）
+		rem Explicit naming `_T.CL.` (deprecated .for-var domain).
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
 	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 	%_G.SKIPTHIS% 	2>con >&2 pause
@@ -118,7 +118,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_IsNSBody *NS -> Bool
-	rem 显式命名 `_T.GET.`（弃用 .for-var 域）
+		rem Explicit naming `_T.GET.` (deprecated .for-var domain).
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
 	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 	%_G.SKIPTHIS% 	2>con >&2 pause
@@ -140,7 +140,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_IsValidNS *NS -> Bool
-	rem 显式命名 `_T.SET.`（弃用 .for-var 域）
+		rem Explicit naming `_T.SET.` (deprecated .for-var domain).
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
 	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 	%_G.SKIPTHIS% 	2>con >&2 pause
@@ -150,17 +150,26 @@ exit /b 0
 	%_G.SKIPTHIS% if "%~1" == "" %?|% "'NS' undefined."
 
 	set "_T.SET.T=%~1"
-	call set "_T.SET.V=%%!_T.SET.T!%%"
-	if not defined _T.SET.V set "_T.SET.V=!_T.SET.T!"
-	call set "_T.SET.Type=%%!_T.SET.V!.Type%%"
+	rem Round6B: prefix-guard first. Non "_G.NS[" values (e.g. "< > & |")
+rem never reach the %% indirection below, which would build illegal %<% 
+rem text and crash parse (seen on MLess set2 storing value "<").
+if not "!_T.SET.T:~0,6!" == "_G.NS[" (
+		set "_T.SET.Res=0"
+		%<-% "_T.SET.Res"
+		%-|%
+	)
+	set "_T.SET.Ty=!_T.SET.T!.Type"
+	call set "_T.SET.Type=%%!_T.SET.Ty!%%"
 	if /i "!_T.SET.Type!" neq "NSMeta" (
 		set "_T.SET.Res=0"
 		%<-% "_T.SET.Res"
 		%-|%
 	)
-	call set "_T.SET.Target=%%!_T.SET.V!.Target%%"
+	set "_T.SET.Tg=!_T.SET.T!.Target"
+	call set "_T.SET.Target=%%!_T.SET.Tg!%%"
 	if defined _T.SET.Target (
-		call set "_T.SET.T2Type=%%!_T.SET.Target!.Type%%"
+		set "_T.SET.T2Type=!_T.SET.Target!.Type"
+		call set "_T.SET.T2Type=%%!_T.SET.T2Type!%%"
 		if /i "!_T.SET.T2Type!" == "NSBody" (
 			set "_T.SET.Res=1"
 		) else (
@@ -173,7 +182,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_AssertValidNS *NS
-	rem 显式命名 `_T.V.`（弃用 .for-var 域）
+		rem Explicit naming `_T.V.` (deprecated .for-var domain).
 
 	set "_T.V.T=%~1"
 	%_G.DOTHIS% %-|%
@@ -189,7 +198,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_AssertValidNSBody *NS
-	rem 显式命名 `_T.IM.`（弃用 .for-var 域）
+		rem Explicit naming `_T.IM.` (deprecated .for-var domain).
 
 	set "_T.IM.T=%~1"
 	%_G.DOTHIS% %-|%
@@ -205,7 +214,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Clone *From *To
-	rem 显式命名 `_T.IB.`（弃用 .for-var 域）
+		rem Explicit naming `_T.IB.` (deprecated .for-var domain).
 
 	set "_T.IB.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -236,7 +245,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_CloneMeta *From *To
-	rem 显式命名 `_T.CM.`（弃用 .for-var 域）
+		rem Explicit naming `_T.CM.` (deprecated .for-var domain).
 
 	set "_T.CM.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -251,6 +260,7 @@ exit /b 0
 
 	set /a "_G.NSP += 1"
 	set "_G.NS[!_G.NSP!].Type=NSMeta"
+	set "_G.NS[!_G.NSP!].RC=1"
 	if defined %~1.Target (
 		set "_G.NS[!_G.NSP!].Target=!%~1.Target!"
 		set "_T.CM.NSBody=!%~1.Target!"
@@ -264,7 +274,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_HasField *NS -> Bool
-	rem 显式命名 `_T.HF.`（弃用 .for-var 域）
+		rem Explicit naming `_T.HF.` (deprecated .for-var domain).
 
 	set "_T.HF.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -292,7 +302,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_Get *NS Field *Val
-	rem 显式命名 `_T.AV.`（弃用 .for-var 域）
+		rem Explicit naming `_T.AV.` (deprecated .for-var domain).
 
 	set "_T.AV.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -324,7 +334,12 @@ exit /b 0
 %-|%
 
 :NSUTIL_Free *NS
-	rem 显式命名 `_T.FR.`（弃用 .for-var 域）
+		rem Explicit naming `_T.FR.` (deprecated .for-var domain).
+	rem Round6B: RCMODE=on dispatch FreeRC (DecRef + drain)
+	if defined _G.RCMODE (
+		call :NSUTIL_FreeRC "%~1"
+		%-|%
+	)
 
 	set "_T.FR.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -353,7 +368,7 @@ exit /b 0
 
 	call :NSUTIL_FreeNSBody "_T.FR.NSBody"
 
-	rem 槽位回收：_G.RECYCLE 开时把自有 body 对压入空闲链表（TCO 循环作用域）
+		rem Slot recycling: when _G.RECYCLE on, push own body pair onto free list (TCO loop scope).
 	if defined _G.RECYCLE if "!_T.FR.H:~0,6!" == "_G.NS[" (
 		set "_T.FR.MI=!_T.FR.H:~6,-1!"
 		set "_T.FR.BI=!_T.FR.NSBody:~6,-1!"
@@ -370,7 +385,7 @@ exit /b 0
 %-|%
 
 :NSUTIL_FreeNSBody *NS
-	rem 显式命名 `_T.FB.`（弃用 .for-var 域，内嵌 for /f %%a 保留）
+		rem Explicit naming `_T.FB.` (deprecated .for-var domain, inline for /f %%a preserved).
 
 	set "_T.FB.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -404,7 +419,12 @@ exit /b 0
 %-|%
 
 :NSUTIL_CloneBody *NS *NewNS
-	rem 显式命名 `_T.CB.`（弃用 .for-var 域，内嵌 for /f %%a 保留）
+		rem Explicit naming `_T.CB.` (deprecated .for-var domain, inline for /f %%a preserved).
+	rem Round6B: RCMODE=on dispatch CloneBodyRC (shared handle refs, no wrapper)
+	if defined _G.RCMODE (
+		call :NSUTIL_CloneBodyRC "%~1" "%~2"
+		%-|%
+	)
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
 	%_G.SKIPTHIS% 	>&2 echo [%~n0] Fatal: NSUTIL not initialized.
 	%_G.SKIPTHIS% 	2>con >&2 pause
@@ -437,7 +457,12 @@ exit /b 0
 %-|%
 
 :NSUTIL_Set *NS Field *Val
-	rem 显式命名 `_T.AB.`（弃用 .for-var 域）
+		rem Explicit naming `_T.AB.` (deprecated .for-var domain).
+	rem Round6B: RCMODE=on dispatch SetRC (COW + overwrite DecRef + IncRef store)
+	if defined _G.RCMODE (
+		call :NSUTIL_SetRC "%~1" "%~2" "%~3"
+		%-|%
+	)
 
 	set "_T.AB.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -460,8 +485,8 @@ exit /b 0
 
 	set "_T.AB.V=%~3"
 
-	rem 收窄 COW 触发面（#3）：同值短路前置——在深拷贝之前判等，值未变时直接返回，
-	rem 避免无谓的 CloneBody 全字段深拷贝。Free 步随后重新读当前字段值，保持原语义。
+		rem Narrow COW trigger surface (#3): same-value short-circuit first -- deep copy only if changed,
+		rem avoid wasteful CloneBody full-field deep copy. Free step re-reads current field value, preserving semantics.
 	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.AB.HasField"
 	if "!_T.AB.HasField!" == "1" (
 		call set "_T.AB.CurVal=%%!_T.AB.NSBody!.Data.Value[%~2]%%"
@@ -500,9 +525,14 @@ exit /b 0
 %-|%
 
 :NSUTIL_SetDirect *NS Field *Val
-	rem 环境直写（#step4 递归修复）：def! 修改共享环境时绕过 COW，
-	rem 保持 MAL 引用语义——所有捕获该环境的闭包都能看到新绑定。
-	rem 显式命名 `_T.SD.`（弃用 .for-var 域）
+		rem Env direct-write (#step4 recursion fix): def! bypasses COW when modifying shared env,
+		rem preserving MAL ref semantics -- all closures capturing that env see the new binding.
+		rem Explicit naming `_T.SD.` (deprecated .for-var domain).
+	rem Round6B: RCMODE=on dispatch SetDirectRC (no COW, write-through)
+	if defined _G.RCMODE (
+		call :NSUTIL_SetDirectRC "%~1" "%~2" "%~3"
+		%-|%
+	)
 
 	set "_T.SD.T=%~1"
 	%_G.SKIPTHIS% if not defined _G.NSUTIL (
@@ -594,3 +624,259 @@ exit /b 0
 
 exit /b 0
 
+rem ============================================================
+	rem Round6B RC refcount refactor (RCMODE=on branch, round6.md six touchpoints)
+	rem store +1 IncRef / overwrite -1 DecRef / Free both forms / FreeNSBody per-field /
+	rem work queue _G.DESTROY + Drain / decref underflow assertion.
+	rem input 3 forms normalized: raw handle _G.NS[n] / var name / registry _G.LEVEL[L][ns].
+rem ============================================================
+
+:NSUTIL_IncRef *NS
+	rem NS ref +1. dead-ref / non-NS: silent skip.
+	set "_T.IR.Q=%~1"
+	if not "!_T.IR.Q:~0,6!" == "_G.NS[" (
+		call set "_T.IR.Q=%%!%~1!%%"
+		if not defined _T.IR.Q %-|%
+		if "!_T.IR.Q:~0,6!" == "_G.LEVEL[" call set "_T.IR.Q=%%!_T.IR.Q!%%"
+	)
+	if not "!_T.IR.Q:~0,6!" == "_G.NS[" %-|%
+	call set "_T.IR.RC=%%!_T.IR.Q!.RC%%"
+	if not defined _T.IR.RC set "_T.IR.RC=0"
+	set /a "_T.IR.RC += 1"
+	set "!_T.IR.Q!.RC=!_T.IR.RC!"
+	set "_T.IR.Q="
+	set "_T.IR.RC="
+%-|%
+
+:NSUTIL_DecRef *NS
+	rem NS ref -1; zero pushes into _G.DESTROY queue. underflow aborts.
+	rem dead-ref / already released: skip silently (idempotent, no double-free).
+	set "_T.DC.Q=%~1"
+	if not "!_T.DC.Q:~0,6!" == "_G.NS[" (
+		call set "_T.DC.Q=%%!%~1!%%"
+		if not defined _T.DC.Q %-|%
+		if "!_T.DC.Q:~0,6!" == "_G.LEVEL[" call set "_T.DC.Q=%%!_T.DC.Q!%%"
+	)
+	if not "!_T.DC.Q:~0,6!" == "_G.NS[" %-|%
+	call set "_T.DC.RC=%%!_T.DC.Q!.RC%%"
+	if not defined _T.DC.RC set "_T.DC.RC=0"
+	if !_T.DC.RC! lss 1 %?|% "decref underflow on [%~1]."
+	set /a "_T.DC.RC -= 1"
+	set "!_T.DC.Q!.RC=!_T.DC.RC!"
+	if "!_T.DC.RC!" == "0" (
+		set /a "_G.DESTROY.C += 1"
+		set "_G.DESTROY[!_G.DESTROY.C!]=!_T.DC.Q!"
+	)
+	set "_T.DC.Q="
+	set "_T.DC.RC="
+%-|%
+
+:NSUTIL_DrainDestroy
+	rem drain _G.DESTROY queue; each: meta->body unlink (body RefCnt-1);
+	rem body dead: per-field DecRef + clear; clear meta slot; RECYCLE adjacent pair -> NXFREE.
+	set "_T.DR.H="
+	set "_T.DR.B="
+	set "_T.DR.REF="
+	set "_T.DR.FV="
+	set "_T.DR.FS="
+	set "_T.DR.FM="
+	set "_T.DR.BR="
+:NSUTIL_DrainDestroy_Chk
+	if defined _G.DESTROY.C (
+		set "_T.DR.H=!_G.DESTROY[!_G.DESTROY.C!]!"
+		set "_G.DESTROY[!_G.DESTROY.C!]="
+		set /a "_G.DESTROY.C -= 1"
+		if "!_G.DESTROY.C!" == "0" set "_G.DESTROY.C="
+		if defined _T.DR.H (
+			call set "_T.DR.B=%%!_T.DR.H!.Target%%"
+			if "!_T.DR.B:~0,6!" == "_G.NS[" (
+				call set "_T.DR.BR=%%!_T.DR.B!.RefCnt%%"
+				if not defined _T.DR.BR set "_T.DR.BR=0"
+				set /a "_T.DR.BR -= 1"
+				set "!_T.DR.B!.RefCnt=!_T.DR.BR!"
+				if "!_T.DR.BR!" == "0" (
+					rem body dead: per-field DecRef + clear
+					( set "!_T.DR.B!.Data.Key" ) > "%TEMP%\mal_rb_!_G.LEVEL!.txt" 2>nul
+					for /f "usebackq delims==" %%k in ("%TEMP%\mal_rb_!_G.LEVEL!.txt") do (
+						call set "_T.DR.FV=%%!_T.DR.B!.Data.Value[!%%k!]%%"
+						set "_T.DR.FS=!_T.DR.FV:~0,6!"
+						if "!_T.DR.FS!" == "_G.NS[" (
+							call :NSUTIL_IsValidNS "!_T.DR.FV!" %->% _T.DR.FM
+							if "!_T.DR.FM!" == "1" (
+								call :NSUTIL_DecRef "!_T.DR.FV!"
+							)
+						)
+						set "!_T.DR.B!.Data.Value[!%%k!]="
+						set "%%k="
+					)
+					set "!_T.DR.B!.Type="
+					set "!_T.DR.B!.RefCnt="
+					set "_T.DR.REF=1"
+				)
+			)
+			rem clear meta slot
+			set "!_T.DR.H!.Type="
+			set "!_T.DR.H!.Target="
+			set "!_T.DR.H!.RC="
+			set "_T.DR.B="
+			set "_T.DR.REF="
+			set "_T.DR.FV="
+			set "_T.DR.FS="
+			set "_T.DR.FM="
+			set "_T.DR.BR="
+		)
+		set "_T.DR.H="
+		goto :NSUTIL_DrainDestroy_Chk
+	)
+%-|%
+
+:NSUTIL_FreeRC *NS
+	rem Free(RCMODE)=DecRef: RC-1; real destroy only at zero; then drain queue.
+	%&% _G.RET _T.RF.RetBackup
+	call :NSUTIL_DecRef "%~1"
+	if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+	%&% _T.RF.RetBackup _G.RET
+	set "_T.RF.RetBackup="
+%-|%
+
+:NSUTIL_CloneBodyRC *NS *NewNS
+	rem CloneBody(RCMODE): alloc new body, fields become shared handle refs (+IncRef),
+	rem replaces CloneMeta deep-copy wrapper (no wrapper growth per Set).
+	set /a "_G.NSP += 1"
+	set "_T.C2.NewBody=_G.NS[!_G.NSP!]"
+	set "!_T.C2.NewBody!.Type=NSBody"
+	set "!_T.C2.NewBody!.RefCnt=1"
+	( set "!%~1!.Data.Key" ) > "%TEMP%\mal_c_!_G.LEVEL!.txt" 2>nul
+	for /f "usebackq delims==" %%a in ("%TEMP%\mal_c_!_G.LEVEL!.txt") do (
+		set "!_T.C2.NewBody!.Data.Key[!%%a!]=!%%a!"
+		call set "_T.C2.FV=%%!%~1!.Data.Value[!%%a!]%%"
+		set "_T.C2.FS=!_T.C2.FV:~0,6!"
+		if "!_T.C2.FS!" == "_G.NS[" (
+			call :NSUTIL_IsValidNS "!_T.C2.FV!" %->% _T.C2.FM
+			if "!_T.C2.FM!" == "1" (
+				call :NSUTIL_IncRef "!_T.C2.FV!"
+			)
+		)
+		set "!_T.C2.NewBody!.Data.Value[!%%a!]=!_T.C2.FV!"
+	)
+	set "_T.C2.FS="
+	set "_T.C2.FM="
+	%&% "_T.C2.NewBody" "%~2"
+%-|%
+
+:NSUTIL_SetRC *NS Field *Val
+	rem Set(RCMODE): 1) COW clone if shared body (+1) 2) overwrite old field DecRef
+	rem 3) store raw handle +IncRef (no wrapper) 4) drain queue if any enqueued.
+	>&2 echo [SRC] ent NS=%~1 F=%~2 V=%~3
+	set "_T.S2.T=%~1"
+	set "_T.S2.F=%~2"
+	set "_T.S2.V=%~3"
+
+	if defined %~1.Target (
+		set "_T.S2.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.S2.NSBody=%%!%~1!.Target%%"
+	)
+
+	rem same-value short-circuit (#3 semantic preserved: unchanged -> return)
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.S2.HasField"
+	if "!_T.S2.HasField!" == "1" (
+		call set "_T.S2.CurVal=%%!_T.S2.NSBody!.Data.Value[%~2]%%"
+		if "!_T.S2.CurVal!" == "!_T.S2.V!" %-|%
+	)
+
+	rem COW: clone only when body is shared
+	call set "_T.S2.RefCnt=%%!_T.S2.NSBody!.RefCnt%%"
+	if !_T.S2.RefCnt! gtr 1 (
+		set /a "!_T.S2.NSBody!.RefCnt -= 1"
+		call :NSUTIL_CloneBodyRC "_T.S2.NSBody" "_T.S2.NewBody"
+		set "_T.S2.NSBody=!_T.S2.NewBody!"
+		if defined %~1.Target (
+			set "%~1.Target=!_T.S2.NewBody!"
+		) else (
+			call set "%~1.Target=%%!_T.S2.NewBody!%%"
+		)
+	)
+
+	rem overwrite old value: if NS, DecRef (release old ref)
+	if "!_T.S2.HasField!" == "1" (
+		call set "_T.S2.CurVal=%%!_T.S2.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.S2.CurVal!" %->% "_T.S2.IsMeta"
+		if "!_T.S2.IsMeta!" == "1" (
+			call :NSUTIL_DecRef "!_T.S2.CurVal!"
+		)
+	)
+
+	rem store new value
+	set "!_T.S2.NSBody!.Data.Key[%~2]=%~2"
+	>&2 echo [SRC] pre-ISNS V=!_T.S2.V!
+	call :NSUTIL_IsValidNS "!_T.S2.V!" %->% "_T.S2.IsNS"
+	>&2 echo [SRC] post-ISNS IsNS=!_T.S2.IsNS! IsMeta=!_T.S2.IsMeta!
+	if "!_T.S2.IsNS!" == "1" (
+		rem resolve new value to raw handle and IncRef
+		if defined %~3.Target (
+			set "_T.S2.VH=%~3"
+		) else (
+			call set "_T.S2.VH=%%!%~3!%%"
+			if not defined _T.S2.VH set "_T.S2.VH=%~3"
+			if "!_T.S2.VH:~0,6!" == "_G.LEVEL[" call set "_T.S2.VH=%%!_T.S2.VH!%%"
+		)
+		if not "!_T.S2.VH:~0,6!" == "_G.NS[" set "_T.S2.VH=%~3"
+		set "!_T.S2.NSBody!.Data.Value[%~2]=!_T.S2.VH!"
+		call :NSUTIL_IncRef "!_T.S2.VH!"
+	) else (
+		rem Round6B: V must be staged via a delayed-expansion variable:
+		rem literal ")" "]" "}" inside set "name=V" is still parsed as block-end
+		rem when the set line itself sits inside a nested for/if compound block.
+		set "_T.S2.V2=!_T.S2.V!"
+		set "!_T.S2.NSBody!.Data.Value[%~2]=!_T.S2.V2!"
+	)
+if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+	set "_T.S2.CurVal="
+	set "_T.S2.VH="
+	>&2 echo [SRC] ret
+	%-|%
+
+:NSUTIL_SetDirectRC *NS Field *Val
+	rem SetDirect(RCMODE): write-through shared env (def! semantic), no COW; overwrite DecRef + store raw handle +IncRef.
+	set "_T.SD2.T=%~1"
+	set "_T.SD2.F=%~2"
+	set "_T.SD2.V=%~3"
+
+	if defined %~1.Target (
+		set "_T.SD2.NSBody=!%~1.Target!"
+	) else (
+		call set "_T.SD2.NSBody=%%!%~1!.Target%%"
+	)
+
+	rem overwrite old value DecRef
+	call :NSUTIL_HasField "%~1" "%~2" %->% "_T.SD2.HasField"
+	if "!_T.SD2.HasField!" == "1" (
+		call set "_T.SD2.CurVal=%%!_T.SD2.NSBody!.Data.Value[%~2]%%"
+		call :NSUTIL_IsValidNS "!_T.SD2.CurVal!" %->% "_T.SD2.IsMeta"
+		if "!_T.SD2.IsMeta!" == "1" (
+			call :NSUTIL_DecRef "!_T.SD2.CurVal!"
+		)
+	)
+
+	rem store new value (self env, no COW)
+	set "!_T.SD2.NSBody!.Data.Key[%~2]=%~2"
+	call :NSUTIL_IsValidNS "!_T.SD2.V!" %->% "_T.SD2.IsNS"
+	if "!_T.SD2.IsNS!" == "1" (
+		if defined %~3.Target (
+			set "_T.SD2.VH=%~3"
+		) else (
+			call set "_T.SD2.VH=%%!%~3!%%"
+			if not defined _T.SD2.VH set "_T.SD2.VH=%~3"
+			if "!_T.SD2.VH:~0,6!" == "_G.LEVEL[" call set "_T.SD2.VH=%%!_T.SD2.VH!%%"
+		)
+		if not "!_T.SD2.VH:~0,6!" == "_G.NS[" set "_T.SD2.VH=%~3"
+		set "!_T.SD2.NSBody!.Data.Value[%~2]=!_T.SD2.VH!"
+		call :NSUTIL_IncRef "!_T.SD2.VH!"
+	) else (
+		set "!_T.SD2.NSBody!.Data.Value[%~2]=!_T.SD2.V!"
+	)
+	if defined _G.DESTROY.C call :NSUTIL_DrainDestroy
+	set "_T.SD2.CurVal="
+	set "_T.SD2.VH="
+%-|%

@@ -158,7 +158,7 @@ exit /b 0
 			)
 		)
 		if "!%%.DbgOn!" == "1" (
-			%{% PRINTER PrintMalType "!%%.ObjMal!" %}% %->% %%.DbgStr
+			%{% PRINTER PrintMalType "!%%.ObjMal!" R %}% %->% %%.DbgStr
 			%{% STR GetStr %%.DbgStr %}% %->% %%.DbgRead
 			set "%%.DbgLine=EVAL: !%%.DbgRead!"
 			%{% IO WriteEncLine %%.DbgLine %}%
@@ -247,7 +247,7 @@ exit /b 0
 :MAIN_Print Mal -> Mal
 	for %%. in (_L[!_G.LEVEL!].) do (
 		set "%%.Mal=%~1"
-		%{% PRINTER PrintMalType "!%%.Mal!" %}% %->% %%.StrMal
+		%{% PRINTER PrintMalType "!%%.Mal!" R %}% %->% %%.StrMal
 		%?% (
 			%-|%
 		)
